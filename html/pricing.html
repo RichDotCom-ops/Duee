@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>duee. — Pricing</title>
+  <link rel="stylesheet" href="../css/main.css" />
+  <link rel="stylesheet" href="../css/app.css" />
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    .pricing-page { min-height: 100vh; background: var(--bg-main); display: flex; flex-direction: column; }
+
+    /* ── Topbar ── */
+    .pricing-topbar { background: var(--bg-white); border-bottom: 1px solid var(--border); padding: 0 40px; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+    .pricing-topbar-logo { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; color: var(--text-primary); text-decoration: none; }
+    .pricing-topbar-logo span { color: var(--green); }
+    .topbar-right-group { display: flex; align-items: center; gap: 16px; }
+    .topbar-plan-chip { font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 99px; background: linear-gradient(135deg,#7c3aed18,#2563eb18); color: #7c3aed; display: none; }
+    .back-link { font-size: 13px; font-weight: 600; color: var(--text-secondary); text-decoration: none; display: flex; align-items: center; gap: 5px; transition: color 0.15s; }
+    .back-link:hover { color: var(--text-primary); }
+
+    /* ── Hero ── */
+    .pricing-hero { text-align: center; padding: 72px 24px 56px; position: relative; }
+    .pricing-hero::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 80% 60% at 50% 0%, #7c3aed0d 0%, transparent 70%); pointer-events: none; }
+    .hero-badge { display: inline-flex; align-items: center; gap: 6px; background: linear-gradient(135deg,#7c3aed18,#2563eb18); border: 1px solid #7c3aed30; color: #7c3aed; font-size: 12px; font-weight: 700; padding: 5px 14px; border-radius: 99px; margin-bottom: 20px; letter-spacing: 0.3px; }
+    .pricing-hero h1 { font-size: 46px; font-weight: 800; letter-spacing: -1.5px; margin-bottom: 14px; line-height: 1.1; }
+    .pricing-hero h1 .grad { background: linear-gradient(135deg,#7c3aed,#2563eb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .pricing-hero p { font-size: 17px; color: var(--text-secondary); max-width: 460px; margin: 0 auto 36px; line-height: 1.6; }
+    .pricing-toggle-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .pricing-toggle { display: inline-flex; background: var(--bg-hover); border: 1px solid var(--border); border-radius: 99px; padding: 4px; gap: 2px; }
+    .pricing-toggle-btn { padding: 8px 22px; border-radius: 99px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; background: none; color: var(--text-secondary); }
+    .pricing-toggle-btn.active { background: var(--bg-white); color: var(--text-primary); box-shadow: 0 1px 4px rgba(0,0,0,0.12); }
+    .toggle-save-pill { font-size: 12px; font-weight: 700; color: #16a34a; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 3px 12px; border-radius: 99px; opacity: 0; transition: opacity 0.2s; }
+    .toggle-save-pill.visible { opacity: 1; }
+
+    /* ── Trust Bar ── */
+    .trust-bar { display: flex; align-items: center; justify-content: center; gap: 32px; padding: 16px 24px; margin-bottom: 8px; flex-wrap: wrap; }
+    .trust-item { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--text-secondary); font-weight: 500; }
+    .trust-icon { font-size: 16px; }
+
+    /* ── Cards ── */
+    .pricing-cards { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; max-width: 1020px; margin: 0 auto; padding: 0 24px 80px; align-items: start; }
+
+    .pricing-card { background: var(--bg-white); border: 1.5px solid var(--border); border-radius: 22px; padding: 30px 26px 26px; display: flex; flex-direction: column; position: relative; transition: box-shadow 0.22s, transform 0.22s; }
+    .pricing-card:hover { box-shadow: 0 8px 32px rgba(0,0,0,0.1); transform: translateY(-3px); }
+
+    /* Pro card — premium */
+    .pricing-card.popular { border-color: #7c3aed; box-shadow: 0 0 0 1px #7c3aed, 0 8px 40px rgba(124,58,237,0.15); transform: scale(1.025); background: var(--bg-white); }
+    .pricing-card.popular:hover { box-shadow: 0 0 0 1px #7c3aed, 0 16px 48px rgba(124,58,237,0.22); transform: scale(1.025) translateY(-3px); }
+
+    .popular-badge { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg,#7c3aed,#2563eb); color: white; font-size: 11px; font-weight: 700; padding: 5px 18px; border-radius: 99px; white-space: nowrap; letter-spacing: 0.5px; }
+    .current-badge { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); background: var(--green); color: white; font-size: 11px; font-weight: 700; padding: 5px 18px; border-radius: 99px; white-space: nowrap; }
+
+    .plan-icon { width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 22px; margin-bottom: 16px; }
+    .plan-name { font-size: 19px; font-weight: 800; margin-bottom: 4px; }
+    .plan-desc { font-size: 13px; color: var(--text-secondary); margin-bottom: 22px; line-height: 1.55; min-height: 40px; }
+
+    .plan-price-wrap { margin-bottom: 6px; display: flex; align-items: flex-end; gap: 4px; }
+    .plan-price-amount { font-size: 44px; font-weight: 800; letter-spacing: -2px; line-height: 1; }
+    .plan-price-period { font-size: 14px; color: var(--text-secondary); font-weight: 500; padding-bottom: 6px; }
+    .plan-price-free { font-size: 44px; font-weight: 800; letter-spacing: -2px; color: var(--text-primary); }
+
+    .plan-save-row { height: 26px; margin-bottom: 20px; }
+    .plan-save { font-size: 12px; font-weight: 700; color: #16a34a; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 3px 10px; border-radius: 99px; display: inline-block; }
+
+    .plan-cta { width: 100%; padding: 13px; border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer; border: none; transition: all 0.18s; margin-bottom: 22px; letter-spacing: 0.2px; }
+    .plan-cta-free { background: var(--bg-hover); color: var(--text-secondary); border: 1.5px solid var(--border); }
+    .plan-cta-free:hover { background: var(--border); color: var(--text-primary); }
+    .plan-cta-pro { background: linear-gradient(135deg,#7c3aed,#2563eb); color: white; box-shadow: 0 4px 16px rgba(124,58,237,0.32); font-size: 15px; }
+    .plan-cta-pro:hover { box-shadow: 0 8px 24px rgba(124,58,237,0.44); transform: translateY(-1px); filter: brightness(1.05); }
+    .plan-cta-pro:active { transform: translateY(0); }
+    .plan-cta-annual { background: linear-gradient(135deg,#16a34a,#0891b2); color: white; box-shadow: 0 4px 16px rgba(22,163,74,0.28); font-size: 15px; }
+    .plan-cta-annual:hover { box-shadow: 0 8px 24px rgba(22,163,74,0.38); transform: translateY(-1px); filter: brightness(1.05); }
+
+    .plan-divider { height: 1px; background: var(--border); margin-bottom: 20px; }
+    .plan-features-label { font-size: 11px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 12px; }
+    .plan-features { display: flex; flex-direction: column; gap: 9px; }
+    .plan-feature { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; }
+    .check { width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; font-size: 10px; font-weight: 700; }
+    .check-yes { background: #f0fdf4; color: #16a34a; }
+    .check-no  { background: var(--bg-hover); color: var(--text-muted); }
+    .plan-feature-text { color: var(--text-secondary); line-height: 1.45; }
+    .plan-feature-text strong { color: var(--text-primary); font-weight: 600; }
+    .feat-tag { font-size: 10px; background: #7c3aed18; color: #7c3aed; border-radius: 99px; padding: 1px 7px; font-weight: 700; vertical-align: middle; }
+
+    /* plan-current */
+    .plan-current { border-color: var(--green) !important; box-shadow: 0 0 0 1px var(--green), 0 8px 32px rgba(22,163,74,0.1) !important; }
+
+    /* ── FAQ ── */
+    .pricing-faq { max-width: 640px; margin: 0 auto; padding: 0 24px 100px; }
+    .pricing-faq h2 { font-size: 26px; font-weight: 800; text-align: center; margin-bottom: 10px; }
+    .pricing-faq-sub { text-align: center; font-size: 14px; color: var(--text-secondary); margin-bottom: 36px; }
+    .faq-item { border-bottom: 1px solid var(--border); padding: 18px 0; cursor: pointer; }
+    .faq-q { font-size: 14px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; gap: 12px; user-select: none; }
+    .faq-a { font-size: 13px; color: var(--text-secondary); line-height: 1.65; margin-top: 10px; display: none; }
+    .faq-item.open .faq-a { display: block; }
+    .faq-arrow { font-size: 18px; transition: transform 0.2s; flex-shrink: 0; color: var(--text-muted); }
+    .faq-item.open .faq-arrow { transform: rotate(180deg); }
+
+    /* ── Payment Modal ── */
+    .pay-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); backdrop-filter: blur(6px); z-index: 2000; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: opacity 0.25s, visibility 0.25s; padding: 16px; }
+    .pay-modal-overlay.open { opacity: 1; visibility: visible; }
+    .pay-modal { background: var(--bg-white); border-radius: 24px; max-width: 440px; width: 100%; overflow: hidden; box-shadow: 0 32px 80px rgba(0,0,0,0.25); animation: modalIn 0.25s ease; }
+    @keyframes modalIn { from { transform: scale(0.95) translateY(12px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+
+    .pay-modal-header { padding: 28px 28px 0; text-align: center; }
+    .pay-modal-plan-icon { width: 64px; height: 64px; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 30px; margin: 0 auto 16px; }
+    .pay-modal-title { font-size: 22px; font-weight: 800; margin: 0 0 6px; }
+    .pay-modal-subtitle { font-size: 14px; color: var(--text-secondary); margin: 0 0 20px; line-height: 1.5; }
+    .pay-modal-price-box { background: linear-gradient(135deg,#7c3aed08,#2563eb08); border: 1px solid #7c3aed20; border-radius: 14px; padding: 14px; margin-bottom: 20px; }
+    .pay-modal-price { font-size: 36px; font-weight: 800; background: linear-gradient(135deg,#7c3aed,#2563eb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; line-height: 1; margin-bottom: 2px; }
+    .pay-modal-price-sub { font-size: 12px; color: var(--text-secondary); }
+    .pay-modal-body { padding: 0 28px; }
+    .pay-features { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+    .pay-feat { font-size: 13px; display: flex; align-items: center; gap: 10px; color: var(--text-secondary); }
+    .pay-feat-check { width: 20px; height: 20px; border-radius: 50%; background: #f0fdf4; color: #16a34a; font-weight: 700; font-size: 11px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .pay-trust { display: flex; align-items: center; justify-content: center; gap: 20px; padding: 12px 0 20px; border-top: 1px solid var(--border); margin-top: 4px; }
+    .pay-trust-item { font-size: 11px; color: var(--text-muted); font-weight: 500; display: flex; align-items: center; gap: 4px; }
+    .pay-modal-footer { padding: 0 28px 28px; }
+    .pay-checkout-btn { width: 100%; padding: 15px; border-radius: 14px; font-size: 16px; font-weight: 700; cursor: pointer; border: none; background: linear-gradient(135deg,#7c3aed,#2563eb); color: white; box-shadow: 0 6px 20px rgba(124,58,237,0.35); transition: all 0.18s; letter-spacing: 0.2px; margin-bottom: 10px; }
+    .pay-checkout-btn:hover { box-shadow: 0 10px 28px rgba(124,58,237,0.45); filter: brightness(1.05); transform: translateY(-1px); }
+    .pay-checkout-btn.annual-btn { background: linear-gradient(135deg,#16a34a,#0891b2); box-shadow: 0 6px 20px rgba(22,163,74,0.3); }
+    .pay-checkout-btn.annual-btn:hover { box-shadow: 0 10px 28px rgba(22,163,74,0.4); }
+    .pay-later-btn { width: 100%; padding: 11px; border-radius: 14px; font-size: 14px; font-weight: 600; cursor: pointer; border: 1.5px solid var(--border); background: none; color: var(--text-secondary); transition: all 0.15s; }
+    .pay-later-btn:hover { border-color: var(--text-muted); color: var(--text-primary); }
+
+    /* Success overlay */
+    .pay-success { display: none; padding: 36px 28px; text-align: center; }
+    .pay-success.show { display: flex; flex-direction: column; align-items: center; }
+    .pay-success-icon { width: 72px; height: 72px; border-radius: 50%; background: #f0fdf4; display: flex; align-items: center; justify-content: center; font-size: 34px; margin-bottom: 16px; }
+    .pay-success-title { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+    .pay-success-text { font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 24px; }
+
+    /* Dark mode */
+    [data-theme="dark"] .pricing-topbar { background: #1e293b; border-color: var(--border); }
+    [data-theme="dark"] .pricing-toggle { background: #1e293b; border-color: var(--border); }
+    [data-theme="dark"] .pricing-toggle-btn.active { background: #0f172a; box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+    [data-theme="dark"] .pricing-card { background: #1e293b; }
+    [data-theme="dark"] .pricing-card.popular { background: #1e293b; }
+    [data-theme="dark"] .pay-modal { background: #1e293b; }
+    [data-theme="dark"] .pay-modal-price-box { background: linear-gradient(135deg,#7c3aed10,#2563eb10); }
+
+    @media (max-width: 800px) {
+      .pricing-cards { grid-template-columns: 1fr; max-width: 420px; }
+      .pricing-card.popular { transform: none; }
+      .pricing-card.popular:hover { transform: translateY(-3px); }
+      .pricing-hero h1 { font-size: 32px; }
+      .trust-bar { gap: 16px; }
+    }
+  </style>
+</head>
+<body>
+<div class="pricing-page">
+
+  <!-- Topbar -->
+  <div class="pricing-topbar">
+    <a class="pricing-topbar-logo" href="dashboard.html">duee<span>.</span></a>
+    <div class="topbar-right-group">
+      <span class="topbar-plan-chip" id="topbar-plan-chip"></span>
+      <a class="back-link" href="dashboard.html">← Back to app</a>
+    </div>
+  </div>
+
+  <!-- Hero -->
+  <div class="pricing-hero">
+    <div class="hero-badge">✦ Simple, honest pricing</div>
+    <h1>The AI study assistant<br>you actually deserve.</h1>
+    <p>Start free. Upgrade when you're ready. Everything you need to never miss a deadline again.</p>
+    <div class="pricing-toggle-wrap">
+      <div class="pricing-toggle">
+        <button class="pricing-toggle-btn active" id="toggle-monthly" onclick="setToggle('monthly')">Monthly</button>
+        <button class="pricing-toggle-btn" id="toggle-annual" onclick="setToggle('annual')">Annual</button>
+      </div>
+      <div class="toggle-save-pill" id="toggle-save-pill">🎉 Save 77% with annual billing</div>
+    </div>
+  </div>
+
+  <!-- Trust bar -->
+  <div class="trust-bar">
+    <div class="trust-item"><span class="trust-icon">🔒</span> Secure checkout</div>
+    <div class="trust-item"><span class="trust-icon">↩️</span> Cancel anytime</div>
+    <div class="trust-item"><span class="trust-icon">🎓</span> Built for students</div>
+    <div class="trust-item"><span class="trust-icon">💬</span> 10k+ users</div>
+  </div>
+
+  <!-- Cards -->
+  <div class="pricing-cards">
+
+    <!-- Free -->
+    <div class="pricing-card" id="card-free">
+      <div class="plan-icon" style="background:#f0fdf4;">📚</div>
+      <div class="plan-name">Free</div>
+      <div class="plan-desc">Everything you need to get organized. Always free, no credit card required.</div>
+      <div class="plan-price-wrap">
+        <span class="plan-price-free">$0</span>
+      </div>
+      <div class="plan-save-row"></div>
+      <button class="plan-cta plan-cta-free" id="free-btn" onclick="selectFree()">Get started free</button>
+      <div class="plan-divider"></div>
+      <div class="plan-features-label">What's included</div>
+      <div class="plan-features">
+        <div class="plan-feature"><div class="check check-yes">✓</div><div class="plan-feature-text">Track classes &amp; assignments</div></div>
+        <div class="plan-feature"><div class="check check-yes">✓</div><div class="plan-feature-text">Calendar &amp; ICS import</div></div>
+        <div class="plan-feature"><div class="check check-yes">✓</div><div class="plan-feature-text">Browser notifications</div></div>
+        <div class="plan-feature"><div class="check check-yes">✓</div><div class="plan-feature-text">Dark mode &amp; study timer</div></div>
+        <div class="plan-feature"><div class="check check-yes">✓</div><div class="plan-feature-text"><strong>10 AI messages / day</strong></div></div>
+        <div class="plan-feature"><div class="check check-no">–</div><div class="plan-feature-text" style="color:var(--text-muted);">Unlimited AI messages</div></div>
+        <div class="plan-feature"><div class="check check-no">–</div><div class="plan-feature-text" style="color:var(--text-muted);">Priority AI responses</div></div>
+      </div>
+    </div>
+
+    <!-- Pro Monthly (default visible) -->
+    <div class="pricing-card popular" id="card-pro">
+      <div class="popular-badge" id="pro-popular-badge">✦ Most Popular</div>
+      <div class="plan-icon" style="background:linear-gradient(135deg,#7c3aed18,#2563eb18);">⚡</div>
+      <div class="plan-name" style="background:linear-gradient(135deg,#7c3aed,#2563eb);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Pro</div>
+      <div class="plan-desc">Unlimited AI help and the full duee. experience. Built for serious students.</div>
+      <div class="plan-price-wrap">
+        <span class="plan-price-amount" id="pro-amount">$14.99</span>
+        <span class="plan-price-period" id="pro-period"> / month</span>
+      </div>
+      <div class="plan-save-row" id="pro-save-row"></div>
+      <button class="plan-cta plan-cta-pro" id="pro-btn" onclick="openCheckout('pro')">Upgrade to Pro →</button>
+      <div class="plan-divider"></div>
+      <div class="plan-features-label">Everything in Free, plus</div>
+      <div class="plan-features">
+        <div class="plan-feature"><div class="check check-yes">✓</div><div class="plan-feature-text"><strong>Unlimited AI messages</strong></div></div>
+        <div class="plan-feature"><div class="check check-yes">✓</div><div class="plan-feature-text">Priority AI responses</div></div>
+        <div class="plan-feature"><div class="check check-yes">✓</div><div class="plan-feature-text">AI-powered study plans <span class="feat-tag">Soon</span></div></div>
+        <div class="plan-feature"><div class="check check-yes">✓</div><div class="plan-feature-text">Export assignments &amp; stats</div></div>
+        <div class="plan-feature"><div class="check check-yes">✓</div><div class="plan-feature-text">Early access to new features</div></div>
+        <div class="plan-feature"><div class="check check-yes">✓</div><div class="plan-feature-text">Cancel anytime, no questions</div></div>
+      </div>
+    </div>
+
+    <!-- Annual (hidden by default) -->
+    <div class="pricing-card popular" id="card-annual" style="display:none;">
+      <div class="popular-badge" id="annual-popular-badge">🌟 Best Value</div>
+      <div class="plan-icon" style="background:linear-gradient(135deg,#16a34a18,#0891b218);">🌟</div>
+      <div class="plan-name" style="background:linear-gradient(135deg,#16a34a,#0891b2);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Pro Annual</div>
+      <div class="plan-desc">A full year of unlimited AI for less than a coffee a month. Best deal available.</div>
+      <div class="plan-price-wrap">
+        <span class="plan-price-amount">$3.42</span>
+        <span class="plan-price-period"> / month</span>
+      </div>
+      <div class="plan-save-row">
+        <span class="plan-save">Billed $40.99/yr · save $138.89</span>
+      </div>
+      <button class="plan-cta plan-cta-annual" id="annual-btn" onclick="openCheckout('annual')">Get Annual Plan →</button>
+      <div class="plan-divider"></div>
+      <div class="plan-features-label">Everything in Pro, plus</div>
+      <div class="plan-features">
+        <div class="plan-feature"><div class="check check-yes">✓</div><div class="plan-feature-text"><strong>77% off vs monthly billing</strong></div></div>
+        <div class="plan-feature"><div class="check check-yes">✓</div><div class="plan-feature-text">Founding member status</div></div>
+        <div class="plan-feature"><div class="check check-yes">✓</div><div class="plan-feature-text">Priority feature requests</div></div>
+        <div class="plan-feature"><div class="check check-yes">✓</div><div class="plan-feature-text">One-year commitment, best price</div></div>
+      </div>
+    </div>
+
+    <!-- Filler card for 3-col layout when annual shown -->
+    <div class="pricing-card" id="card-free-annual" style="display:none;opacity:0.7;">
+      <div class="plan-icon" style="background:#f0fdf4;">📚</div>
+      <div class="plan-name">Free</div>
+      <div class="plan-desc">Get started at no cost. Upgrade whenever you're ready.</div>
+      <div class="plan-price-wrap"><span class="plan-price-free">$0</span></div>
+      <div class="plan-save-row"></div>
+      <button class="plan-cta plan-cta-free" onclick="selectFree()">Current plan</button>
+      <div class="plan-divider"></div>
+      <div class="plan-features-label">What's included</div>
+      <div class="plan-features">
+        <div class="plan-feature"><div class="check check-yes">✓</div><div class="plan-feature-text">All core features</div></div>
+        <div class="plan-feature"><div class="check check-yes">✓</div><div class="plan-feature-text">10 AI messages / day</div></div>
+        <div class="plan-feature"><div class="check check-no">–</div><div class="plan-feature-text" style="color:var(--text-muted);">Unlimited AI</div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- FAQ -->
+  <div class="pricing-faq">
+    <h2>Questions? We've got answers.</h2>
+    <div class="pricing-faq-sub">Everything you need to know before upgrading.</div>
+
+    <div class="faq-item" onclick="this.classList.toggle('open')">
+      <div class="faq-q">What counts as an AI message? <span class="faq-arrow">▾</span></div>
+      <div class="faq-a">Every message you send to the AI assistant (the ✦ button) uses one message. Free users get 10 per day — the counter resets every 24 hours automatically. Pro users have no limit.</div>
+    </div>
+    <div class="faq-item" onclick="this.classList.toggle('open')">
+      <div class="faq-q">Can I cancel anytime? <span class="faq-arrow">▾</span></div>
+      <div class="faq-a">Absolutely. Cancel any time and you'll keep Pro access through the end of your billing period. No cancellation fees, no questions asked.</div>
+    </div>
+    <div class="faq-item" onclick="this.classList.toggle('open')">
+      <div class="faq-q">Is my data safe? <span class="faq-arrow">▾</span></div>
+      <div class="faq-a">Yes. Your classes and assignments are stored in Supabase with row-level security — only you can see your data. We never sell or share your information with third parties.</div>
+    </div>
+    <div class="faq-item" onclick="this.classList.toggle('open')">
+      <div class="faq-q">What happens if I go back to Free? <span class="faq-arrow">▾</span></div>
+      <div class="faq-a">All your classes, assignments, and history stay intact — nothing is deleted. You'll just return to the 10 AI messages per day limit.</div>
+    </div>
+    <div class="faq-item" onclick="this.classList.toggle('open')">
+      <div class="faq-q">How is the Annual plan so much cheaper? <span class="faq-arrow">▾</span></div>
+      <div class="faq-a">Paying upfront for a full year lets us offer a massive 77% discount vs monthly. At $40.99/year, that's about $3.42/month — less than one cup of coffee.</div>
+    </div>
+    <div class="faq-item" onclick="this.classList.toggle('open')">
+      <div class="faq-q">What payment methods do you accept? <span class="faq-arrow">▾</span></div>
+      <div class="faq-a">All major credit and debit cards via Stripe (Visa, Mastercard, Amex, Discover). Apple Pay and Google Pay are also supported on compatible browsers.</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Success Modal (shown after LemonSqueezy checkout completes) -->
+<div class="pay-modal-overlay" id="success-modal" onclick="if(event.target===this)closeSuccessModal()">
+  <div class="pay-modal">
+    <div class="pay-success show" id="pay-success-view">
+      <div class="pay-success-icon" id="pay-success-icon">⚡</div>
+      <div class="pay-success-title" id="pay-success-title">You're now on Pro!</div>
+      <div class="pay-success-text" id="pay-success-text">Unlimited AI messages are now active. Enjoy the full duee. experience!</div>
+      <button class="pay-checkout-btn" style="max-width:280px;" onclick="location.href='dashboard.html'">Go to Dashboard →</button>
+      <button class="pay-later-btn" style="max-width:280px;margin-top:8px;" onclick="closeSuccessModal()">Stay on this page</button>
+    </div>
+  </div>
+</div>
+
+<!-- LemonSqueezy overlay checkout -->
+<script src="https://assets.lemonsqueezy.com/lemon.js" defer></script>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://unpkg.com/feather-icons/dist/feather.min.js"></script>
+<script src="../js/data.js"></script>
+<script src="../js/app.js"></script>
+<script src="../js/supabase-client.js"></script>
+<script src="../js/plan.js"></script>
+<script>
+// ─────────────────────────────────────────────
+// PASTE YOUR LEMONSQUEEZY CHECKOUT URLs HERE
+// Format: https://yourstore.lemonsqueezy.com/checkout/buy/VARIANT_ID
+// ─────────────────────────────────────────────
+const LS_PRO_URL    = 'PASTE_PRO_MONTHLY_CHECKOUT_URL_HERE';
+const LS_ANNUAL_URL = 'PASTE_PRO_ANNUAL_CHECKOUT_URL_HERE';
+// ─────────────────────────────────────────────
+
+let _billingToggle = 'monthly';
+let _pendingPlan   = null;
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const session = await Auth.requireAuth();
+  if (!session) return;
+  window._currentUser = session.user;
+  highlightCurrentPlan();
+  applyTheme(DB.getPreferences().theme);
+  initLemonSqueezy();
+});
+
+// ── LemonSqueezy overlay setup ──
+function initLemonSqueezy() {
+  // Wait for lemon.js to load (it's deferred)
+  const trySetup = () => {
+    if (typeof window.createLemonSqueezy !== 'function') {
+      setTimeout(trySetup, 200);
+      return;
+    }
+    window.createLemonSqueezy();
+    LemonSqueezy.Setup({
+      eventHandler: (event) => {
+        if (event.event === 'Checkout.Success') {
+          onPaymentSuccess();
+        }
+      }
+    });
+  };
+  trySetup();
+}
+
+function openCheckout(plan) {
+  _pendingPlan = plan;
+
+  // Validate URLs are configured
+  const url = plan === 'annual' ? LS_ANNUAL_URL : LS_PRO_URL;
+  if (url.startsWith('PASTE_')) {
+    showToast('Checkout URL not configured yet — see pricing.html', 'error');
+    return;
+  }
+
+  // Pre-fill user email if available
+  const email = window._currentUser?.email || '';
+  const emailParam = email ? `&checkout[email]=${encodeURIComponent(email)}` : '';
+
+  // Open LemonSqueezy overlay (?embed=1 triggers the overlay instead of redirect)
+  const checkoutUrl = `${url}?embed=1${emailParam}`;
+  LemonSqueezy.Url.Open(checkoutUrl);
+}
+
+function onPaymentSuccess() {
+  // Activate plan locally — mirrors what a webhook would do server-side
+  const expiresAt = _pendingPlan === 'annual'
+    ? Date.now() + 365 * 86400000
+    : Date.now() + 30  * 86400000;
+  DueePlan.setTier(_pendingPlan || 'pro', expiresAt);
+  highlightCurrentPlan();
+
+  // Show success modal
+  const isAnnual = _pendingPlan === 'annual';
+  document.getElementById('pay-success-icon').textContent  = isAnnual ? '🌟' : '⚡';
+  document.getElementById('pay-success-title').textContent = isAnnual ? 'Annual plan activated! 🎉' : 'You\'re now on Pro! 🎉';
+  document.getElementById('pay-success-text').textContent  = isAnnual
+    ? 'You have unlimited AI for a full year. Welcome to the founding member club!'
+    : 'Unlimited AI messages are now active. Enjoy the full duee. experience!';
+  document.getElementById('success-modal').classList.add('open');
+}
+
+function closeSuccessModal() {
+  document.getElementById('success-modal').classList.remove('open');
+}
+
+// ── Toggle ──
+function setToggle(mode) {
+  _billingToggle = mode;
+  document.getElementById('toggle-monthly').classList.toggle('active', mode === 'monthly');
+  document.getElementById('toggle-annual').classList.toggle('active', mode === 'annual');
+
+  const showAnnual = mode === 'annual';
+  document.getElementById('card-pro').style.display         = showAnnual ? 'none' : '';
+  document.getElementById('card-annual').style.display      = showAnnual ? '' : 'none';
+  document.getElementById('card-free').style.display        = showAnnual ? 'none' : '';
+  document.getElementById('card-free-annual').style.display = showAnnual ? '' : 'none';
+
+  document.getElementById('toggle-save-pill').classList.toggle('visible', showAnnual);
+  highlightCurrentPlan();
+}
+
+// ── Plan highlight ──
+function highlightCurrentPlan() {
+  const { tier } = DueePlan.getTier();
+
+  ['card-free','card-pro','card-annual','card-free-annual'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove('plan-current');
+    el.querySelectorAll('.current-badge').forEach(b => b.remove());
+  });
+
+  const pb = document.getElementById('pro-popular-badge');
+  if (pb) pb.style.display = '';
+  const ab = document.getElementById('annual-popular-badge');
+  if (ab) ab.style.display = '';
+
+  const chip = document.getElementById('topbar-plan-chip');
+  if (tier !== 'free') {
+    chip.textContent = tier === 'annual' ? '🌟 Annual Plan' : '⚡ Pro Plan';
+    chip.style.display = '';
+  } else {
+    chip.style.display = 'none';
+  }
+
+  const freeBtn = document.getElementById('free-btn');
+  if (freeBtn) freeBtn.textContent = tier === 'free' ? '✓ Current plan' : 'Downgrade to Free';
+
+  const proBtn = document.getElementById('pro-btn');
+  if (proBtn) proBtn.textContent = tier === 'pro' ? '✓ Current plan' : 'Upgrade to Pro →';
+
+  const annualBtn = document.getElementById('annual-btn');
+  if (annualBtn) annualBtn.textContent = tier === 'annual' ? '✓ Current plan' : 'Get Annual Plan →';
+
+  const targetMap = { free: _billingToggle === 'annual' ? 'card-free-annual' : 'card-free', pro: 'card-pro', annual: 'card-annual' };
+  const target = document.getElementById(targetMap[tier] || 'card-free');
+  if (target && target.style.display !== 'none') {
+    target.classList.add('plan-current');
+    const badge = document.createElement('div');
+    badge.className = 'current-badge';
+    badge.textContent = '✓ Your Plan';
+    target.insertBefore(badge, target.firstChild);
+    target.querySelector('.popular-badge')?.remove();
+  }
+}
+
+function selectFree() {
+  DueePlan.setTier('free', null);
+  highlightCurrentPlan();
+  showToast('You\'re on the Free plan', 'success');
+}
+</script>
+</body>
+</html>

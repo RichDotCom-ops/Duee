@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>duee. — Log In</title>
+  <link rel="stylesheet" href="../css/main.css" />
+  <style>
+    body { background: #f8fafc; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .auth-card { background: white; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 40px; width: 100%; max-width: 400px; box-shadow: var(--shadow-md); }
+    .auth-logo { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; text-align: center; margin-bottom: 6px; }
+    .auth-logo span { color: var(--green); }
+    .auth-sub { text-align: center; color: var(--text-secondary); font-size: 14px; margin-bottom: 28px; }
+    .auth-tabs { display: flex; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 24px; }
+    .auth-tab { flex: 1; padding: 9px; text-align: center; font-size: 14px; font-weight: 500; cursor: pointer; border: none; background: white; transition: all 0.15s; }
+    .auth-tab.active { background: var(--text-primary); color: white; }
+    .auth-msg { padding: 10px 14px; border-radius: var(--radius); font-size: 13px; margin-bottom: 16px; display: none; }
+    .auth-msg.error { background: var(--red-light); color: var(--red); }
+    .auth-msg.success { background: var(--green-light); color: var(--green-text); }
+    .auth-back { display: flex; align-items: center; justify-content: center; margin-top: 20px; }
+    .auth-back a { font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 4px; }
+    .auth-back a:hover { color: var(--text-primary); }
+    .btn-full { width: 100%; justify-content: center; padding: 11px; font-size: 15px; }
+    .btn-loading { opacity: 0.7; pointer-events: none; }
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<div class="auth-card">
+  <div class="auth-logo">duee<span>.</span></div>
+  <div class="auth-sub">Stay ahead of every deadline</div>
+
+  <div class="auth-tabs">
+    <button class="auth-tab" id="tab-login"  onclick="switchTab('login')">Log In</button>
+    <button class="auth-tab" id="tab-signup" onclick="switchTab('signup')">Sign Up</button>
+  </div>
+
+  <div id="auth-msg" class="auth-msg"></div>
+
+  <!-- Login -->
+  <form id="login-form" onsubmit="handleLogin(event)">
+    <div class="form-group">
+      <label>Email</label>
+      <input class="form-control" type="email" id="login-email" placeholder="you@university.edu" required />
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input class="form-control" type="password" id="login-pass" placeholder="••••••••" required />
+    </div>
+    <button type="submit" class="btn btn-primary btn-full" id="login-btn" style="margin-top:8px;">Log In</button>
+  </form>
+
+  <!-- Sign Up -->
+  <form id="signup-form" onsubmit="handleSignup(event)" style="display:none;">
+    <div class="form-group">
+      <label>Full Name</label>
+      <input class="form-control" type="text" id="signup-name" placeholder="Hassen Smith" required />
+    </div>
+    <div class="form-group">
+      <label>Email</label>
+      <input class="form-control" type="email" id="signup-email" placeholder="you@university.edu" required />
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input class="form-control" type="password" id="signup-pass" placeholder="At least 6 characters" required minlength="6" />
+    </div>
+    <button type="submit" class="btn btn-primary btn-full" id="signup-btn" style="margin-top:8px;">Create Account — Free</button>
+    <p style="font-size:12px;color:var(--text-muted);text-align:center;margin-top:10px;">By signing up you agree to our Terms of Service.</p>
+  </form>
+
+  <div class="auth-back">
+    <a href="index.html">
+      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      Back to home
+    </a>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="../js/supabase-client.js"></script>
+<script>
+  // If already logged in, go to dashboard
+  Auth.getSession().then(session => {
+    if (session) location.href = 'dashboard.html';
+  });
+
+  const params = new URLSearchParams(location.search);
+  switchTab(params.get('mode') === 'signup' ? 'signup' : 'login');
+
+  function switchTab(tab) {
+    document.getElementById('login-form').style.display  = tab === 'login'  ? '' : 'none';
+    document.getElementById('signup-form').style.display = tab === 'signup' ? '' : 'none';
+    document.getElementById('tab-login').classList.toggle('active',  tab === 'login');
+    document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
+    hideMsg();
+  }
+
+  function showMsg(text, type) {
+    const el = document.getElementById('auth-msg');
+    el.textContent = text;
+    el.className = `auth-msg ${type}`;
+    el.style.display = 'block';
+  }
+  function hideMsg() { document.getElementById('auth-msg').style.display = 'none'; }
+
+  function setLoading(btnId, loading) {
+    const btn = document.getElementById(btnId);
+    btn.classList.toggle('btn-loading', loading);
+    btn.innerHTML = loading
+      ? '<span class="spinner"></span> Please wait...'
+      : (btnId === 'login-btn' ? 'Log In' : 'Create Account — Free');
+  }
+
+  async function handleLogin(e) {
+    e.preventDefault();
+    hideMsg();
+    const email = document.getElementById('login-email').value.trim();
+    const pass  = document.getElementById('login-pass').value;
+    setLoading('login-btn', true);
+    const { error } = await Auth.signIn(email, pass);
+    setLoading('login-btn', false);
+    if (error) { showMsg(error.message, 'error'); return; }
+    location.href = 'dashboard.html';
+  }
+
+  async function handleSignup(e) {
+    e.preventDefault();
+    hideMsg();
+    const name  = document.getElementById('signup-name').value.trim();
+    const email = document.getElementById('signup-email').value.trim();
+    const pass  = document.getElementById('signup-pass').value;
+    setLoading('signup-btn', true);
+    const { data, error } = await Auth.signUp(email, pass, name);
+    setLoading('signup-btn', false);
+    if (error) { showMsg(error.message, 'error'); return; }
+    // Email confirmation required
+    if (data.user && !data.session) {
+      showMsg('✅ Check your email and click the confirmation link, then log in.', 'success');
+      switchTab('login');
+      return;
+    }
+    location.href = 'dashboard.html';
+  }
+</script>
+</body>
+</html>

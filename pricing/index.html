@@ -306,6 +306,19 @@
 
 </div>
 
+<!-- Coming Soon Modal -->
+<div class="pay-modal-overlay" id="coming-soon-modal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="pay-modal">
+    <div class="pay-success show">
+      <div class="pay-success-icon">🚀</div>
+      <div class="pay-success-title">Payments Coming Soon!</div>
+      <div class="pay-success-text">We're finishing up our payment setup. Pro will be available very soon — your spot is saved and you'll be first to know when it launches!</div>
+      <button class="pay-checkout-btn" style="max-width:280px;" onclick="document.getElementById('coming-soon-modal').classList.remove('open')">Got it!</button>
+      <button class="pay-later-btn" style="max-width:280px;margin-top:8px;" onclick="location.href='/dashboard'">Back to Dashboard</button>
+    </div>
+  </div>
+</div>
+
 <!-- Success Modal (shown after LemonSqueezy checkout completes) -->
 <div class="pay-modal-overlay" id="success-modal" onclick="if(event.target===this)closeSuccessModal()">
   <div class="pay-modal">
@@ -368,23 +381,8 @@ function initLemonSqueezy() {
 }
 
 function openCheckout(plan) {
-  _pendingPlan = plan;
-
-  const url = plan === 'annual' ? LS_ANNUAL_URL : LS_PRO_URL;
-  const email = window._currentUser?.email || '';
-  const emailParam = email ? `&checkout[email]=${encodeURIComponent(email)}` : '';
-  const checkoutUrl = `${url}?embed=1${emailParam}`;
-
-  // Try LemonSqueezy overlay — fall back to new tab if not ready
-  try {
-    if (typeof LemonSqueezy !== 'undefined' && typeof LemonSqueezy.Url?.Open === 'function') {
-      LemonSqueezy.Url.Open(checkoutUrl);
-    } else {
-      window.open(url, '_blank');
-    }
-  } catch (e) {
-    window.open(url, '_blank');
-  }
+  // Payments coming soon — show modal instead
+  document.getElementById('coming-soon-modal').classList.add('open');
 }
 
 function onPaymentSuccess() {

@@ -20,7 +20,7 @@ const DB = {
 
   // ── Classes ──
   async getClasses() {
-    const { data, error } = await _supabase.from('classes').select('*').order('created_at');
+    const { data, error } = await _supabase.from('classes').select('*').eq('user_id', this._uid()).order('created_at');
     if (error) { console.error(error); return []; }
     return (data || []).map(r => this._cls(r));
   },
@@ -49,7 +49,7 @@ const DB = {
 
   // ── Assignments ──
   async getAssignments() {
-    const { data, error } = await _supabase.from('assignments').select('*').order('due_date');
+    const { data, error } = await _supabase.from('assignments').select('*').eq('user_id', this._uid()).order('due_date');
     if (error) { console.error(error); return []; }
     return (data || []).map(r => this._asgn(r));
   },

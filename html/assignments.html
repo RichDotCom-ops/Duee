@@ -182,19 +182,14 @@
             </div>
             <div style="display:flex;align-items:flex-start;gap:12px;">
               <div style="min-width:22px;height:22px;border-radius:50%;background:#cc0000;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">4</div>
-              <div style="font-size:13px;color:var(--text-primary);padding-top:2px;">Paste the link below and click <strong>"Open &amp; Download"</strong> — your browser will download the file</div>
-            </div>
-            <div style="display:flex;align-items:flex-start;gap:12px;">
-              <div style="min-width:22px;height:22px;border-radius:50%;background:#cc0000;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">5</div>
-              <div style="font-size:13px;color:var(--text-primary);padding-top:2px;">Come back here and click <strong>"Upload the file →"</strong> to import it</div>
+              <div style="font-size:13px;color:var(--text-primary);padding-top:2px;"><strong>Copy that link</strong>, paste it in the box below, and hit <strong>Import</strong></div>
             </div>
           </div>
         </div>
-        <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <div style="display:flex;gap:8px;">
           <input id="ics-url-input" class="form-control" placeholder="Paste your Blackboard calendar link here…" style="font-size:13px;" />
-          <button onclick="openBBUrl()" style="white-space:nowrap;background:#cc0000;color:white;border:none;padding:8px 14px;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;">Open &amp; Download</button>
+          <button onclick="importFromUrl('bb')" id="ics-url-btn" style="white-space:nowrap;background:#cc0000;color:white;border:none;padding:8px 14px;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;">Import</button>
         </div>
-        <button onclick="switchImportTab('file')" style="width:100%;background:var(--bg-hover);border:1.5px dashed var(--border);border-radius:var(--radius);padding:10px;font-size:13px;font-weight:600;color:var(--text-secondary);cursor:pointer;">Got the file? Upload it here →</button>
       </div>
 
       <!-- Canvas instructions -->

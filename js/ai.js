@@ -2,7 +2,7 @@
 
 (function () {
   const OR_KEY   = atob('c2stb3ItdjEtMGIwZjA5ZWI1NmRhOGYyMzc1M2M4ZmQzNDExZTE3MTQwMjc4ZWFmYjYxMjc2NjBhMWJmZTgxZjU1NjRkMDAxOQ==');
-  const OR_MODEL = 'liquid/lfm-2.6b';
+  const OR_MODEL = 'meta-llama/llama-3.1-8b-instruct:free';
   const OR_URL   = 'https://openrouter.ai/api/v1/chat/completions';
 
   // ── State ──
@@ -23,6 +23,30 @@
 
   function todayStr() { return new Date().toISOString().slice(0, 10); }
   function addDays(n) { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); }
+
+  // ── Normalize abbreviations/slang before sending to AI ──
+  function normalize(text) {
+    return text
+      .replace(/\bhw\b/gi, 'homework')
+      .replace(/\basgn\b/gi, 'assignment')
+      .replace(/\bcls\b/gi, 'class')
+      .replace(/\btmrw\b|\btmr\b|\btomoro\b|\btomorrow\b/gi, 'tomorrow')
+      .replace(/\bwk\b/gi, 'week')
+      .replace(/\bsub(mitted)?\b/gi, 'submitted')
+      .replace(/\bprof\b/gi, 'professor')
+      .replace(/\bsoon\b/gi, 'in 3 days')
+      .replace(/\bfinished\b|\bdid it\b|\bgot it done\b|\bwrapped up\b/gi, 'completed')
+      .replace(/\bkill\b|\bget rid of\b|\bnuke\b|\bdump\b/gi, 'delete')
+      .replace(/\buncheck\b|\bundo done\b|\bnot done yet\b|\bactually not done\b/gi, 'mark incomplete')
+      .replace(/\byoo+\b|\byooo+\b/gi, '')
+      .replace(/\bbro+\b|\bbruh\b|\bfr\b|\bngl\b|\bfr fr\b/gi, '')
+      .replace(/\bcan u\b|\bcan you\b|\bcould u\b|\bplz\b|\bpls\b|\bplease\b/gi, '')
+      .replace(/\bwanna\b/gi, 'want to')
+      .replace(/\bgonna\b/gi, 'going to')
+      .replace(/\blemme\b/gi, 'let me')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+  }
 
   // ── Build context for system prompt ──
   async function buildContext() {
@@ -46,49 +70,54 @@
     }).join('\n') || '  (none)';
 
     return `You are a smart, friendly AI study assistant inside duee., a student planner app.
-Today: ${todayStr()}
+Today is ${todayStr()} (${new Date().toLocaleDateString('en-US',{weekday:'long'})}).
 
 Student's classes:
 ${clsLines}
 
-All assignments (pending + done):
+All assignments:
 ${allLines}
 
-You can perform these actions. Pick the RIGHT one based on what the user says:
+ACTIONS — output ONE action block at the very end of your reply when the user wants something done.
 
-COMPLETE an assignment (words like: done, finished, complete, completed, turned in, submitted, checked off, mark as done):
+━━ MARK COMPLETE ━━
+User might say: "done", "finished", "turned in", "submitted", "checked off", "i did it", "completed", "knocked it out", "wrapped up", "got it done", "just did", "handed in"
 \`\`\`action
 {"type":"mark_complete","id":"<id>","name":"<name>"}
 \`\`\`
 
-UNCOMPLETE an assignment (words like: uncomplete, undo, uncheck, not done, mark as incomplete, reopen, undo that):
+━━ MARK INCOMPLETE / UNDO ━━
+User might say: "undo", "uncomplete", "not done", "reopen", "uncheck", "actually didn't", "i lied", "mark as pending", "take it back", "haven't done it yet"
 \`\`\`action
 {"type":"mark_incomplete","id":"<id>","name":"<name>"}
 \`\`\`
 
-DELETE an assignment (words like: delete, remove, get rid of, trash, cancel, erase, drop):
+━━ DELETE / REMOVE ━━
+User might say: "delete", "remove", "get rid of", "trash", "erase", "drop", "cancel", "take off", "nuke", "kill", "i don't need", "remove it"
 \`\`\`action
 {"type":"delete_assignment","id":"<id>","name":"<name>"}
 \`\`\`
 
-ADD an assignment (words like: add, create, new, schedule, remind me, set, put):
+━━ ADD NEW ━━
+User might say: "add", "create", "new", "schedule", "remind me", "set", "put", "i have a", "there's a", "need to add", "make a"
 \`\`\`action
-{"type":"add_assignment","name":"<title>","due_date":"<YYYY-MM-DD>","priority":"<high|medium|low>","class_id":"<id or empty string>","notes":""}
+{"type":"add_assignment","name":"<clean title>","due_date":"<YYYY-MM-DD>","priority":"<high|medium|low>","class_id":"<matching class id or empty>","notes":""}
 \`\`\`
 
-SHOW upcoming (words like: what's due, upcoming, schedule, this week, what do I have):
+━━ SHOW UPCOMING ━━
+User might say: "what's due", "what do i have", "upcoming", "this week", "show me", "what's on my list", "my schedule", "what's next"
 \`\`\`action
-{"type":"get_upcoming","days":<number>}
+{"type":"get_upcoming","days":<7 or 14 or 30>}
 \`\`\`
 
-Rules:
-- Always match assignments by name — search the list above, pick the best match.
-- Always compute exact YYYY-MM-DD dates (today=${todayStr()}) from "Friday", "next week", "in 3 days", etc.
-- Be concise and warm. 1–3 sentences max.
-- Only include ONE action block per reply, at the very end.
-- Never mention the action block or JSON to the user.
-- If unsure which assignment the user means, ask which one.
-- For study tips give 3 short bullets.`;
+RULES:
+- People speak casually — "essay done", "did the bio hw", "yoo remove calc quiz", "bro add chemistry tmrw" all mean something. Figure out the intent.
+- Match assignments by name similarity. Pick the CLOSEST match from the list.
+- Dates: compute exact YYYY-MM-DD. "Friday"=next ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][(new Date().getDay()+5)%7+1] ? 'Friday' : 'Friday'}, "next week"=${addDays(7)}, "in 3 days"=${addDays(3)}, "tomorrow"=${addDays(1)}.
+- Priority: exam/midterm/final/project = high. quiz/reading/reflection = low. else medium.
+- Be warm and brief — 1 sentence reply + action block.
+- Never show the action JSON to the user.
+- If truly ambiguous which assignment, ask ONE short question.`;
   }
 
   // ── Call OpenRouter ──
@@ -258,6 +287,8 @@ Rules:
     _thinking = true;
     renderMessages();
 
+    const normalizedText = normalize(text);
+
     try {
       const ctx = await buildContext();
       const systemPrompt = buildSystemPrompt(ctx);
@@ -265,7 +296,7 @@ Rules:
       // Build API message list from history (exclude bot-injected action results)
       const apiMessages = _history
         .filter(m => !m._actionOnly)
-        .map(m => ({ role: m.role === 'bot' ? 'assistant' : 'user', content: m.text }));
+        .map(m => ({ role: m.role === 'bot' ? 'assistant' : 'user', content: m.role === 'user' ? normalize(m.text) : m.text }));
 
       const raw = await callAI(apiMessages, systemPrompt);
       const { text: replyText, actionResult } = await parseAndExecute(raw, ctx);
@@ -277,7 +308,7 @@ Rules:
     } catch (err) {
       // Fallback to rule-based on API error
       try {
-        const fallback = await ruleBasedFallback(text);
+        const fallback = await ruleBasedFallback(normalizedText);
         _history.push({ role: 'bot', text: fallback });
         if (typeof DueePlan !== 'undefined') DueePlan.incrementAI();
       } catch (_) {

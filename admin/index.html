@@ -3,193 +3,281 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
   <title>duee. — Admin</title>
   <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
   <link rel="stylesheet" href="../css/main.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
-    * { box-sizing: border-box; }
-    body { margin: 0; background: var(--bg-main); min-height: 100vh; font-family: inherit; }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;}
 
-    .admin-topbar {
-      background: var(--bg-white); border-bottom: 1px solid var(--border);
-      padding: 0 28px; height: 56px; display: flex; align-items: center;
-      justify-content: space-between; position: sticky; top: 0; z-index: 100;
-    }
-    .admin-logo { font-size: 18px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.5px; }
-    .admin-logo span { color: var(--green); }
-    .admin-badge { font-size: 11px; font-weight: 700; background: #dc26261a; color: #dc2626;
-      border: 1px solid #dc262630; padding: 3px 10px; border-radius: 99px; letter-spacing: .5px; }
-    .admin-user { font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 10px; }
-    .admin-signout { font-size: 12px; font-weight: 600; color: var(--text-muted); cursor: pointer;
-      background: none; border: 1px solid var(--border); padding: 5px 12px; border-radius: 6px; transition: all .15s; }
-    .admin-signout:hover { color: var(--text-primary); border-color: var(--text-muted); }
+    /* ── PIN GATE ── */
+    #pin-gate{position:fixed;inset:0;z-index:9999;background:#0f172a;display:flex;align-items:center;justify-content:center;}
+    .pin-box{background:#1e293b;border:1px solid #334155;border-radius:20px;padding:44px 40px;width:360px;text-align:center;}
+    .pin-logo{font-size:28px;font-weight:800;letter-spacing:-1px;color:#f8fafc;margin-bottom:4px;}
+    .pin-logo span{color:#16a34a;}
+    .pin-badge{display:inline-block;font-size:10px;font-weight:700;background:#dc26261a;color:#f87171;border:1px solid #dc262640;padding:3px 10px;border-radius:99px;letter-spacing:.8px;margin-bottom:28px;}
+    .pin-label{font-size:13px;color:#94a3b8;margin-bottom:16px;}
+    .pin-input{width:100%;background:#0f172a;border:1.5px solid #334155;border-radius:10px;padding:14px 16px;font-size:18px;color:#f8fafc;text-align:center;letter-spacing:6px;outline:none;transition:border-color .2s;font-family:monospace;}
+    .pin-input:focus{border-color:#7c3aed;}
+    .pin-input.shake{animation:shake .35s ease;}
+    @keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+    .pin-btn{margin-top:14px;width:100%;background:linear-gradient(135deg,#7c3aed,#2563eb);color:white;border:none;padding:13px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;transition:filter .15s;}
+    .pin-btn:hover{filter:brightness(1.1);}
+    .pin-err{font-size:12px;color:#f87171;margin-top:10px;height:16px;}
+    .pin-attempts{font-size:11px;color:#475569;margin-top:8px;}
 
-    .admin-body { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
+    /* ── TOPBAR ── */
+    #dashboard{display:none;}
+    .topbar{background:#1e293b;border-bottom:1px solid #334155;padding:0 28px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+    .topbar-left{display:flex;align-items:center;gap:12px;}
+    .tl-logo{font-size:18px;font-weight:800;color:#f8fafc;letter-spacing:-.5px;}
+    .tl-logo span{color:#16a34a;}
+    .tl-badge{font-size:10px;font-weight:700;background:#dc26261a;color:#f87171;border:1px solid #dc262640;padding:3px 10px;border-radius:99px;letter-spacing:.6px;}
+    .topbar-right{display:flex;align-items:center;gap:12px;font-size:13px;color:#64748b;}
+    .live-dot{width:8px;height:8px;border-radius:50%;background:#16a34a;box-shadow:0 0 0 3px #16a34a28;animation:pulse 2s infinite;flex-shrink:0;}
+    @keyframes pulse{0%,100%{box-shadow:0 0 0 3px #16a34a28}50%{box-shadow:0 0 0 6px #16a34a10}}
+    .live-dot.red{background:#dc2626;box-shadow:0 0 0 3px #dc262628;animation:none;}
+    .live-dot.yellow{background:#ca8a04;box-shadow:0 0 0 3px #ca8a0428;animation:none;}
+    #topbar-status{font-size:12px;font-weight:600;color:#94a3b8;}
+    .signout-btn{font-size:12px;font-weight:600;background:none;border:1px solid #334155;color:#64748b;padding:5px 14px;border-radius:7px;cursor:pointer;transition:all .15s;}
+    .signout-btn:hover{border-color:#64748b;color:#f8fafc;}
+    #last-refresh{font-size:11px;color:#475569;}
 
-    .admin-heading { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
-    .admin-sub { font-size: 13px; color: var(--text-secondary); margin-bottom: 28px; }
+    /* ── BODY ── */
+    .body{max-width:1200px;margin:0 auto;padding:28px 24px;}
 
-    /* Status dot */
-    .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
-    .dot-green { background: #16a34a; box-shadow: 0 0 0 3px #16a34a28; animation: pulse-green 2s infinite; }
-    .dot-red   { background: #dc2626; box-shadow: 0 0 0 3px #dc262628; }
-    .dot-yellow{ background: #ca8a04; box-shadow: 0 0 0 3px #ca8a0428; }
-    .dot-gray  { background: #94a3b8; }
-    @keyframes pulse-green { 0%,100%{box-shadow:0 0 0 3px #16a34a28} 50%{box-shadow:0 0 0 6px #16a34a10} }
+    /* ── STAT CARDS ── */
+    .stat-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px;}
+    @media(max-width:900px){.stat-grid{grid-template-columns:repeat(3,1fr)}}
+    @media(max-width:600px){.stat-grid{grid-template-columns:repeat(2,1fr)}}
+    .stat-card{background:#1e293b;border:1px solid #334155;border-radius:14px;padding:18px 16px;}
+    .sc-label{font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;}
+    .sc-value{font-size:30px;font-weight:800;letter-spacing:-1px;color:#f8fafc;line-height:1;margin-bottom:6px;}
+    .sc-value.loading{font-size:18px;color:#475569;animation:blink 1.2s infinite;}
+    @keyframes blink{0%,100%{opacity:.3}50%{opacity:1}}
+    .sc-sub{font-size:11px;color:#64748b;display:flex;align-items:center;gap:5px;}
+    .sc-up{color:#16a34a;}
+    .sc-down{color:#f87171;}
+    .stat-card.green{border-color:#16a34a40;background:linear-gradient(135deg,#16a34a0a,#1e293b);}
+    .stat-card.purple{border-color:#7c3aed40;background:linear-gradient(135deg,#7c3aed0a,#1e293b);}
+    .stat-card.blue{border-color:#2563eb40;background:linear-gradient(135deg,#2563eb0a,#1e293b);}
 
-    /* Cards grid */
-    .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-bottom: 28px; }
-    .stat-card {
-      background: var(--bg-white); border: 1px solid var(--border); border-radius: 14px;
-      padding: 20px; display: flex; flex-direction: column; gap: 6px;
-    }
-    .stat-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .6px; }
-    .stat-value { font-size: 32px; font-weight: 800; letter-spacing: -1.5px; color: var(--text-primary); line-height: 1; }
-    .stat-value.loading { font-size: 20px; color: var(--text-muted); animation: shimmer 1.2s infinite; }
-    @keyframes shimmer { 0%,100%{opacity:.4} 50%{opacity:1} }
-    .stat-sub { font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 5px; }
+    /* ── CHART ROW ── */
+    .charts-row{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:24px;}
+    @media(max-width:700px){.charts-row{grid-template-columns:1fr}}
+    .chart-card{background:#1e293b;border:1px solid #334155;border-radius:14px;padding:20px;}
+    .chart-title{font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;}
+    .chart-wrap{position:relative;}
 
-    /* Site status card */
-    .status-card {
-      background: var(--bg-white); border: 1px solid var(--border); border-radius: 14px;
-      padding: 20px 24px; margin-bottom: 28px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
-    }
-    .status-main { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 200px; }
-    .status-text { font-size: 16px; font-weight: 700; color: var(--text-primary); }
-    .status-url  { font-size: 12px; color: var(--text-muted); }
-    .status-pills { display: flex; gap: 8px; flex-wrap: wrap; }
-    .status-pill {
-      font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 99px;
-      background: var(--bg-hover); color: var(--text-secondary); display: flex; align-items: center; gap: 6px;
-    }
-    .status-pill.ok { background: #f0fdf4; color: #16a34a; }
-    .status-pill.warn { background: #fefce8; color: #ca8a04; }
-    .status-pill.err { background: #fef2f2; color: #dc2626; }
-    .refresh-btn {
-      font-size: 12px; font-weight: 600; background: none; border: 1px solid var(--border);
-      padding: 6px 14px; border-radius: 8px; cursor: pointer; color: var(--text-secondary); transition: all .15s;
-    }
-    .refresh-btn:hover { border-color: var(--green); color: var(--green); }
+    .charts-row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px;}
+    @media(max-width:700px){.charts-row2{grid-template-columns:1fr}}
 
-    /* Sections */
-    .section { margin-bottom: 28px; }
-    .section-title { font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px;
-      text-transform: uppercase; letter-spacing: .5px; display: flex; align-items: center; gap: 8px; }
-    .section-card { background: var(--bg-white); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+    /* ── SITE STATUS ── */
+    .status-bar{background:#1e293b;border:1px solid #334155;border-radius:14px;padding:18px 20px;margin-bottom:24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+    .sb-main{display:flex;align-items:center;gap:10px;flex:1;min-width:180px;}
+    .sb-text{font-size:15px;font-weight:700;color:#f8fafc;}
+    .sb-url{font-size:11px;color:#475569;}
+    .sb-pills{display:flex;gap:8px;flex-wrap:wrap;}
+    .pill{font-size:11px;font-weight:600;padding:5px 11px;border-radius:99px;display:flex;align-items:center;gap:5px;}
+    .pill-ok{background:#16a34a18;color:#4ade80;border:1px solid #16a34a30;}
+    .pill-warn{background:#ca8a0418;color:#fbbf24;border:1px solid #ca8a0430;}
+    .pill-err{background:#dc262618;color:#f87171;border:1px solid #dc262630;}
+    .pill-gray{background:#33415518;color:#64748b;border:1px solid #33415530;}
+    .ping-bars{display:flex;gap:2px;align-items:flex-end;height:28px;}
+    .pb{flex:1;border-radius:2px;min-height:3px;transition:height .3s;}
+    .pb-ok{background:#16a34a;}
+    .pb-slow{background:#ca8a04;}
+    .pb-down{background:#dc2626;}
+    .refresh-btn{font-size:11px;font-weight:600;background:none;border:1px solid #334155;color:#64748b;padding:6px 14px;border-radius:7px;cursor:pointer;transition:all .15s;white-space:nowrap;}
+    .refresh-btn:hover{border-color:#16a34a;color:#4ade80;}
 
-    /* Users table */
-    .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .data-table th { padding: 10px 16px; text-align: left; font-size: 11px; font-weight: 700;
-      color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px;
-      background: var(--bg-main); border-bottom: 1px solid var(--border); }
-    .data-table td { padding: 12px 16px; border-bottom: 1px solid var(--border); color: var(--text-secondary); }
-    .data-table tr:last-child td { border-bottom: none; }
-    .data-table tr:hover td { background: var(--bg-main); }
-    .data-table td:first-child { color: var(--text-primary); font-weight: 500; }
+    /* ── BOTTOM ROW ── */
+    .bottom-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px;}
+    @media(max-width:700px){.bottom-row{grid-template-columns:1fr}}
 
-    /* Log */
-    .log-list { list-style: none; margin: 0; padding: 0; }
-    .log-item { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 13px;
-      display: flex; align-items: flex-start; gap: 10px; }
-    .log-item:last-child { border-bottom: none; }
-    .log-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
-    .log-msg { flex: 1; color: var(--text-secondary); line-height: 1.5; }
-    .log-msg strong { color: var(--text-primary); }
-    .log-time { font-size: 11px; color: var(--text-muted); white-space: nowrap; flex-shrink: 0; }
-    .empty-log { padding: 32px; text-align: center; color: var(--text-muted); font-size: 13px; }
+    /* ── TABLE ── */
+    .table-card{background:#1e293b;border:1px solid #334155;border-radius:14px;overflow:hidden;}
+    .tc-head{padding:14px 18px;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #334155;background:#0f172a;}
+    table{width:100%;border-collapse:collapse;font-size:12px;}
+    th{padding:10px 14px;text-align:left;font-size:10px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.5px;background:#0f172a;border-bottom:1px solid #334155;}
+    td{padding:11px 14px;border-bottom:1px solid #1e293b;color:#94a3b8;}
+    tr:last-child td{border-bottom:none;}
+    tr:hover td{background:#0f172a80;}
+    td:first-child{color:#e2e8f0;font-weight:500;}
 
-    /* Ping history bar */
-    .ping-bars { display: flex; gap: 3px; align-items: flex-end; height: 32px; }
-    .ping-bar { flex: 1; border-radius: 3px; min-height: 4px; transition: height .3s; cursor: pointer; }
-    .ping-bar.ok   { background: #16a34a; }
-    .ping-bar.slow { background: #ca8a04; }
-    .ping-bar.down { background: #dc2626; }
+    /* ── LOG ── */
+    .log-list{list-style:none;}
+    .log-item{padding:11px 16px;border-bottom:1px solid #334155;display:flex;align-items:flex-start;gap:10px;font-size:12px;}
+    .log-item:last-child{border-bottom:none;}
+    .log-icon{flex-shrink:0;font-size:13px;margin-top:1px;}
+    .log-msg{flex:1;color:#94a3b8;line-height:1.5;}
+    .log-msg strong{color:#e2e8f0;}
+    .log-time{font-size:10px;color:#475569;white-space:nowrap;flex-shrink:0;}
+    .empty-log{padding:28px;text-align:center;color:#475569;font-size:12px;}
 
-    [data-theme="dark"] .status-card,
-    [data-theme="dark"] .stat-card,
-    [data-theme="dark"] .section-card { background: #1e293b; }
-    [data-theme="dark"] .data-table th { background: #0f172a; }
-    [data-theme="dark"] .data-table tr:hover td { background: #0f172a; }
+    /* ── SETUP NOTICE ── */
+    .setup-notice{background:#ca8a0410;border:1px solid #ca8a0430;border-radius:10px;padding:14px 16px;margin-bottom:20px;font-size:12px;color:#fbbf24;line-height:1.7;display:none;}
+    .setup-notice code{background:#0f172a;padding:2px 6px;border-radius:4px;font-size:11px;color:#a5b4fc;display:block;margin-top:6px;word-break:break-all;}
+
+    .dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0;}
+    .dot-g{background:#16a34a;}
+    .dot-r{background:#dc2626;}
+    .dot-y{background:#ca8a04;}
+    .dot-x{background:#475569;}
   </style>
 </head>
 <body>
 
-<div class="admin-topbar">
-  <div style="display:flex;align-items:center;gap:12px;">
-    <div class="admin-logo">duee<span>.</span></div>
-    <div class="admin-badge">ADMIN</div>
-  </div>
-  <div class="admin-user">
-    <span id="admin-email-label"></span>
-    <button class="admin-signout" onclick="signOutUser()">Sign out</button>
+<!-- ── PIN GATE ── -->
+<div id="pin-gate">
+  <div class="pin-box">
+    <div class="pin-logo">duee<span>.</span></div>
+    <div class="pin-badge">ADMIN ACCESS</div>
+    <div class="pin-label">Enter your admin PIN to continue</div>
+    <input class="pin-input" id="pin-input" type="password" maxlength="12"
+      placeholder="••••••" autocomplete="off" inputmode="numeric"
+      onkeydown="if(event.key==='Enter')checkPin()" />
+    <div class="pin-err" id="pin-err"></div>
+    <div class="pin-attempts" id="pin-attempts"></div>
+    <button class="pin-btn" onclick="checkPin()">Unlock Dashboard</button>
   </div>
 </div>
 
-<div class="admin-body">
-  <div class="admin-heading">Site Dashboard</div>
-  <div class="admin-sub" id="last-checked">Checking site status…</div>
+<!-- ── DASHBOARD ── -->
+<div id="dashboard">
 
-  <!-- Live site status -->
-  <div class="status-card" id="status-card">
-    <div class="status-main">
-      <div class="dot dot-gray" id="status-dot"></div>
-      <div>
-        <div class="status-text" id="status-text">Checking…</div>
-        <div class="status-url">duee.online</div>
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="tl-logo">duee<span>.</span></div>
+      <div class="tl-badge">ADMIN</div>
+      <div class="live-dot" id="live-dot"></div>
+      <span id="topbar-status">Checking…</span>
+    </div>
+    <div class="topbar-right">
+      <span id="last-refresh"></span>
+      <span id="admin-email" style="font-size:12px;"></span>
+      <button class="signout-btn" onclick="signOutUser()">Sign out</button>
+    </div>
+  </div>
+
+  <div class="body">
+
+    <!-- Setup notice (shown if RPC functions missing) -->
+    <div class="setup-notice" id="setup-notice">
+      ⚠️ Run these SQL functions in your <a href="https://supabase.com/dashboard" target="_blank" style="color:#a5b4fc;">Supabase SQL Editor</a> to unlock full stats:
+      <code>CREATE OR REPLACE FUNCTION get_total_users() RETURNS integer LANGUAGE sql SECURITY DEFINER AS $$ SELECT COUNT(*)::integer FROM auth.users; $$;
+
+CREATE OR REPLACE FUNCTION get_assignment_stats() RETURNS json LANGUAGE sql SECURITY DEFINER AS $$ SELECT json_build_object('total',COUNT(*),'completed',COUNT(*) FILTER(WHERE completed),'high',COUNT(*) FILTER(WHERE priority='high'),'medium',COUNT(*) FILTER(WHERE priority='medium'),'low',COUNT(*) FILTER(WHERE priority='low'),'today',COUNT(*) FILTER(WHERE due_date=CURRENT_DATE)) FROM assignments; $$;
+
+CREATE OR REPLACE FUNCTION get_signups_by_day() RETURNS json LANGUAGE sql SECURITY DEFINER AS $$ SELECT json_agg(row_to_json(t)) FROM (SELECT DATE(created_at) as date, COUNT(*)::integer as count FROM auth.users WHERE created_at >= NOW() - INTERVAL '14 days' GROUP BY DATE(created_at) ORDER BY date) t; $$;</code>
+    </div>
+
+    <!-- Stat cards -->
+    <div class="stat-grid">
+      <div class="stat-card green">
+        <div class="sc-label">Total Users</div>
+        <div class="sc-value loading" id="s-users">…</div>
+        <div class="sc-sub" id="s-users-sub"></div>
+      </div>
+      <div class="stat-card">
+        <div class="sc-label">Total Assignments</div>
+        <div class="sc-value loading" id="s-asgns">…</div>
+        <div class="sc-sub" id="s-asgns-sub"></div>
+      </div>
+      <div class="stat-card">
+        <div class="sc-label">Completed</div>
+        <div class="sc-value loading" id="s-done">…</div>
+        <div class="sc-sub" id="s-done-sub"></div>
+      </div>
+      <div class="stat-card blue">
+        <div class="sc-label">Total Classes</div>
+        <div class="sc-value loading" id="s-cls">…</div>
+        <div class="sc-sub" id="s-cls-sub"></div>
+      </div>
+      <div class="stat-card purple">
+        <div class="sc-label">Site Uptime</div>
+        <div class="sc-value loading" id="s-uptime">…</div>
+        <div class="sc-sub" id="s-uptime-sub"></div>
       </div>
     </div>
-    <div class="status-pills" id="status-pills">
-      <div class="status-pill" id="pill-ping">⏱ —</div>
-      <div class="status-pill" id="pill-http">HTTP —</div>
-    </div>
-    <div class="ping-bars" id="ping-bars" title="Last 20 pings"></div>
-    <button class="refresh-btn" onclick="runChecks()">↻ Refresh</button>
-  </div>
 
-  <!-- Stats -->
-  <div class="stat-grid">
-    <div class="stat-card">
-      <div class="stat-label">Total Users</div>
-      <div class="stat-value loading" id="stat-users">…</div>
-      <div class="stat-sub" id="stat-users-sub"></div>
+    <!-- Site status bar -->
+    <div class="status-bar">
+      <div class="sb-main">
+        <div class="dot dot-x" id="sb-dot"></div>
+        <div>
+          <div class="sb-text" id="sb-text">Checking…</div>
+          <div class="sb-url">duee.online</div>
+        </div>
+      </div>
+      <div class="sb-pills" id="sb-pills">
+        <div class="pill pill-gray" id="pill-ms">⏱ —</div>
+        <div class="pill pill-gray" id="pill-reach">— Reachable</div>
+        <div class="pill pill-gray" id="pill-avg">Avg —</div>
+      </div>
+      <div class="ping-bars" id="ping-bars" title="Last 30 pings (green=fast, yellow=slow, red=down)"></div>
+      <button class="refresh-btn" onclick="runChecks()">↻ Check Now</button>
     </div>
-    <div class="stat-card">
-      <div class="stat-label">Total Assignments</div>
-      <div class="stat-value loading" id="stat-asgns">…</div>
-      <div class="stat-sub" id="stat-asgns-sub"></div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Total Classes</div>
-      <div class="stat-value loading" id="stat-classes">…</div>
-      <div class="stat-sub" id="stat-classes-sub"></div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Avg Response</div>
-      <div class="stat-value loading" id="stat-ping">…</div>
-      <div class="stat-sub"><span class="dot dot-gray" id="stat-ping-dot" style="margin-right:4px;"></span><span id="stat-ping-label">measuring…</span></div>
-    </div>
-  </div>
 
-  <!-- Recent signups -->
-  <div class="section">
-    <div class="section-title">
-      <span>👥</span> Recent Signups
-      <span style="font-size:11px;font-weight:500;color:var(--text-muted);text-transform:none;letter-spacing:0;" id="signup-note"></span>
+    <!-- Charts row 1: response time + priority -->
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-title">
+          Response Time <span style="color:#475569;font-weight:400;text-transform:none;">last 30 pings</span>
+        </div>
+        <div class="chart-wrap" style="height:180px;">
+          <canvas id="chart-ping"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Assignment Priority</div>
+        <div class="chart-wrap" style="height:180px;display:flex;align-items:center;justify-content:center;">
+          <canvas id="chart-priority"></canvas>
+        </div>
+      </div>
     </div>
-    <div class="section-card">
-      <table class="data-table">
-        <thead><tr><th>Email</th><th>Joined</th><th>Assignments</th><th>Classes</th></tr></thead>
-        <tbody id="users-tbody"><tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-muted);">Loading…</td></tr></tbody>
-      </table>
-    </div>
-  </div>
 
-  <!-- Activity log -->
-  <div class="section">
-    <div class="section-title"><span>📋</span> Activity Log</div>
-    <div class="section-card">
-      <ul class="log-list" id="log-list"></ul>
+    <!-- Charts row 2: signups + completion -->
+    <div class="charts-row2">
+      <div class="chart-card">
+        <div class="chart-title">
+          New Signups <span style="color:#475569;font-weight:400;text-transform:none;">last 14 days</span>
+        </div>
+        <div class="chart-wrap" style="height:160px;">
+          <canvas id="chart-signups"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">
+          Assignments Due <span style="color:#475569;font-weight:400;text-transform:none;">next 7 days</span>
+        </div>
+        <div class="chart-wrap" style="height:160px;">
+          <canvas id="chart-due"></canvas>
+        </div>
+      </div>
     </div>
+
+    <!-- Bottom: users table + log -->
+    <div class="bottom-row">
+      <div class="table-card">
+        <div class="tc-head">👥 User Activity</div>
+        <table>
+          <thead><tr><th>User ID</th><th>First Seen</th><th>Assignments</th><th>Classes</th></tr></thead>
+          <tbody id="users-tbody">
+            <tr><td colspan="4" style="text-align:center;padding:24px;color:#475569;">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-card">
+        <div class="tc-head">📋 Activity Log <span style="float:right;cursor:pointer;font-weight:400;font-size:10px;color:#475569;" onclick="clearLog()">Clear</span></div>
+        <ul class="log-list" id="log-list"></ul>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -197,223 +285,414 @@
 <script src="../js/app.js"></script>
 <script src="../js/supabase-client.js"></script>
 <script>
-// ── Admin gate ──
+// ─────────────────────────────
+// CONFIG — change these if needed
+// ─────────────────────────────
 const ADMIN_EMAIL = 'hassen@gmail.com';
+const ADMIN_PIN   = '2580';           // ← your PIN (change this anytime)
+const PIN_KEY     = 'duee_admin_pin_ok';
+const LOG_KEY     = 'duee_admin_log';
+// ─────────────────────────────
 
-// Ping history (last 20)
-const _pings = [];
+let _pingHistory = [];
+let _charts = {};
+let _failedAttempts = 0;
+let _lockUntil = 0;
 
-document.addEventListener('DOMContentLoaded', async () => {
+// ── PIN GATE ──
+function checkPin() {
+  const now = Date.now();
+  if (_failedAttempts >= 5 && now < _lockUntil) {
+    const secs = Math.ceil((_lockUntil - now) / 1000);
+    document.getElementById('pin-err').textContent = `Too many attempts. Try again in ${secs}s`;
+    return;
+  }
+
+  const val = document.getElementById('pin-input').value.trim();
+  if (val === ADMIN_PIN) {
+    sessionStorage.setItem(PIN_KEY, '1');
+    document.getElementById('pin-gate').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    bootDashboard();
+  } else {
+    _failedAttempts++;
+    if (_failedAttempts >= 5) {
+      _lockUntil = Date.now() + 30000;
+      document.getElementById('pin-err').textContent = 'Too many attempts. Locked for 30 seconds.';
+    } else {
+      document.getElementById('pin-err').textContent = 'Incorrect PIN';
+      document.getElementById('pin-attempts').textContent = `${5 - _failedAttempts} attempts remaining`;
+    }
+    const inp = document.getElementById('pin-input');
+    inp.value = '';
+    inp.classList.add('shake');
+    setTimeout(() => inp.classList.remove('shake'), 400);
+  }
+}
+
+// Auto-unlock if PIN was entered this session
+if (sessionStorage.getItem(PIN_KEY)) {
+  document.getElementById('pin-gate').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+}
+
+// ── BOOT ──
+async function bootDashboard() {
   const session = await Auth.requireAuth();
   if (!session) return;
 
-  // Block non-admins immediately
   if (session.user.email !== ADMIN_EMAIL) {
-    document.body.innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--bg-main);">
-        <div style="text-align:center;padding:40px;">
-          <div style="font-size:48px;margin-bottom:16px;">🚫</div>
-          <div style="font-size:20px;font-weight:700;margin-bottom:8px;">Access Denied</div>
-          <div style="color:var(--text-secondary);margin-bottom:24px;">This page is for admins only.</div>
-          <a href="/dashboard" style="background:var(--green);color:white;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:600;">Back to Dashboard</a>
-        </div>
-      </div>`;
+    document.body.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0f172a;color:#e2e8f0;text-align:center;padding:40px;">
+      <div><div style="font-size:48px;margin-bottom:16px;">🚫</div>
+      <div style="font-size:20px;font-weight:700;margin-bottom:8px;">Access Denied</div>
+      <div style="color:#64748b;margin-bottom:24px;">This page is admin-only.</div>
+      <a href="/dashboard" style="background:#16a34a;color:white;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:600;">Go to Dashboard</a></div></div>`;
     return;
   }
 
   window._currentUser = session.user;
-  document.getElementById('admin-email-label').textContent = session.user.email;
+  document.getElementById('admin-email').textContent = session.user.email;
 
   runChecks();
   loadStats();
   renderLog();
+  setInterval(runChecks, 60000); // auto ping every 60s
+}
 
-  // Auto-refresh every 60 seconds
-  setInterval(runChecks, 60000);
+document.addEventListener('DOMContentLoaded', () => {
+  if (sessionStorage.getItem(PIN_KEY)) bootDashboard();
+  document.getElementById('pin-input').focus();
 });
 
-// ── Site health checks ──
+// ── SITE CHECKS ──
 async function runChecks() {
-  const dot   = document.getElementById('status-dot');
-  const text  = document.getElementById('status-text');
-  const pills = document.getElementById('status-pills');
-
-  dot.className = 'dot dot-gray';
-  text.textContent = 'Checking…';
-
   const start = Date.now();
-  let ok = false, ms = 0, status = 0;
+  let ok = false, ms = 0;
 
   try {
-    const res = await fetch('https://duee.online', { cache: 'no-store', mode: 'no-cors' });
+    await fetch('https://duee.online', { cache: 'no-store', mode: 'no-cors' });
     ms = Date.now() - start;
-    ok = true; status = 200; // no-cors doesn't give status
-  } catch (e) {
+    ok = true;
+  } catch(_) {
     ms = Date.now() - start;
-    ok = false;
   }
 
-  // Record ping
-  _pings.push({ ok, ms, t: Date.now() });
-  if (_pings.length > 20) _pings.shift();
+  _pingHistory.push({ ok, ms, t: Date.now() });
+  if (_pingHistory.length > 30) _pingHistory.shift();
 
-  // Update UI
   const quality = !ok ? 'down' : ms < 800 ? 'ok' : 'slow';
-  dot.className = 'dot ' + (quality === 'ok' ? 'dot-green' : quality === 'slow' ? 'dot-yellow' : 'dot-red');
-  text.textContent = quality === 'ok' ? 'Online' : quality === 'slow' ? 'Slow response' : 'Unreachable';
+  const upPings = _pingHistory.filter(p => p.ok).length;
+  const upPct   = Math.round((upPings / _pingHistory.length) * 100);
+  const avgMs   = Math.round(_pingHistory.filter(p=>p.ok).reduce((s,p)=>s+p.ms,0) / (upPings||1));
 
-  const pingPill = document.getElementById('pill-ping');
-  pingPill.textContent = ok ? `⏱ ${ms}ms` : '⏱ timeout';
-  pingPill.className = 'status-pill ' + (quality === 'ok' ? 'ok' : quality === 'slow' ? 'warn' : 'err');
+  // Topbar
+  const ld = document.getElementById('live-dot');
+  const ts = document.getElementById('topbar-status');
+  ld.className = 'live-dot' + (quality==='ok'?'':quality==='slow'?' yellow':' red');
+  ts.textContent = quality==='ok' ? `Online · ${ms}ms` : quality==='slow' ? `Slow · ${ms}ms` : 'Unreachable';
 
-  const httpPill = document.getElementById('pill-http');
-  httpPill.textContent = ok ? '✓ Reachable' : '✗ Down';
-  httpPill.className = 'status-pill ' + (ok ? 'ok' : 'err');
+  // Status bar
+  document.getElementById('sb-dot').className = 'dot ' + (quality==='ok'?'dot-g':quality==='slow'?'dot-y':'dot-r');
+  document.getElementById('sb-text').textContent = quality==='ok' ? 'Online' : quality==='slow' ? 'Slow Response' : 'Unreachable';
+
+  const pm = document.getElementById('pill-ms');
+  pm.textContent = ok ? `⏱ ${ms}ms` : '⏱ timeout';
+  pm.className = 'pill ' + (quality==='ok'?'pill-ok':quality==='slow'?'pill-warn':'pill-err');
+
+  const pr = document.getElementById('pill-reach');
+  pr.textContent = ok ? '✓ Reachable' : '✗ Down';
+  pr.className = 'pill ' + (ok?'pill-ok':'pill-err');
+
+  const pa = document.getElementById('pill-avg');
+  pa.textContent = `Avg ${avgMs}ms`;
+  pa.className = 'pill ' + (avgMs<800?'pill-ok':avgMs<2000?'pill-warn':'pill-err');
+
+  // Uptime card
+  document.getElementById('s-uptime').textContent = _pingHistory.length < 2 ? '…' : upPct + '%';
+  document.getElementById('s-uptime').className = 'sc-value';
+  document.getElementById('s-uptime-sub').innerHTML = `<span class="dot ${upPct>=99?'dot-g':upPct>=90?'dot-y':'dot-r'}" style="margin-right:4px;"></span>${_pingHistory.length} checks`;
 
   // Ping bars
-  const barsEl = document.getElementById('ping-bars');
-  barsEl.innerHTML = _pings.map(p => {
-    const h = p.ok ? Math.max(8, Math.min(32, Math.round(32 - (p.ms / 50)))) : 32;
-    const cls = !p.ok ? 'down' : p.ms < 800 ? 'ok' : 'slow';
-    return `<div class="ping-bar ${cls}" style="height:${h}px" title="${p.ok ? p.ms+'ms' : 'down'}"></div>`;
+  document.getElementById('ping-bars').innerHTML = _pingHistory.map(p => {
+    const h = p.ok ? Math.max(4, Math.min(28, 28 - Math.round(p.ms / 60))) : 28;
+    const cls = !p.ok ? 'pb-down' : p.ms < 800 ? 'pb-ok' : 'pb-slow';
+    return `<div class="pb ${cls}" style="height:${h}px" title="${p.ok?p.ms+'ms':'down'}"></div>`;
   }).join('');
 
-  // Stat card
-  document.getElementById('stat-ping').textContent = ok ? ms + 'ms' : '—';
-  document.getElementById('stat-ping').className = 'stat-value';
-  const pd = document.getElementById('stat-ping-dot');
-  pd.className = 'dot ' + (quality === 'ok' ? 'dot-green' : quality === 'slow' ? 'dot-yellow' : 'dot-red');
-  document.getElementById('stat-ping-label').textContent = quality === 'ok' ? 'Fast' : quality === 'slow' ? 'Slow' : 'Down';
+  // Update/create ping chart
+  updatePingChart();
 
-  document.getElementById('last-checked').textContent =
-    'Last checked ' + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  document.getElementById('last-refresh').textContent =
+    'Updated ' + new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
 
-  // Log the check
-  addLog(quality === 'ok' ? '✅' : quality === 'slow' ? '⚠️' : '🔴',
-    quality === 'ok' ? `Site is <strong>online</strong> — ${ms}ms response`
-                     : quality === 'slow' ? `Slow response: <strong>${ms}ms</strong>`
-                     : `Site appears <strong>unreachable</strong>`);
+  addLog(quality==='ok'?'✅':quality==='slow'?'⚠️':'🔴',
+    quality==='ok' ? `Site <strong>online</strong> — ${ms}ms`
+    : quality==='slow' ? `Slow response: <strong>${ms}ms</strong>`
+    : `Site <strong>unreachable</strong>`);
 }
 
-// ── Load stats from Supabase ──
+// ── LOAD STATS ──
 async function loadStats() {
-  try {
-    // Total assignments & classes (cross-user via count — works if RLS allows count or is off)
-    const [{ count: asgnCount }, { count: clsCount }] = await Promise.all([
-      _supabase.from('assignments').select('*', { count: 'exact', head: true }),
-      _supabase.from('classes').select('*', { count: 'exact', head: true }),
-    ]);
+  let needsSetup = false;
 
-    document.getElementById('stat-asgns').textContent = asgnCount ?? '—';
-    document.getElementById('stat-asgns').className = 'stat-value';
-    document.getElementById('stat-asgns-sub').textContent = 'across all users';
-
-    document.getElementById('stat-classes').textContent = clsCount ?? '—';
-    document.getElementById('stat-classes').className = 'stat-value';
-    document.getElementById('stat-classes-sub').textContent = 'across all users';
-
-    // Try get_total_users RPC (needs DB function — see setup note)
-    const { data: userCount, error: rpcErr } = await _supabase.rpc('get_total_users');
-    if (!rpcErr && userCount !== null) {
-      document.getElementById('stat-users').textContent = userCount;
-      document.getElementById('stat-users').className = 'stat-value';
-      document.getElementById('stat-users-sub').innerHTML = `<span class="dot dot-green"></span> tracking live`;
-    } else {
-      document.getElementById('stat-users').textContent = '—';
-      document.getElementById('stat-users').className = 'stat-value';
-      document.getElementById('stat-users-sub').innerHTML =
-        `<a href="#setup" style="color:var(--green);font-size:11px;font-weight:600;">Setup needed ↓</a>`;
-      showSetupNote();
-    }
-
-    // Recent users from distinct user_ids in assignments
-    loadRecentUsers();
-  } catch(e) {
-    console.error('Stats error:', e);
+  // Total users via RPC
+  const { data: userCount, error: uErr } = await _supabase.rpc('get_total_users');
+  if (!uErr && userCount !== null) {
+    document.getElementById('s-users').textContent = userCount;
+    document.getElementById('s-users').className = 'sc-value';
+    document.getElementById('s-users-sub').innerHTML = `<span class="dot dot-g" style="margin-right:4px;"></span>live count`;
+  } else {
+    needsSetup = true;
+    document.getElementById('s-users').textContent = '—';
+    document.getElementById('s-users').className = 'sc-value';
+    document.getElementById('s-users-sub').textContent = 'needs SQL setup';
   }
+
+  // Assignment stats via RPC
+  const { data: asgnStats, error: aErr } = await _supabase.rpc('get_assignment_stats');
+  if (!aErr && asgnStats) {
+    const total = asgnStats.total || 0;
+    const done  = asgnStats.completed || 0;
+    const pct   = total ? Math.round((done/total)*100) : 0;
+
+    document.getElementById('s-asgns').textContent = total;
+    document.getElementById('s-asgns').className = 'sc-value';
+    document.getElementById('s-asgns-sub').innerHTML = `<span class="sc-up">+${asgnStats.today||0} today</span>`;
+
+    document.getElementById('s-done').textContent = pct + '%';
+    document.getElementById('s-done').className = 'sc-value';
+    document.getElementById('s-done-sub').textContent = `${done} of ${total} done`;
+
+    buildPriorityChart(asgnStats.high||0, asgnStats.medium||0, asgnStats.low||0);
+  } else {
+    needsSetup = true;
+    // Fallback: own data only
+    const { count: ac } = await _supabase.from('assignments').select('*',{count:'exact',head:true});
+    const { count: cc } = await _supabase.from('classes').select('*',{count:'exact',head:true});
+    document.getElementById('s-asgns').textContent = ac ?? '—';
+    document.getElementById('s-asgns').className = 'sc-value';
+    document.getElementById('s-asgns-sub').textContent = 'your data only';
+    document.getElementById('s-done').textContent = '—';
+    document.getElementById('s-done').className = 'sc-value';
+    document.getElementById('s-cls').textContent = cc ?? '—';
+    document.getElementById('s-cls').className = 'sc-value';
+    document.getElementById('s-cls-sub').textContent = 'your data only';
+  }
+
+  // Classes
+  const { count: clsCount } = await _supabase.from('classes').select('*',{count:'exact',head:true});
+  if (clsCount !== null && !document.getElementById('s-cls').textContent.trim().replace('…','')) {
+    document.getElementById('s-cls').textContent = clsCount;
+    document.getElementById('s-cls').className = 'sc-value';
+  }
+
+  // Signups chart via RPC
+  const { data: signups, error: sErr } = await _supabase.rpc('get_signups_by_day');
+  if (!sErr && signups) {
+    buildSignupsChart(signups);
+  } else {
+    needsSetup = true;
+    buildSignupsChart([]);
+  }
+
+  if (needsSetup) document.getElementById('setup-notice').style.display = 'block';
+
+  // Due this week (own data)
+  buildDueChart();
+
+  // User table
+  loadUserTable();
 }
 
-async function loadRecentUsers() {
-  try {
-    // Get distinct user_ids with their assignment/class counts
-    const { data: asgns } = await _supabase.from('assignments').select('user_id, created_at');
-    const { data: clss  } = await _supabase.from('classes').select('user_id, created_at, name');
+async function loadUserTable() {
+  const { data: asgns } = await _supabase.from('assignments').select('user_id, created_at');
+  const { data: clss  } = await _supabase.from('classes').select('user_id, created_at');
 
-    if (!asgns && !clss) { document.getElementById('users-tbody').innerHTML =
-      `<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-muted);">No data available — RLS may be restricting cross-user queries</td></tr>`; return; }
+  const users = {};
+  (asgns||[]).forEach(a => {
+    if (!users[a.user_id]) users[a.user_id] = { uid: a.user_id, asgns:0, classes:0, first:a.created_at };
+    users[a.user_id].asgns++;
+    if (a.created_at < users[a.user_id].first) users[a.user_id].first = a.created_at;
+  });
+  (clss||[]).forEach(c => {
+    if (!users[c.user_id]) users[c.user_id] = { uid: c.user_id, asgns:0, classes:0, first:c.created_at };
+    users[c.user_id].classes++;
+  });
 
-    // Build per-user map
-    const users = {};
-    (asgns || []).forEach(a => {
-      if (!users[a.user_id]) users[a.user_id] = { uid: a.user_id, asgns: 0, classes: 0, first: a.created_at };
-      users[a.user_id].asgns++;
-      if (a.created_at < users[a.user_id].first) users[a.user_id].first = a.created_at;
-    });
-    (clss || []).forEach(c => {
-      if (!users[c.user_id]) users[c.user_id] = { uid: c.user_id, asgns: 0, classes: 0, first: c.created_at };
-      users[c.user_id].classes++;
-      if (c.created_at < users[c.user_id].first) users[c.user_id].first = c.created_at;
-    });
+  const list = Object.values(users).sort((a,b) => b.first > a.first ? 1 : -1).slice(0,15);
 
-    const list = Object.values(users).sort((a, b) => b.first > a.first ? 1 : -1).slice(0, 10);
+  // Update user stat if not already set by RPC
+  const usEl = document.getElementById('s-users');
+  if (usEl.textContent === '—' || usEl.textContent === '…') {
+    usEl.textContent = list.length + (list.length===15?'+':'');
+    usEl.className = 'sc-value';
+    document.getElementById('s-users-sub').textContent = 'from activity data';
+  }
 
-    if (!list.length) {
-      document.getElementById('users-tbody').innerHTML =
-        `<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-muted);">Only your own data is visible — RLS is active</td></tr>`;
-
-      document.getElementById('stat-users').textContent = '1+';
-      document.getElementById('stat-users').className = 'stat-value';
-      return;
-    }
-
-    document.getElementById('stat-users').textContent = list.length + (list.length === 10 ? '+' : '');
-    document.getElementById('stat-users').className = 'stat-value';
-
-    document.getElementById('users-tbody').innerHTML = list.map(u => `
-      <tr>
-        <td><span style="font-family:monospace;font-size:11px;color:var(--text-muted);">${u.uid.slice(0,8)}…</span></td>
-        <td>${u.first ? new Date(u.first).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : '—'}</td>
-        <td>${u.asgns}</td>
-        <td>${u.classes}</td>
-      </tr>`).join('');
-  } catch(e) {
+  if (!list.length) {
     document.getElementById('users-tbody').innerHTML =
-      `<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-muted);">Could not load user data</td></tr>`;
+      `<tr><td colspan="4" style="text-align:center;padding:24px;color:#475569;">Only your own data visible (RLS active)</td></tr>`;
+    return;
   }
+
+  document.getElementById('users-tbody').innerHTML = list.map(u => `
+    <tr>
+      <td><span style="font-family:monospace;font-size:10px;color:#64748b">${u.uid.slice(0,12)}…</span></td>
+      <td>${u.first ? new Date(u.first).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—'}</td>
+      <td>${u.asgns}</td>
+      <td>${u.classes}</td>
+    </tr>`).join('');
 }
 
-function showSetupNote() {
-  document.getElementById('signup-note').innerHTML =
-    `<span id="setup" style="color:#ca8a04;">⚠ Run this SQL in Supabase to enable user count:</span>
-     <code style="background:var(--bg-hover);padding:2px 6px;border-radius:4px;font-size:10px;margin-left:4px;">
-       CREATE OR REPLACE FUNCTION get_total_users() RETURNS integer LANGUAGE sql SECURITY DEFINER AS $$ SELECT COUNT(*)::integer FROM auth.users; $$;
-     </code>`;
+// ── CHARTS ──
+const CHART_DEFAULTS = {
+  responsive: true, maintainAspectRatio: false,
+  plugins: { legend: { display: false }, tooltip: { backgroundColor:'#1e293b', borderColor:'#334155', borderWidth:1, titleColor:'#e2e8f0', bodyColor:'#94a3b8' } },
+};
+
+function updatePingChart() {
+  const labels = _pingHistory.map((_,i) => '');
+  const data   = _pingHistory.map(p => p.ok ? p.ms : null);
+  const colors = _pingHistory.map(p => !p.ok ? '#dc2626' : p.ms < 800 ? '#16a34a' : '#ca8a04');
+
+  if (_charts.ping) {
+    _charts.ping.data.labels = labels;
+    _charts.ping.data.datasets[0].data = data;
+    _charts.ping.data.datasets[0].pointBackgroundColor = colors;
+    _charts.ping.update('none');
+    return;
+  }
+  const ctx = document.getElementById('chart-ping').getContext('2d');
+  _charts.ping = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        data, fill: true, tension: 0.4,
+        borderColor: '#16a34a', borderWidth: 2,
+        backgroundColor: 'rgba(22,163,74,0.08)',
+        pointBackgroundColor: colors, pointRadius: 4, pointHoverRadius: 6,
+        spanGaps: true,
+      }]
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      scales: {
+        x: { display: false },
+        y: { grid: { color: '#1e293b' }, ticks: { color: '#475569', font:{size:10} }, border:{color:'#334155'} }
+      }
+    }
+  });
 }
 
-// ── Activity log (localStorage) ──
-const LOG_KEY = 'duee_admin_log';
-function getLogs() { try { return JSON.parse(localStorage.getItem(LOG_KEY) || '[]'); } catch { return []; } }
-function saveLogs(l) { localStorage.setItem(LOG_KEY, JSON.stringify(l.slice(-50))); }
+function buildPriorityChart(high, med, low) {
+  if (_charts.priority) { _charts.priority.destroy(); }
+  const ctx = document.getElementById('chart-priority').getContext('2d');
+  _charts.priority = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['High', 'Medium', 'Low'],
+      datasets: [{ data: [high, med, low], backgroundColor: ['#dc2626','#ca8a04','#16a34a'], borderWidth: 0, hoverOffset: 4 }]
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      cutout: '68%',
+      plugins: {
+        ...CHART_DEFAULTS.plugins,
+        legend: { display: true, position: 'bottom', labels: { color: '#64748b', font:{size:11}, padding:12, boxWidth:10 } }
+      }
+    }
+  });
+}
 
+function buildSignupsChart(signups) {
+  const days = 14;
+  const labels = [], values = [];
+  for (let i = days-1; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate()-i);
+    const ds = d.toISOString().slice(0,10);
+    labels.push(d.toLocaleDateString('en-US',{month:'short',day:'numeric'}));
+    const found = (signups||[]).find(s => s.date === ds);
+    values.push(found ? found.count : 0);
+  }
+
+  if (_charts.signups) { _charts.signups.destroy(); }
+  const ctx = document.getElementById('chart-signups').getContext('2d');
+  _charts.signups = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        backgroundColor: values.map(v => v > 0 ? '#7c3aed' : '#1e293b'),
+        borderRadius: 4, borderSkipped: false,
+      }]
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      scales: {
+        x: { grid:{display:false}, ticks:{color:'#475569',font:{size:9},maxRotation:0,maxTicksLimit:7}, border:{color:'#334155'} },
+        y: { grid:{color:'#0f172a'}, ticks:{color:'#475569',font:{size:10},stepSize:1}, border:{color:'#334155'} }
+      }
+    }
+  });
+}
+
+async function buildDueChart() {
+  const { data: asgns } = await _supabase.from('assignments').select('due_date,completed').eq('user_id', window._currentUser?.id);
+  const labels = [], values = [];
+  const now = new Date(); now.setHours(0,0,0,0);
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(now); d.setDate(d.getDate()+i);
+    const ds = d.toISOString().slice(0,10);
+    labels.push(i===0?'Today':i===1?'Tomorrow':d.toLocaleDateString('en-US',{weekday:'short'}));
+    values.push((asgns||[]).filter(a=>!a.completed&&a.due_date===ds).length);
+  }
+  if (_charts.due) { _charts.due.destroy(); }
+  const ctx = document.getElementById('chart-due').getContext('2d');
+  _charts.due = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        backgroundColor: values.map((v,i) => i===0?'#dc2626':i===1?'#ca8a04':'#2563eb'),
+        borderRadius: 4, borderSkipped: false,
+      }]
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      scales: {
+        x: { grid:{display:false}, ticks:{color:'#475569',font:{size:10}}, border:{color:'#334155'} },
+        y: { grid:{color:'#0f172a'}, ticks:{color:'#475569',font:{size:10},stepSize:1}, border:{color:'#334155'} }
+      }
+    }
+  });
+}
+
+// ── LOG ──
+function getLogs() { try { return JSON.parse(localStorage.getItem(LOG_KEY)||'[]'); } catch{return[];} }
+function saveLogs(l) { localStorage.setItem(LOG_KEY, JSON.stringify(l.slice(-100))); }
 function addLog(icon, msg) {
   const logs = getLogs();
   logs.unshift({ icon, msg, t: new Date().toISOString() });
   saveLogs(logs);
   renderLog();
 }
-
+function clearLog() { localStorage.removeItem(LOG_KEY); renderLog(); }
 function renderLog() {
   const logs = getLogs();
   const el = document.getElementById('log-list');
+  if (!el) return;
   if (!logs.length) {
-    el.innerHTML = `<div class="empty-log">No activity yet — checks will appear here automatically.</div>`;
+    el.innerHTML = `<div class="empty-log">No activity yet.</div>`;
     return;
   }
-  el.innerHTML = logs.slice(0, 20).map(l => `
+  el.innerHTML = logs.slice(0,25).map(l => `
     <li class="log-item">
       <span class="log-icon">${l.icon}</span>
       <span class="log-msg">${l.msg}</span>
-      <span class="log-time">${new Date(l.t).toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' })}</span>
+      <span class="log-time">${new Date(l.t).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})}</span>
     </li>`).join('');
 }
 </script>

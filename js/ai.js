@@ -113,7 +113,7 @@ User might say: "what's due", "what do i have", "upcoming", "this week", "show m
 RULES:
 - People speak casually — "essay done", "did the bio hw", "yoo remove calc quiz", "bro add chemistry tmrw" all mean something. Figure out the intent.
 - Match assignments by name similarity. Pick the CLOSEST match from the list.
-- Dates: compute exact YYYY-MM-DD. "Friday"=next ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][(new Date().getDay()+5)%7+1] ? 'Friday' : 'Friday'}, "next week"=${addDays(7)}, "in 3 days"=${addDays(3)}, "tomorrow"=${addDays(1)}.
+- Dates: compute exact YYYY-MM-DD. "tomorrow"=${addDays(1)}, "next week"=${addDays(7)}, "in 3 days"=${addDays(3)}, "Friday"=next Friday, "Monday"=next Monday, etc.
 - Priority: exam/midterm/final/project = high. quiz/reading/reflection = low. else medium.
 - Be warm and brief — 1 sentence reply + action block.
 - Never show the action JSON to the user.

@@ -95,6 +95,7 @@
     document.getElementById('signup-form').style.display = tab === 'signup' ? '' : 'none';
     document.getElementById('tab-login').classList.toggle('active',  tab === 'login');
     document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
+    document.querySelectorAll('#login-form input, #signup-form input').forEach(i => i.value = '');
     hideMsg();
   }
 

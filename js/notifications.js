@@ -85,7 +85,7 @@
         // Clicking bell goes to reminders page
         btn.onclick = () => {
           const base = location.href.replace(/\/[^/]*$/, '/');
-          window.location.href = base + 'assignments.html';
+          window.location.href = base + 'reminders.html';
         };
       }
     });

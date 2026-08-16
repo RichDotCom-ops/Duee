@@ -351,18 +351,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // ── LemonSqueezy overlay setup ──
 function initLemonSqueezy() {
-  // Wait for lemon.js to load (it's deferred)
+  let attempts = 0;
   const trySetup = () => {
     if (typeof window.createLemonSqueezy !== 'function') {
-      setTimeout(trySetup, 200);
+      if (++attempts < 25) setTimeout(trySetup, 200); // max 5 seconds
       return;
     }
     window.createLemonSqueezy();
     LemonSqueezy.Setup({
       eventHandler: (event) => {
-        if (event.event === 'Checkout.Success') {
-          onPaymentSuccess();
-        }
+        if (event.event === 'Checkout.Success') onPaymentSuccess();
       }
     });
   };

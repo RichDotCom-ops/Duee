@@ -294,40 +294,36 @@ RULES:
 
     try {
       const ctx = await buildContext();
-      const systemPrompt = buildSystemPrompt(ctx);
 
-      // Build API message list from history (exclude bot-injected action results)
-      const apiMessages = _history
-        .filter(m => !m._actionOnly)
-        .map(m => ({ role: m.role === 'bot' ? 'assistant' : 'user', content: m.role === 'user' ? normalize(m.text) : m.text }));
+      // ── Rule-based FIRST — instant, reliable, no API needed ──
+      const ruled = await ruleBasedFallback(normalizedText, ctx);
+      if (ruled !== null) {
+        _history.push({ role: 'bot', text: ruled });
+        if (typeof DueePlan !== 'undefined') DueePlan.incrementAI();
+        _thinking = false;
+        renderMessages();
+        updateTokenUI();
+        return;
+      }
 
-      const raw = await callAI(apiMessages, systemPrompt);
-      const { text: replyText, actionResult } = await parseAndExecute(raw, ctx);
-
-      if (replyText) _history.push({ role: 'bot', text: replyText });
-      if (actionResult) _history.push({ role: 'bot', text: actionResult, _actionOnly: true });
+      // ── Conversational fallback — call LLM only for open-ended messages ──
+      try {
+        const systemPrompt = buildSystemPrompt(ctx);
+        const apiMessages = _history
+          .filter(m => !m._actionOnly)
+          .map(m => ({ role: m.role === 'bot' ? 'assistant' : 'user', content: m.role === 'user' ? normalize(m.text) : m.text }));
+        const raw = await callAI(apiMessages, systemPrompt);
+        const { text: replyText, actionResult } = await parseAndExecute(raw, ctx);
+        if (replyText) _history.push({ role: 'bot', text: replyText });
+        if (actionResult) _history.push({ role: 'bot', text: actionResult, _actionOnly: true });
+        if (!replyText && !actionResult) _history.push({ role: 'bot', text: `Got it! Tell me what you need — like "I finished my essay", "what's due this week", or "add a quiz due Friday".` });
+      } catch (_) {
+        _history.push({ role: 'bot', text: `Got it! Tell me what you need — like "I finished my essay", "what's due this week", or "add a quiz due Friday".` });
+      }
       if (typeof DueePlan !== 'undefined') DueePlan.incrementAI();
 
     } catch (err) {
-      if (err.status === 429) {
-        // Rate limited — try rule-based first, then friendly message
-        try {
-          const fallback = await ruleBasedFallback(normalizedText);
-          _history.push({ role: 'bot', text: fallback });
-          if (typeof DueePlan !== 'undefined') DueePlan.incrementAI();
-        } catch (_) {
-          _history.push({ role: 'bot', text: `I'm getting a lot of requests right now — try again in a second!` });
-        }
-      } else {
-        // Other API error — still try rule-based
-        try {
-          const fallback = await ruleBasedFallback(normalizedText);
-          _history.push({ role: 'bot', text: fallback });
-          if (typeof DueePlan !== 'undefined') DueePlan.incrementAI();
-        } catch (_) {
-          _history.push({ role: 'bot', text: `Something went wrong — try again!` });
-        }
-      }
+      _history.push({ role: 'bot', text: `Something went wrong — try again!` });
     }
 
     _thinking = false;
@@ -358,84 +354,104 @@ RULES:
     return addDays(7);
   }
 
-  async function ruleBasedFallback(text) {
+  // Returns a string if it handled the message, null if it didn't match (so LLM can try)
+  async function ruleBasedFallback(text, ctx) {
     const l = text.toLowerCase();
-    const list = await DB.getAssignments();
-    const classes = await DB.getClasses();
+    let list, classes;
+    try {
+      if (ctx) { list = ctx.assignments; classes = ctx.classes; }
+      else { [list, classes] = await Promise.all([DB.getAssignments(), DB.getClasses()]); }
+    } catch (_) { list = []; classes = []; }
 
     // ── Complete ──
-    if (/\b(done|finished|complete[d]?|turned?\s*in|submitted?|checked?\s*off|mark.*done|did\s+my|i\s+did)\b/.test(l)) {
-      const asgn = fuzzyFind(list.filter(a => !a.completed), null, text);
+    if (/\b(done|finished|complete[d]?|turned?\s*in|submitted?|checked?\s*off|mark.*done|did\s+(the|my|it)|i\s+did|just\s+did|handed?\s*in|got\s+it\s+done|wrapped\s+up|knocked\s+out)\b/.test(l)) {
+      const pending = list.filter(a => !a.completed);
+      const asgn = fuzzyFind(pending, null, text);
       if (asgn) { await DB.toggleComplete(asgn.id, false); refreshPage(); return `✓ Marked **"${asgn.name}"** complete!`; }
-      return `Which assignment did you finish? I couldn't find a match.`;
+      if (pending.length === 0) return `You have no pending assignments — you're all done! 🎉`;
+      // List closest matches
+      const opts = pending.slice(0,3).map(a => `• ${a.name}`).join('\n');
+      return `Which one did you finish?\n${opts}`;
     }
 
     // ── Uncomplete ──
-    if (/\b(uncomplete|undo|uncheck|unmark|not\s+done|reopen|incomplete|mark.*incomplete|didn.t|haven.t)\b/.test(l)) {
-      const asgn = fuzzyFind(list.filter(a => a.completed), null, text);
+    if (/\b(uncomplete|undo|uncheck|unmark|not\s+done|reopen|mark.*incomplete|actually\s+didn.t|haven.t\s+done|take\s+it\s+back|i\s+lied|wait\s+no)\b/.test(l)) {
+      const done = list.filter(a => a.completed);
+      const asgn = fuzzyFind(done, null, text);
       if (asgn) { await DB.toggleComplete(asgn.id, true); refreshPage(); return `↩️ Reopened **"${asgn.name}"** — marked as pending again.`; }
-      return `Which assignment do you want to reopen?`;
+      return `Which completed assignment do you want to reopen?`;
     }
 
     // ── Delete ──
-    if (/\b(delete|remove|get\s*rid\s*of|trash|erase|drop|cancel)\b/.test(l)) {
+    if (/\b(delete|remove|get\s*rid\s*of|trash|erase|drop|cancel|nuke|kill|take\s+off)\b/.test(l)) {
       const asgn = fuzzyFind(list, null, text);
       if (asgn) { await DB.deleteAssignment(asgn.id); refreshPage(); return `🗑️ Deleted **"${asgn.name}"**.`; }
-      return `Which assignment do you want to delete?`;
+      const opts = list.slice(0,3).map(a => `• ${a.name}`).join('\n');
+      return list.length ? `Which assignment do you want to delete?\n${opts}` : `You have no assignments to delete.`;
     }
 
     // ── Add ──
-    if (/\b(add|create|new|schedule|remind|set|put)\b/.test(l)) {
+    if (/\b(add|create|new|schedule|remind\s*me|set|put|i\s+have\s+(a|an)|there.s\s+(a|an)|need\s+to\s+add|make\s+(a|an))\b/.test(l)) {
       const due  = parseDate(text);
-      const pri  = /\b(urgent|important|critical|exam|final|midterm)\b/.test(l) ? 'high' : /\b(reading|quiz|small)\b/.test(l) ? 'low' : 'medium';
-      const cls  = classes.find(c => l.includes(c.name.toLowerCase().slice(0,4)));
+      const pri  = /\b(exam|final|midterm|project|presentation)\b/.test(l) ? 'high' : /\b(reading|reflection|quiz)\b/.test(l) ? 'low' : 'medium';
+      const cls  = classes.find(c => l.includes(c.name.toLowerCase().slice(0,5)));
       const name = text
-        .replace(/\b(add|create|new|schedule|remind\s*me|set|put|an?|the|assignment|task|for|due|on|by|next|this|monday|tuesday|wednesday|thursday|friday|saturday|sunday|today|tomorrow|week|month)\b/gi, '')
-        .replace(/[^a-zA-Z0-9\s]/g, '').trim();
+        .replace(/\b(add|create|new|schedule|remind\s*me|set|put|i\s+have\s+a|i\s+have\s+an|there.s\s+a|need\s+to\s+add|make\s+a|an?|the|assignment|task|homework|hw|for|due|on|by|next|this|monday|tuesday|wednesday|thursday|friday|saturday|sunday|today|tomorrow|week|month|in\s+\d+\s+days?)\b/gi, ' ')
+        .replace(/\s{2,}/g, ' ').trim();
       if (name.length > 1) {
-        await DB.addAssignment({ name, classId: cls?.id || null, dueDate: due, dueTime:'23:59', priority: pri, estimatedTime:'1.5', notes:'' });
+        await DB.addAssignment({ name, classId: cls?.id || null, dueDate: due, dueTime: '23:59', priority: pri, estimatedTime: '1.5', notes: '' });
         refreshPage();
         return `📅 Added **"${name}"**${cls ? ` for ${cls.name}` : ''} — due ${due}.`;
       }
       return `What should I call the assignment?`;
     }
 
-    // ── Upcoming ──
-    if (/\b(upcoming|what.*due|what.*have|this\s*week|today|schedule|show|list)\b/.test(l)) {
+    // ── Show upcoming ──
+    if (/\b(upcoming|what.?(s|'s)?\s*(due|on\s*my\s*list)|what\s+do\s+i\s+have|this\s*week|today|show\s*(me)?|list|my\s*schedule|what.s\s*next|overdue)\b/.test(l)) {
       const now = new Date(); now.setHours(0,0,0,0);
-      const days = /\b(month|30\s*day)\b/.test(l) ? 30 : /\b(two|2)\s*week\b/.test(l) ? 14 : 8;
-      const cut  = new Date(now); cut.setDate(cut.getDate() + days);
-      const up   = list.filter(a => !a.completed && new Date(a.dueDate+'T00:00:00') <= cut).sort((a,b) => a.dueDate.localeCompare(b.dueDate));
-      if (!up.length) return `Nothing due in the next ${days === 8 ? 'week' : days + ' days'} 🎉`;
-      return `Coming up:\n` + up.map(a => {
+      const days = /\b(month|30)\b/.test(l) ? 30 : /\b(two|2)\s*week\b/.test(l) ? 14 : 8;
+      const overdue = /\boverdue\b/.test(l);
+      const cut = new Date(now); cut.setDate(cut.getDate() + days);
+      let up = list.filter(a => !a.completed);
+      up = overdue ? up.filter(a => new Date(a.dueDate+'T00:00:00') < now) : up.filter(a => new Date(a.dueDate+'T00:00:00') <= cut);
+      up.sort((a,b) => a.dueDate.localeCompare(b.dueDate));
+      if (!up.length) return overdue ? `Nothing overdue right now 🎉` : `Nothing due in the next ${days === 8 ? 'week' : days + ' days'} 🎉`;
+      return (overdue ? `Overdue:\n` : `Coming up:\n`) + up.map(a => {
         const cls  = classes.find(c => c.id === a.classId);
         const diff = Math.round((new Date(a.dueDate+'T00:00:00') - now) / 86400000);
-        return `• ${a.name}${cls ? ` (${cls.name})` : ''} — ${diff === 0 ? 'today' : diff === 1 ? 'tomorrow' : `in ${diff}d`}`;
+        const when = diff < 0 ? `${Math.abs(diff)}d overdue` : diff === 0 ? 'today' : diff === 1 ? 'tomorrow' : `in ${diff}d`;
+        return `• **${a.name}**${cls ? ` (${cls.name})` : ''} — ${when}`;
       }).join('\n');
     }
 
     // ── Study tips ──
-    if (/\b(study|tips?|how\s+do\s+i|help\s+me|advice|prepare)\b/.test(l)) {
-      return `Study tips:\n• **Pomodoro**: 25 min focus, 5 min break — repeat.\n• **Active recall**: test yourself instead of re-reading.\n• **Teach it**: explain the topic out loud to find gaps.`;
+    if (/\b(study\s*tips?|how\s+do\s+i\s+study|help\s+me\s+study|advice|how\s+to\s+prepare)\b/.test(l)) {
+      return `Study tips:\n• **Pomodoro**: 25 min focus, 5 min break\n• **Active recall**: test yourself instead of re-reading\n• **Start with the hardest**: do difficult stuff when your energy is highest`;
     }
 
     // ── Stress / motivation ──
-    if (/\b(stress|overwhelm|anxious|behind|so much|panic|can.t|too many|worried)\b/.test(l)) {
+    if (/\b(stress|overwhelm|anxious|so\s+much|panic|too\s+many|worried|freaking?\s+out|behind|screwed)\b/.test(l)) {
       const count = list.filter(a => !a.completed).length;
       return count > 0
-        ? `You've got ${count} thing${count !== 1 ? 's' : ''} pending — start with the nearest deadline and knock them out one at a time. You got this!`
-        : `Looks like your list is actually clear! Take a breath — you're more on top of it than you think.`;
+        ? `You've got ${count} pending — want me to show you what's most urgent so you know where to start?`
+        : `Your list is actually clear! You're more on top of it than you think 💪`;
     }
 
     // ── Greetings ──
-    if (/^(hey|hi|hello|sup|yo|what.?s up|heyy+|hiii+)\b/.test(l.trim())) {
+    if (/^(hey+|hi+|hello|sup|yo+|what.?s\s*up|heyy+|hiii+)\b/.test(l.trim())) {
       const count = list.filter(a => !a.completed).length;
       return count > 0
         ? `Hey! You've got **${count} pending assignment${count !== 1 ? 's' : ''}**. Want to see what's due soon?`
-        : `Hey! Your assignment list is looking clear 🎉 Anything you need to add?`;
+        : `Hey! Your list is clear 🎉 Anything you need to add?`;
     }
 
-    return `Got it! Just tell me what you need — like "I finished my essay", "delete my math quiz", "what's due this week", or "add a quiz due Friday".`;
+    // ── Count / how many ──
+    if (/\b(how\s+many|count|total|number\s+of)\b/.test(l)) {
+      const count = list.filter(a => !a.completed).length;
+      return `You have **${count} pending assignment${count !== 1 ? 's' : ''}** right now.`;
+    }
+
+    return null; // didn't match — let LLM handle it
   }
 
   // ─────────────────────────────────────────────

@@ -18,11 +18,26 @@ const DB = {
     };
   },
 
+  // ── Timeout wrapper for read operations ──
+  _withTimeout(promise, ms = 10000) {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('db_timeout')), ms))
+    ]);
+  },
+
   // ── Classes ──
   async getClasses() {
-    const { data, error } = await _supabase.from('classes').select('*').eq('user_id', this._uid()).order('created_at');
-    if (error) { console.error(error); return []; }
-    return (data || []).map(r => this._cls(r));
+    try {
+      const { data, error } = await this._withTimeout(
+        _supabase.from('classes').select('*').eq('user_id', this._uid()).order('created_at')
+      );
+      if (error) { console.error(error); return []; }
+      return (data || []).map(r => this._cls(r));
+    } catch(err) {
+      if (err.message === 'db_timeout') _showConnectionError('Loading your classes is taking too long. Check your connection.');
+      return [];
+    }
   },
 
   async addClass(obj) {
@@ -49,9 +64,16 @@ const DB = {
 
   // ── Assignments ──
   async getAssignments() {
-    const { data, error } = await _supabase.from('assignments').select('*').eq('user_id', this._uid()).order('due_date');
-    if (error) { console.error(error); return []; }
-    return (data || []).map(r => this._asgn(r));
+    try {
+      const { data, error } = await this._withTimeout(
+        _supabase.from('assignments').select('*').eq('user_id', this._uid()).order('due_date')
+      );
+      if (error) { console.error(error); return []; }
+      return (data || []).map(r => this._asgn(r));
+    } catch(err) {
+      if (err.message === 'db_timeout') _showConnectionError('Loading your assignments is taking too long. Check your connection.');
+      return [];
+    }
   },
 
   async addAssignment(obj) {

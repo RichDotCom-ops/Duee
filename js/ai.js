@@ -1,9 +1,14 @@
 // duee. — AI Study Assistant (powered by LiquidAI via OpenRouter)
 
 (function () {
-  const OR_KEY   = atob('c2stb3ItdjEtMGIwZjA5ZWI1NmRhOGYyMzc1M2M4ZmQzNDExZTE3MTQwMjc4ZWFmYjYxMjc2NjBhMWJmZTgxZjU1NjRkMDAxOQ==');
-  const OR_MODEL = 'nvidia/nemotron-nano-9b-v2:free';
-  const OR_URL   = 'https://openrouter.ai/api/v1/chat/completions';
+  const OR_KEY    = atob('c2stb3ItdjEtMGIwZjA5ZWI1NmRhOGYyMzc1M2M4ZmQzNDExZTE3MTQwMjc4ZWFmYjYxMjc2NjBhMWJmZTgxZjU1NjRkMDAxOQ==');
+  const OR_MODELS = [
+    'nvidia/nemotron-nano-9b-v2:free',
+    'mistralai/mistral-7b-instruct:free',
+    'meta-llama/llama-3.2-3b-instruct:free',
+    'qwen/qwen3-8b:free',
+  ];
+  const OR_URL    = 'https://openrouter.ai/api/v1/chat/completions';
 
   // ── State ──
   let _open     = false;
@@ -71,35 +76,39 @@ Student's pending assignments: ${upcoming}.
 Reply in 1-2 warm, casual sentences. Be encouraging and helpful. No lists unless asked.`;
   }
 
-  // ── Call OpenRouter with 6s timeout ──
+  // ── Call OpenRouter — tries each model until one works ──
   async function callAI(apiMessages, systemPrompt) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 6000);
-    try {
-      const res = await fetch(OR_URL, {
-        method: 'POST',
-        signal: controller.signal,
-        headers: {
-          'Authorization': `Bearer ${OR_KEY}`,
-          'Content-Type':  'application/json',
-          'HTTP-Referer':  'https://duee.online',
-          'X-Title':       'duee.'
-        },
-        body: JSON.stringify({
-          model: OR_MODEL,
-          messages: [{ role: 'system', content: systemPrompt }, ...apiMessages],
-          temperature: 0.6,
-          max_tokens: 250
-        })
-      });
-      clearTimeout(timer);
-      if (!res.ok) return null;
-      const data = await res.json();
-      return data.choices?.[0]?.message?.content?.trim() || null;
-    } catch (_) {
-      clearTimeout(timer);
-      return null;
+    for (const model of OR_MODELS) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 6000);
+      try {
+        const res = await fetch(OR_URL, {
+          method: 'POST',
+          signal: controller.signal,
+          headers: {
+            'Authorization': `Bearer ${OR_KEY}`,
+            'Content-Type':  'application/json',
+            'HTTP-Referer':  'https://duee.online',
+            'X-Title':       'duee.'
+          },
+          body: JSON.stringify({
+            model,
+            messages: [{ role: 'system', content: systemPrompt }, ...apiMessages],
+            temperature: 0.6,
+            max_tokens: 250
+          })
+        });
+        clearTimeout(timer);
+        if (!res.ok) continue; // try next model
+        const data = await res.json();
+        const content = data.choices?.[0]?.message?.content?.trim();
+        if (content) return content;
+      } catch (_) {
+        clearTimeout(timer);
+        // try next model
+      }
     }
+    return null; // all models failed
   }
 
   // ── Fuzzy assignment finder ──

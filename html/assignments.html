@@ -182,8 +182,11 @@
             </div>
             <div style="display:flex;align-items:flex-start;gap:12px;">
               <div style="min-width:22px;height:22px;border-radius:50%;background:#cc0000;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">4</div>
-              <div style="font-size:13px;color:var(--text-primary);padding-top:2px;"><strong>Copy that link</strong>, paste it in the box below, and hit <strong>Import</strong></div>
+              <div style="font-size:13px;color:var(--text-primary);padding-top:2px;"><strong>Copy that link</strong>, paste it below, and hit <strong>Import</strong></div>
             </div>
+          </div>
+          <div style="margin-top:12px;padding:10px 12px;background:#fffbeb;border:1px solid #fde68a;border-radius:var(--radius);font-size:12px;color:#92400e;line-height:1.6;">
+            <strong>Note:</strong> This only imports assignments your instructors have added to the Blackboard calendar. If nothing imports, your professors may not have set due dates in Blackboard — add those assignments manually.
           </div>
         </div>
         <div style="display:flex;gap:8px;">
@@ -420,30 +423,27 @@ async function importFromUrl(source) {
 
   try {
     const fnUrl = SUPABASE_URL + '/functions/v1/ics-proxy';
-    const { data: { session: _sess } } = await _supabase.auth.getSession();
-    const token = _sess?.access_token || SUPABASE_KEY;
     const res = await fetch(fnUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': SUPABASE_KEY,
-        'Authorization': 'Bearer ' + token,
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url }),
     });
 
     const text = await res.text();
 
     if (!text.includes('BEGIN:VCALENDAR')) {
-      throw new Error('The link does not point to a valid calendar feed. Make sure you copied the full URL from the "Get Calendar Feed" screen in Blackboard.');
+      throw new Error('That link does not look like a calendar feed. Make sure you copied the full URL from the "Get Calendar Feed" screen in Blackboard.');
+    }
+
+    const rawEvents = (text.match(/BEGIN:VEVENT/gi) || []).length;
+
+    if (rawEvents === 0) {
+      throw new Error('Your Blackboard calendar feed is empty — no events were found. This usually means your instructors have not added due dates to the Blackboard calendar yet. You can still add assignments manually in duee.');
     }
 
     parsedAssignments = ICS.processFile(text);
     if (!parsedAssignments.length) {
-      const rawEvents = (text.match(/BEGIN:VEVENT/g) || []).length;
-      throw new Error(rawEvents > 0
-        ? `Found ${rawEvents} calendar events but none are upcoming assignments. They may all be past events.`
-        : 'No calendar events found in this feed. Make sure the URL is your assignment calendar feed.');
+      throw new Error(`Found ${rawEvents} calendar event${rawEvents !== 1 ? 's' : ''} but none are upcoming assignments. They may all be past due dates, or your instructors may not have added due dates to Blackboard yet.`);
     }
     showStep2();
   } catch(e) {

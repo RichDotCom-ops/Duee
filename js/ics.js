@@ -71,6 +71,22 @@ const ICS = {
     return null;
   },
 
+  // ── Does this string look like a real class name? ──
+  looksLikeClass(name) {
+    if (!name || name.length < 2) return false;
+    const n = name.trim();
+    // Has a course code like "GEN 103", "BIOL 201", "CS101"
+    if (/\b[A-Z]{2,5}\s*\d{2,4}[A-Z]?\b/.test(n)) return true;
+    // Short subject name (1-3 words) — "Biology", "English", "World History"
+    const words = n.split(/\s+/);
+    if (words.length <= 3) {
+      // But not if it reads like an assignment (contains these words)
+      const asgnWords = /\b(exam|quiz|homework|assignment|problem|chapter|week|module|discussion|project|essay|paper|report|test|lab|exercise|attempt|final|midterm|review|worksheet|activity)\b/i;
+      if (!asgnWords.test(n)) return true;
+    }
+    return false;
+  },
+
   // ── Extract structured assignment from a VEVENT ──
   extractAssignment(event) {
     const summary = (event.SUMMARY || '').trim();
@@ -88,28 +104,38 @@ const ICS = {
     let courseName = '';
     let asgnName   = summary;
 
-    // Canvas format → "Course Name: Assignment Name"
+    // Canvas format → "Course Name: Assignment Name" — only if left side looks like a class
     if (summary.includes(': ')) {
       const idx = summary.indexOf(': ');
-      courseName = summary.slice(0, idx).trim();
-      asgnName   = summary.slice(idx + 2).trim();
+      const left  = summary.slice(0, idx).trim();
+      const right = summary.slice(idx + 2).trim();
+      if (this.looksLikeClass(left)) {
+        courseName = left;
+        asgnName   = right;
+      }
     }
 
-    // Blackboard → course name in CATEGORIES field
+    // Blackboard → course name in CATEGORIES field — validate it first
     if (!courseName && event.CATEGORIES) {
       const cat = event.CATEGORIES.replace(/^Courses\s*[:/]\s*/i, '').trim();
-      if (cat && cat.toLowerCase() !== 'moodle') courseName = cat;
+      if (cat && cat.toLowerCase() !== 'moodle' && this.looksLikeClass(cat)) {
+        courseName = cat;
+      }
     }
 
-    // Try LOCATION field
+    // Try LOCATION field — validate
     if (!courseName && event.LOCATION) {
-      courseName = event.LOCATION.trim();
+      const loc = event.LOCATION.trim();
+      if (this.looksLikeClass(loc)) courseName = loc;
     }
 
     // Try description for course name
     if (!courseName && desc) {
       const cm = desc.match(/(?:course|class)[:\s]+([^\n\\,]+)/i);
-      if (cm) courseName = cm[1].replace(/\\n.*/, '').trim();
+      if (cm) {
+        const val = cm[1].replace(/\\n.*/, '').trim();
+        if (this.looksLikeClass(val)) courseName = val;
+      }
     }
 
     // Extract course code from start of name e.g. "GEN 103 Final Exam" → course "GEN 103", name "Final Exam"

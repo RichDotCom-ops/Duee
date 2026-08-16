@@ -29,7 +29,7 @@ const Auth = {
 
   async signOut() {
     await _supabase.auth.signOut();
-    window.location.href = 'login.html';
+    window.location.href = '/login';
   },
 
   async updatePassword(newPassword) {
@@ -44,7 +44,7 @@ const Auth = {
   async requireAuth() {
     const session = await this.getSession();
     if (!session) {
-      window.location.href = 'login.html';
+      window.location.href = '/login';
       return null;
     }
     return session;

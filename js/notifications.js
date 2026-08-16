@@ -27,8 +27,7 @@
       n.onclick = () => {
         window.focus();
         // Navigate to assignments — works from any html/ page
-        const base = location.href.replace(/\/[^/]*$/, '/');
-        window.location.href = base + 'assignments.html';
+        window.location.href = '/assignments';
         n.close();
       };
       localStorage.setItem(key, '1');
@@ -84,8 +83,7 @@
         btn.appendChild(b);
         // Clicking bell goes to reminders page
         btn.onclick = () => {
-          const base = location.href.replace(/\/[^/]*$/, '/');
-          window.location.href = base + 'reminders.html';
+          window.location.href = '/reminders';
         };
       }
     });

@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>duee. — Assignments</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+  <link rel="stylesheet" href="../css/main.css" />
+  <link rel="stylesheet" href="../css/app.css" />
+</head>
+<body>
+<div class="app-layout">
+
+  <aside class="sidebar">
+    <div class="sidebar-logo"><a href="/dashboard">duee<span>.</span></a></div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" data-page="dashboard" href="/dashboard"><i data-feather="grid"></i> Dashboard</a>
+      <a class="nav-item" data-page="classes" href="/classes"><i data-feather="book-open"></i> Classes</a>
+      <a class="nav-item" data-page="calendar" href="/calendar"><i data-feather="calendar"></i> Calendar</a>
+      <a class="nav-item" data-page="assignments" href="/assignments"><i data-feather="clipboard"></i> Assignments</a>
+      <a class="nav-item" data-page="reminders" href="/reminders"><i data-feather="bell"></i> Reminders</a>
+      <a class="nav-item" data-page="statistics" href="/statistics"><i data-feather="bar-chart-2"></i> Statistics</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <a class="nav-item" data-page="settings" href="/settings"><i data-feather="settings"></i> Settings</a>
+      <a class="nav-item" href="#" onclick="event.preventDefault();signOutUser()"><i data-feather="log-out"></i> Log out</a>
+    </div>
+  </aside>
+
+  <div class="main-area">
+    <header class="topbar">
+      <div class="topbar-left"><h1>Assignments</h1></div>
+      <div class="topbar-right">
+        <button class="topbar-icon-btn"><i data-feather="bell"></i></button>
+        <div class="avatar" id="user-avatar" onclick="location.href='/settings'">H</div>
+      </div>
+    </header>
+
+    <main class="page-content">
+      <div class="page-header">
+        <h2>All Assignments</h2>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-outline btn-sm" onclick="openModal('import-modal')">
+            <i data-feather="upload"></i> Import .ics
+          </button>
+          <button class="btn btn-primary btn-sm" onclick="openAddModal()">
+            <i data-feather="plus"></i> Add Assignment
+          </button>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="asgn-filters">
+        <button class="filter-btn active" data-filter="all" onclick="setFilter('all', this)">All</button>
+        <button class="filter-btn" data-filter="pending" onclick="setFilter('pending', this)">Pending</button>
+        <button class="filter-btn" data-filter="today" onclick="setFilter('today', this)">Due Today</button>
+        <button class="filter-btn" data-filter="this-week" onclick="setFilter('this-week', this)">This Week</button>
+        <button class="filter-btn" data-filter="completed" onclick="setFilter('completed', this)">Completed</button>
+        <div class="filter-search">
+          <i data-feather="search"></i>
+          <input type="text" placeholder="Search assignments..." id="search-input" oninput="renderAssignments()" />
+        </div>
+      </div>
+
+      <!-- Class filter -->
+      <div style="margin-bottom:16px;">
+        <select class="form-control" style="width:220px;display:inline-block;" id="class-filter" onchange="renderAssignments()">
+          <option value="">All Classes</option>
+        </select>
+      </div>
+
+      <div class="asgn-list" id="asgn-list"></div>
+    </main>
+  </div>
+</div>
+
+<!-- Add/Edit Assignment Modal -->
+<div class="modal-overlay" id="asgn-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="asgn-modal-title">Add Assignment</span>
+      <button class="modal-close" onclick="closeModal('asgn-modal')"><i data-feather="x"></i></button>
+    </div>
+    <form id="asgn-form" onsubmit="handleAsgnSubmit(event)">
+      <input type="hidden" id="asgn-edit-id" />
+      <div class="form-group">
+        <label>Assignment Name</label>
+        <input class="form-control" id="asgn-name" placeholder="e.g. Biology Lab Report" required />
+      </div>
+      <div class="form-group">
+        <label>Class</label>
+        <select class="form-control" id="asgn-class" required>
+          <option value="">Select class</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="margin-bottom:0">
+          <label>Due Date</label>
+          <input class="form-control" type="date" id="asgn-date" required />
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label>Due Time</label>
+          <input class="form-control" type="time" id="asgn-time" value="23:59" />
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:14px;">
+        <label>Priority</label>
+        <div class="priority-group">
+          <div class="priority-option low">
+            <input type="radio" name="priority" id="p-low" value="low" />
+            <label for="p-low"><span class="priority-dot p-low"></span> Low</label>
+          </div>
+          <div class="priority-option medium">
+            <input type="radio" name="priority" id="p-med" value="medium" checked />
+            <label for="p-med"><span class="priority-dot p-medium"></span> Medium</label>
+          </div>
+          <div class="priority-option high">
+            <input type="radio" name="priority" id="p-high" value="high" />
+            <label for="p-high"><span class="priority-dot p-high"></span> High</label>
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Estimated Time (hours)</label>
+        <select class="form-control" id="asgn-est">
+          <option value="0.5">0.5 hours</option>
+          <option value="1">1 hour</option>
+          <option value="1.5" selected>1.5 hours</option>
+          <option value="2">2 hours</option>
+          <option value="3">3 hours</option>
+          <option value="4">4 hours</option>
+          <option value="5">5+ hours</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Notes (optional)</label>
+        <textarea class="form-control" id="asgn-notes" rows="2" placeholder="Any notes or reminders..."></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="closeModal('asgn-modal')">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="asgn-submit-btn">Save Assignment</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ── Import Modal ── -->
+<div class="modal-overlay" id="import-modal">
+  <div class="modal" style="max-width:580px;">
+    <div class="modal-header">
+      <span class="modal-title" id="import-modal-title">Import Assignments</span>
+      <button class="modal-close" onclick="closeImport()"><i data-feather="x"></i></button>
+    </div>
+
+    <!-- Step 1: Instructions + drop zone -->
+    <div id="import-step-1">
+
+      <!-- Platform tabs -->
+      <div style="display:flex;gap:6px;margin-bottom:16px;">
+        <button class="import-tab active" onclick="switchImportTab('bb')" id="tab-bb" style="background:#cc0000;color:white;border:none;padding:7px 14px;border-radius:var(--radius);font-size:12px;font-weight:700;cursor:pointer;">Blackboard</button>
+        <button class="import-tab" onclick="switchImportTab('canvas')" id="tab-canvas" style="background:var(--bg-hover);color:var(--text-secondary);border:none;padding:7px 14px;border-radius:var(--radius);font-size:12px;font-weight:700;cursor:pointer;">Canvas</button>
+        <button class="import-tab" onclick="switchImportTab('google')" id="tab-google" style="background:var(--bg-hover);color:var(--text-secondary);border:none;padding:7px 14px;border-radius:var(--radius);font-size:12px;font-weight:700;cursor:pointer;">Google Calendar</button>
+        <button class="import-tab" onclick="switchImportTab('file')" id="tab-file" style="background:var(--bg-hover);color:var(--text-secondary);border:none;padding:7px 14px;border-radius:var(--radius);font-size:12px;font-weight:700;cursor:pointer;">Upload File</button>
+      </div>
+
+      <!-- Blackboard instructions -->
+      <div id="import-panel-bb">
+        <div style="background:#fff5f5;border:1.5px solid #fca5a5;border-radius:var(--radius-md);padding:16px 18px;margin-bottom:14px;">
+          <div style="font-size:13px;font-weight:700;color:#cc0000;margin-bottom:12px;">How to import from Blackboard</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;align-items:flex-start;gap:12px;">
+              <div style="min-width:22px;height:22px;border-radius:50%;background:#cc0000;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">1</div>
+              <div style="font-size:13px;color:var(--text-primary);padding-top:2px;">While logged in to Blackboard, go to <strong>Calendar</strong> → gear icon → <strong>Get Calendar Feed</strong></div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:12px;">
+              <div style="min-width:22px;height:22px;border-radius:50%;background:#cc0000;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">2</div>
+              <div style="font-size:13px;color:var(--text-primary);padding-top:2px;"><strong>Copy the calendar link</strong> and paste it below</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Two sub-tabs: URL vs Paste text -->
+        <div style="display:flex;gap:6px;margin-bottom:10px;">
+          <button onclick="switchBBMethod('url')" id="bb-tab-url" style="flex:1;background:#cc0000;color:white;border:none;padding:7px;border-radius:var(--radius);font-size:12px;font-weight:600;cursor:pointer;">Paste URL</button>
+          <button onclick="switchBBMethod('paste')" id="bb-tab-paste" style="flex:1;background:var(--bg-hover);color:var(--text-secondary);border:none;padding:7px;border-radius:var(--radius);font-size:12px;font-weight:600;cursor:pointer;">Paste Calendar Text</button>
+        </div>
+
+        <div id="bb-method-url">
+          <div style="display:flex;gap:8px;">
+            <input id="ics-url-input" class="form-control" placeholder="Paste your calendar feed URL here…" style="font-size:13px;" />
+            <button onclick="importFromUrl('bb')" id="ics-url-btn" style="white-space:nowrap;background:#cc0000;color:white;border:none;padding:8px 14px;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;">Import</button>
+          </div>
+        </div>
+
+        <div id="bb-method-paste" style="display:none;">
+          <textarea id="ics-paste-input" class="form-control" rows="4" placeholder="Paste your calendar text here — it should start with BEGIN:VCALENDAR" style="font-size:12px;font-family:monospace;resize:vertical;"></textarea>
+          <button onclick="importFromPaste()" style="margin-top:8px;width:100%;background:#cc0000;color:white;border:none;padding:10px;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;">Import Pasted Text</button>
+        </div>
+      </div>
+
+      <!-- Canvas instructions -->
+      <div id="import-panel-canvas" style="display:none;">
+        <div style="background:#fff7f0;border:1.5px solid #fed7aa;border-radius:var(--radius-md);padding:16px 18px;margin-bottom:14px;">
+          <div style="font-size:13px;font-weight:700;color:#c2410c;margin-bottom:12px;">How to get your Canvas calendar</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;align-items:flex-start;gap:12px;">
+              <div style="min-width:22px;height:22px;border-radius:50%;background:#E66000;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">1</div>
+              <div style="font-size:13px;color:var(--text-primary);padding-top:2px;">Go to <strong>Calendar</strong> in your Canvas sidebar</div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:12px;">
+              <div style="min-width:22px;height:22px;border-radius:50%;background:#E66000;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">2</div>
+              <div style="font-size:13px;color:var(--text-primary);padding-top:2px;">Find and click <strong>"Calendar Feed"</strong> at the bottom-right of the page</div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:12px;">
+              <div style="min-width:22px;height:22px;border-radius:50%;background:#E66000;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">3</div>
+              <div style="font-size:13px;color:var(--text-primary);padding-top:2px;"><strong>Copy the feed URL</strong> and paste it below, or save the file and upload it</div>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:12px;">
+          <input id="ics-url-input-canvas" class="form-control" placeholder="Paste your Canvas feed URL here…" style="font-size:13px;" />
+          <button class="btn btn-primary btn-sm" onclick="importFromUrl('canvas')" style="white-space:nowrap;background:#E66000;border:none;">Import URL</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+          <div style="flex:1;height:1px;background:var(--border);"></div>
+          <span style="font-size:12px;color:var(--text-muted);font-weight:500;">or upload the .ics file instead</span>
+          <div style="flex:1;height:1px;background:var(--border);"></div>
+        </div>
+        <div id="drop-zone-canvas" onclick="document.getElementById('ics-file-input').click()" style="border:2px dashed var(--border);border-radius:var(--radius-md);padding:22px 20px;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--bg-main);">
+          <div style="font-size:28px;margin-bottom:6px;">📂</div>
+          <div style="font-size:14px;font-weight:600;margin-bottom:2px;">Drop .ics file here or click to browse</div>
+          <div style="font-size:12px;color:var(--text-muted);">Accepts .ics and .ical files</div>
+        </div>
+      </div>
+
+      <!-- Google Calendar instructions -->
+      <div id="import-panel-google" style="display:none;">
+        <div style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:var(--radius-md);padding:16px 18px;margin-bottom:14px;">
+          <div style="font-size:13px;font-weight:700;color:#1d4ed8;margin-bottom:12px;">How to export from Google Calendar</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;align-items:flex-start;gap:12px;">
+              <div style="min-width:22px;height:22px;border-radius:50%;background:#4285F4;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">1</div>
+              <div style="font-size:13px;color:var(--text-primary);padding-top:2px;">Open <strong>Google Calendar</strong> on desktop</div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:12px;">
+              <div style="min-width:22px;height:22px;border-radius:50%;background:#4285F4;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">2</div>
+              <div style="font-size:13px;color:var(--text-primary);padding-top:2px;">Click the <strong>gear icon</strong> → <strong>Settings</strong></div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:12px;">
+              <div style="min-width:22px;height:22px;border-radius:50%;background:#4285F4;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">3</div>
+              <div style="font-size:13px;color:var(--text-primary);padding-top:2px;">Go to <strong>Import &amp; Export</strong> → click <strong>Export</strong></div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:12px;">
+              <div style="min-width:22px;height:22px;border-radius:50%;background:#4285F4;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">4</div>
+              <div style="font-size:13px;color:var(--text-primary);padding-top:2px;">A <strong>.zip file</strong> will download — unzip it and you'll find one or more <strong>.ics files</strong></div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:12px;">
+              <div style="min-width:22px;height:22px;border-radius:50%;background:#4285F4;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">5</div>
+              <div style="font-size:13px;color:var(--text-primary);padding-top:2px;"><strong>Upload the .ics file</strong> below</div>
+            </div>
+          </div>
+        </div>
+        <div id="drop-zone-google" onclick="document.getElementById('ics-file-input').click()" style="border:2px dashed var(--border);border-radius:var(--radius-md);padding:22px 20px;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--bg-main);">
+          <div style="font-size:28px;margin-bottom:6px;">📂</div>
+          <div style="font-size:14px;font-weight:600;margin-bottom:2px;">Drop .ics file here or click to browse</div>
+          <div style="font-size:12px;color:var(--text-muted);">Accepts .ics and .ical files</div>
+        </div>
+      </div>
+
+      <!-- Upload file tab -->
+      <div id="import-panel-file" style="display:none;">
+        <div style="background:var(--bg-hover);border-radius:var(--radius-md);padding:14px 16px;margin-bottom:14px;font-size:13px;color:var(--text-secondary);line-height:1.65;">
+          Already have a <strong>.ics file</strong>? Just drop it below or click to browse. Works with Blackboard, Canvas, Google Calendar, Moodle, and any calendar app.
+        </div>
+        <div id="drop-zone-file" onclick="document.getElementById('ics-file-input').click()" style="border:2px dashed var(--border);border-radius:var(--radius-md);padding:32px 20px;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--bg-main);">
+          <div style="font-size:36px;margin-bottom:8px;">📅</div>
+          <div style="font-size:15px;font-weight:600;margin-bottom:4px;">Drop your .ics file here</div>
+          <div style="font-size:13px;color:var(--text-secondary);">or click to browse</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:6px;">Supports Canvas, Blackboard, Google, Moodle</div>
+        </div>
+      </div>
+
+      <!-- Hidden shared file input -->
+      <input type="file" id="ics-file-input" accept=".ics,.ical" style="display:none" />
+
+      <!-- Drop zone (legacy id kept for JS) -->
+      <div id="drop-zone" style="display:none;"></div>
+
+      <div id="import-error" style="display:none;background:var(--red-light);color:var(--red);padding:10px 14px;border-radius:var(--radius);font-size:13px;margin-top:12px;"></div>
+    </div>
+
+    <!-- Step 2: Preview -->
+    <div id="import-step-2" style="display:none;">
+      <div id="import-summary" style="background:var(--green-100);border:1px solid var(--green-light);border-radius:var(--radius);padding:12px 16px;margin-bottom:16px;font-size:14px;color:var(--green-text);font-weight:600;"></div>
+
+      <!-- Class mapping -->
+      <div id="class-mapping-section" style="margin-bottom:16px;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:var(--text-primary);">Map Classes</div>
+        <div id="class-mapping-rows"></div>
+      </div>
+
+      <!-- Assignment preview list -->
+      <div style="font-size:13px;font-weight:700;margin-bottom:8px;color:var(--text-primary);display:flex;align-items:center;justify-content:space-between;">
+        <span>Assignments Found</span>
+        <span id="selected-count" style="font-weight:500;color:var(--text-secondary);"></span>
+      </div>
+      <div id="import-list" style="max-height:260px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-md);"></div>
+
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="backToStep1()">← Back</button>
+        <button class="btn btn-primary" id="import-confirm-btn" onclick="confirmImport()">
+          <i data-feather="download"></i> Import
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+#drop-zone:hover, #drop-zone.drag-over {
+  border-color: var(--green);
+  background: var(--green-100);
+}
+.import-asgn-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+  font-size: 13px; transition: background 0.1s;
+}
+.import-asgn-row:last-child { border-bottom: none; }
+.import-asgn-row:hover { background: var(--bg-main); }
+.import-asgn-row input[type="checkbox"] { width:15px;height:15px;accent-color:var(--green);cursor:pointer;flex-shrink:0; }
+.import-asgn-name { flex:1;font-weight:500;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.import-asgn-date { font-size:12px;color:var(--text-secondary);white-space:nowrap;flex-shrink:0; }
+.class-map-row { display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:13px; }
+.class-map-label { flex:1;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.class-map-select { flex:1; }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://unpkg.com/feather-icons/dist/feather.min.js"></script>
+<script src="../js/data.js"></script>
+<script src="../js/app.js"></script>
+<script src="../js/supabase-client.js"></script>
+<script src="../js/plan.js"></script>
+<script src="../js/ai.js"></script>
+<script src="../js/notifications.js"></script>
+<script src="../js/ics.js"></script>
+<script>
+let currentFilter = 'all';
+let _classes = [], _assignments = [];
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const session = await Auth.requireAuth();
+  if (!session) return;
+  window._currentUser = session.user;
+  await loadData();
+  buildClassFilter();
+  renderAssignments();
+  closeOnOverlay('asgn-modal');
+  closeOnOverlay('import-modal');
+  document.getElementById('asgn-date').value = DB.todayStr();
+
+  // ICS file input
+  document.getElementById('ics-file-input').addEventListener('change', e => {
+    if (e.target.files[0]) readICSFile(e.target.files[0]);
+  });
+
+  // Enter key on URL inputs
+  document.getElementById('ics-url-input').addEventListener('keydown', e => { if (e.key === 'Enter') importFromUrl('bb'); });
+  document.getElementById('ics-url-input-canvas').addEventListener('keydown', e => { if (e.key === 'Enter') importFromUrl('canvas'); });
+
+  // Drag and drop on all drop zones
+  ['drop-zone-canvas','drop-zone-google','drop-zone-file'].forEach(id => {
+    const dz = document.getElementById(id);
+    if (!dz) return;
+    dz.addEventListener('dragover', e => { e.preventDefault(); dz.style.borderColor = 'var(--green)'; dz.style.background = 'var(--green-100)'; });
+    dz.addEventListener('dragleave', () => { dz.style.borderColor = ''; dz.style.background = ''; });
+    dz.addEventListener('drop', e => {
+      e.preventDefault(); dz.style.borderColor = ''; dz.style.background = '';
+      const file = e.dataTransfer.files[0];
+      if (file && (file.name.endsWith('.ics') || file.name.endsWith('.ical'))) readICSFile(file);
+      else showImportError('Please drop a .ics or .ical file.');
+    });
+  });
+});
+
+async function loadData() {
+  [_classes, _assignments] = await Promise.all([DB.getClasses(), DB.getAssignments()]);
+}
+
+function showEmptyCalendarState(extra) {
+  const el = document.getElementById('import-error');
+  el.style.display = 'block';
+  el.style.background = 'none';
+  el.style.color = 'inherit';
+  el.style.padding = '0';
+  el.style.marginTop = '12px';
+  el.innerHTML = `
+    <div style="text-align:center;padding:20px 16px;border:1.5px solid var(--border);border-radius:var(--radius-md);background:var(--bg-main);">
+      <div style="font-size:32px;margin-bottom:8px;">📭</div>
+      <div style="font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:6px;">Your calendar is empty</div>
+      <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-bottom:16px;">${extra || 'Your professors haven\'t added any upcoming due dates to Blackboard\'s calendar yet.'}<br>You can add your assignments manually instead.</div>
+      <div style="display:flex;gap:8px;justify-content:center;">
+        <button onclick="closeImport()" style="background:var(--green);color:white;border:none;padding:9px 20px;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;">Add Manually</button>
+        <button onclick="resetImportError()" style="background:var(--bg-hover);color:var(--text-secondary);border:none;padding:9px 16px;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;">Try Again</button>
+      </div>
+    </div>`;
+}
+
+function resetImportError() {
+  const el = document.getElementById('import-error');
+  el.style.display = 'none';
+  el.style.background = '';
+  el.style.color = '';
+  el.style.padding = '';
+  el.innerHTML = '';
+}
+
+function switchBBMethod(method) {
+  const isUrl = method === 'url';
+  document.getElementById('bb-method-url').style.display = isUrl ? '' : 'none';
+  document.getElementById('bb-method-paste').style.display = isUrl ? 'none' : '';
+  document.getElementById('bb-tab-url').style.background = isUrl ? '#cc0000' : 'var(--bg-hover)';
+  document.getElementById('bb-tab-url').style.color = isUrl ? 'white' : 'var(--text-secondary)';
+  document.getElementById('bb-tab-paste').style.background = isUrl ? 'var(--bg-hover)' : '#cc0000';
+  document.getElementById('bb-tab-paste').style.color = isUrl ? 'var(--text-secondary)' : 'white';
+  resetImportError();
+}
+
+function importFromPaste() {
+  const text = document.getElementById('ics-paste-input').value.trim();
+  if (!text) { showImportError('Paste your calendar text first.'); return; }
+  if (!text.includes('BEGIN:VCALENDAR')) {
+    showImportError('This does not look like calendar data. Make sure you copied everything starting from BEGIN:VCALENDAR.');
+    return;
+  }
+  const rawEvents = (text.match(/BEGIN:VEVENT/gi) || []).length;
+  if (rawEvents === 0) {
+    showEmptyCalendarState();
+    return;
+  }
+  parsedAssignments = ICS.processFile(text);
+  if (!parsedAssignments.length) {
+    showEmptyCalendarState('Found ' + rawEvents + ' event' + (rawEvents !== 1 ? 's' : '') + ' but they all look like past due dates.');
+    return;
+  }
+  showStep2();
+}
+
+function openBBUrl() {
+  var url = document.getElementById('ics-url-input').value.trim();
+  if (!url) { showImportError('Paste your Blackboard calendar link first.'); return; }
+  if (!url.startsWith('http')) { showImportError('That does not look like a valid link.'); return; }
+  document.getElementById('import-error').style.display = 'none';
+  window.open(url, '_blank');
+}
+
+function switchImportTab(tab) {
+  const panels = { bb: 'import-panel-bb', canvas: 'import-panel-canvas', google: 'import-panel-google', file: 'import-panel-file' };
+  const tabColors = { bb: '#cc0000', canvas: '#E66000', google: '#4285F4', file: 'var(--green)' };
+  Object.keys(panels).forEach(key => {
+    document.getElementById(panels[key]).style.display = key === tab ? '' : 'none';
+    const btn = document.getElementById('tab-' + key);
+    if (key === tab) {
+      btn.style.background = tabColors[key];
+      btn.style.color = 'white';
+    } else {
+      btn.style.background = 'var(--bg-hover)';
+      btn.style.color = 'var(--text-secondary)';
+    }
+  });
+  resetImportError();
+}
+
+async function importFromUrl(source) {
+  const inputId = source === 'canvas' ? 'ics-url-input-canvas' : 'ics-url-input';
+  const input = document.getElementById(inputId);
+  const url   = input.value.trim();
+
+  if (!url) { showImportError('Please paste a calendar feed URL first.'); return; }
+  if (!url.startsWith('http')) { showImportError('Please enter a valid URL starting with http.'); return; }
+
+  input.disabled = true;
+  input.placeholder = 'Fetching your calendar…';
+  document.getElementById('import-error').style.display = 'none';
+
+  try {
+    const fnUrl = SUPABASE_URL + '/functions/v1/ics-proxy';
+    const res = await fetch(fnUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    });
+
+    const text = await res.text();
+
+    if (!text.includes('BEGIN:VCALENDAR')) {
+      throw new Error('That link does not look like a calendar feed. Make sure you copied the full URL from the "Get Calendar Feed" screen in Blackboard.');
+    }
+
+    const rawEvents = (text.match(/BEGIN:VEVENT/gi) || []).length;
+
+    if (rawEvents === 0) {
+      showEmptyCalendarState();
+      return;
+    }
+
+    parsedAssignments = ICS.processFile(text);
+    if (!parsedAssignments.length) {
+      showEmptyCalendarState(`We found ${rawEvents} event${rawEvents !== 1 ? 's' : ''} but they all look like past due dates.`);
+      return;
+    }
+    showStep2();
+  } catch(e) {
+    showImportError(e.message || 'Failed to load the URL. Try the "Upload File" tab instead.');
+  } finally {
+    input.disabled = false;
+    input.placeholder = source === 'canvas' ? 'Paste your Canvas feed URL here…' : 'Paste your Blackboard calendar link here…';
+  }
+}
+
+function classById(id) { return _classes.find(c => c.id === id) || null; }
+
+function buildClassFilter() {
+  const sel = document.getElementById('class-filter');
+  sel.innerHTML = '<option value="">All Classes</option>';
+  _classes.forEach(c => { sel.innerHTML += `<option value="${c.id}">${c.name}</option>`; });
+}
+
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAssignments();
+}
+
+function renderAssignments() {
+  const now = new Date(); now.setHours(0,0,0,0);
+  const toDate = s => { const d = new Date(s + 'T00:00:00'); d.setHours(0,0,0,0); return d; };
+  const weekEnd = new Date(now); weekEnd.setDate(weekEnd.getDate() + 7);
+  const search = document.getElementById('search-input').value.toLowerCase();
+  const classFilterVal = document.getElementById('class-filter').value;
+
+  let items = [..._assignments];
+  if (currentFilter === 'pending') items = items.filter(a => !a.completed);
+  else if (currentFilter === 'today') items = items.filter(a => !a.completed && toDate(a.dueDate).getTime() === now.getTime());
+  else if (currentFilter === 'this-week') items = items.filter(a => { const d = toDate(a.dueDate); return !a.completed && d >= now && d < weekEnd; });
+  else if (currentFilter === 'completed') items = items.filter(a => a.completed);
+
+  if (classFilterVal) items = items.filter(a => a.classId === classFilterVal);
+  if (search) items = items.filter(a => a.name.toLowerCase().includes(search));
+
+  items.sort((a, b) => {
+    if (a.completed !== b.completed) return a.completed ? 1 : -1;
+    return a.dueDate.localeCompare(b.dueDate);
+  });
+
+  const list = document.getElementById('asgn-list');
+  if (!items.length) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon"><i data-feather="clipboard" style="width:22px;height:22px;"></i></div><h3>No assignments found</h3><p>Try a different filter or add a new assignment.</p></div>`;
+    feather.replace();
+    return;
+  }
+
+  list.innerHTML = items.map(a => {
+    const cls = classById(a.classId);
+    const color = cls ? cls.color : '#9ca3af';
+    const due = getDaysUntil(a.dueDate);
+    const priority = { high: ['badge-red','High'], medium: ['badge-yellow','Med'], low: ['badge-green','Low'] }[a.priority] || ['',''];
+    return `<div class="asgn-list-item" id="asgn-${a.id}">
+      <div class="asgn-list-check ${a.completed ? 'done' : ''}" onclick="toggleAsgn('${a.id}')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" style="display:${a.completed ? 'block' : 'none'}"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <div class="asgn-list-info">
+        <div class="asgn-list-name ${a.completed ? 'done' : ''}">${a.name}</div>
+        <div class="asgn-list-meta">
+          <span class="asgn-class-dot" style="background:${color}"></span>
+          ${cls ? cls.name : 'No class'}
+          <span class="badge ${priority[0]}" style="font-size:10px;">${priority[1]}</span>
+          ${a.estimatedTime ? `<span style="color:var(--text-muted);">~${a.estimatedTime}h</span>` : ''}
+          ${getTimeSpent(a.id) > 0 ? `<span style="color:var(--green);font-weight:600;">⏱ ${fmtMs(getTimeSpent(a.id))}</span>` : ''}
+        </div>
+      </div>
+      <div class="asgn-list-due ${due.cls}">${fmtDate(a.dueDate)} · ${due.label}</div>
+      <div class="asgn-list-actions">
+        <button class="btn btn-ghost btn-icon" onclick="startTimer('${a.id}','${a.name.replace(/'/g,"\\'")}', this)" title="Study timer" style="${_timer?.asgnId===a.id?'color:var(--green);':''}">${_timer?.asgnId===a.id?'<i data-feather="pause-circle"></i>':'<i data-feather="play-circle"></i>'}</button>
+        <button class="btn btn-ghost btn-icon" onclick="editAsgn('${a.id}')" title="Edit"><i data-feather="edit-2"></i></button>
+        <button class="btn btn-ghost btn-icon" onclick="deleteAsgn('${a.id}')" title="Delete" style="color:var(--red)"><i data-feather="trash-2"></i></button>
+      </div>
+    </div>`;
+  }).join('');
+  feather.replace({ width:14, height:14 });
+}
+
+async function toggleAsgn(id) {
+  const asgn = _assignments.find(a => a.id === id);
+  if (!asgn) return;
+  try {
+    const updated = await DB.toggleComplete(id, asgn.completed);
+    const idx = _assignments.findIndex(a => a.id === id);
+    if (idx !== -1) _assignments[idx] = updated;
+    renderAssignments();
+  } catch(e) { showToast('Failed to update', 'error'); }
+}
+
+function openAddModal() {
+  document.getElementById('asgn-edit-id').value = '';
+  document.getElementById('asgn-name').value = '';
+  document.getElementById('asgn-date').value = DB.todayStr();
+  document.getElementById('asgn-time').value = '23:59';
+  document.getElementById('asgn-notes').value = '';
+  document.getElementById('asgn-est').value = '1.5';
+  document.querySelector('input[name="priority"][value="medium"]').checked = true;
+  buildClassOptions(document.getElementById('asgn-class'), '', _classes);
+  document.getElementById('asgn-modal-title').textContent = 'Add Assignment';
+  document.getElementById('asgn-submit-btn').textContent = 'Save Assignment';
+  openModal('asgn-modal');
+  feather.replace({ width: 16, height: 16 });
+}
+
+function editAsgn(id) {
+  const a = _assignments.find(x => x.id === id);
+  if (!a) return;
+  document.getElementById('asgn-edit-id').value = a.id;
+  document.getElementById('asgn-name').value = a.name;
+  document.getElementById('asgn-date').value = a.dueDate;
+  document.getElementById('asgn-time').value = a.dueTime || '23:59';
+  document.getElementById('asgn-notes').value = a.notes || '';
+  document.getElementById('asgn-est').value = a.estimatedTime || '1.5';
+  const radio = document.querySelector(`input[name="priority"][value="${a.priority}"]`);
+  if (radio) radio.checked = true;
+  buildClassOptions(document.getElementById('asgn-class'), a.classId, _classes);
+  document.getElementById('asgn-modal-title').textContent = 'Edit Assignment';
+  document.getElementById('asgn-submit-btn').textContent = 'Save Changes';
+  openModal('asgn-modal');
+  feather.replace({ width: 16, height: 16 });
+}
+
+async function handleAsgnSubmit(e) {
+  e.preventDefault();
+  const editId = document.getElementById('asgn-edit-id').value;
+  const data = {
+    name: document.getElementById('asgn-name').value.trim(),
+    classId: document.getElementById('asgn-class').value || null,
+    dueDate: document.getElementById('asgn-date').value,
+    dueTime: document.getElementById('asgn-time').value,
+    priority: document.querySelector('input[name="priority"]:checked')?.value || 'medium',
+    estimatedTime: document.getElementById('asgn-est').value,
+    notes: document.getElementById('asgn-notes').value.trim(),
+  };
+  if (!data.name || !data.dueDate) return;
+  const btn = document.getElementById('asgn-submit-btn');
+  btn.disabled = true;
+  try {
+    if (editId) { await DB.updateAssignment(editId, data); showToast('Assignment updated', 'success'); }
+    else { await DB.addAssignment(data); showToast('Assignment added', 'success'); }
+    closeModal('asgn-modal');
+    await loadData();
+    renderAssignments();
+  } catch(err) { showToast(err.message || 'Error saving', 'error'); }
+  finally { btn.disabled = false; }
+}
+
+function deleteAsgn(id) {
+  const a = _assignments.find(x => x.id === id);
+  confirmAction(`Delete "${a?.name || 'this assignment'}"?`, async () => {
+    try {
+      await DB.deleteAssignment(id);
+      await loadData();
+      renderAssignments();
+      showToast('Assignment deleted');
+    } catch(err) { showToast(err.message || 'Error deleting', 'error'); }
+  });
+}
+
+// ── ICS Import ──
+let parsedAssignments = [];
+let classMap = {};
+
+function closeImport() {
+  closeModal('import-modal');
+  setTimeout(backToStep1, 300);
+}
+
+function backToStep1() {
+  document.getElementById('import-step-1').style.display = '';
+  document.getElementById('import-step-2').style.display = 'none';
+  document.getElementById('import-modal-title').textContent = 'Import Assignments';
+  document.getElementById('ics-file-input').value = '';
+  document.getElementById('import-error').style.display = 'none';
+  switchImportTab('bb');
+}
+
+function showImportError(msg) {
+  const el = document.getElementById('import-error');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+function readICSFile(file) {
+  document.getElementById('import-error').style.display = 'none';
+  const reader = new FileReader();
+  reader.onerror = () => showImportError('Could not read the file. Try again.');
+  reader.onload = e => {
+    try {
+      const text = e.target.result;
+      if (!text.includes('BEGIN:VCALENDAR')) {
+        showImportError('This does not look like a valid calendar file (.ics). Make sure you exported the correct file.');
+        return;
+      }
+      parsedAssignments = ICS.processFile(text);
+      if (!parsedAssignments.length) {
+        const rawEvents = (text.match(/BEGIN:VEVENT/g) || []).length;
+        showImportError(rawEvents > 0
+          ? `Found ${rawEvents} calendar events but none are upcoming assignments. They may be old events — duee shows assignments from up to 30 days ago onward.`
+          : 'No calendar events found in this file. Make sure you are exporting assignments, not just the course calendar.');
+        return;
+      }
+      showStep2();
+    } catch (err) {
+      console.error('ICS parse error:', err);
+      showImportError('Something went wrong reading the file: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+function showStep2() {
+  document.getElementById('import-step-1').style.display = 'none';
+  document.getElementById('import-step-2').style.display = '';
+  document.getElementById('import-modal-title').textContent = 'Review Import';
+  const total = parsedAssignments.length;
+  const courseNames = ICS.getCourseNames(parsedAssignments);
+  document.getElementById('import-summary').textContent =
+    `Found ${total} assignment${total !== 1 ? 's' : ''} across ${courseNames.length} class${courseNames.length !== 1 ? 'es' : ''}`;
+  buildClassMapping(courseNames);
+  buildImportList();
+  feather.replace({ width: 14, height: 14 });
+}
+
+function buildClassMapping(courseNames) {
+  classMap = {};
+  const container = document.getElementById('class-mapping-rows');
+  container.innerHTML = courseNames.map(name => {
+    const match = _classes.find(c =>
+      c.name.toLowerCase().includes(name.toLowerCase().slice(0, 6)) ||
+      name.toLowerCase().includes(c.name.toLowerCase().slice(0, 6))
+    );
+    const selectedId = match ? match.id : 'new';
+    classMap[name] = selectedId;
+    const options = [
+      `<option value="new">✨ Create new class "${name}"</option>`,
+      `<option value="skip">— Skip this class</option>`,
+      ..._classes.map(c => `<option value="${c.id}" ${c.id === selectedId ? 'selected' : ''}>${c.name}</option>`)
+    ].join('');
+    return `<div class="class-map-row">
+      <div class="class-map-label" title="${name}">${name}</div>
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      <select class="form-control class-map-select" onchange="classMap['${name.replace(/'/g, "\\'")}'] = this.value; buildImportList();">
+        ${options}
+      </select>
+    </div>`;
+  }).join('');
+}
+
+function buildImportList() {
+  const list = document.getElementById('import-list');
+  const checkboxes = [...document.querySelectorAll('.import-cb')];
+  const checked = new Set(checkboxes.filter(c => c.checked).map(c => c.dataset.idx));
+  list.innerHTML = parsedAssignments.map((a, i) => {
+    const skipped = classMap[a.courseName] === 'skip';
+    const wasChecked = checked.size === 0 ? true : checked.has(String(i));
+    const priorityColor = { high: '#dc2626', medium: '#ca8a04', low: '#16a34a' }[a.priority];
+    return `<div class="import-asgn-row" style="${skipped ? 'opacity:0.4;' : ''}">
+      <input type="checkbox" class="import-cb" data-idx="${i}" ${wasChecked && !skipped ? 'checked' : ''} ${skipped ? 'disabled' : ''} onchange="updateSelectedCount()">
+      <span style="background:${priorityColor};width:8px;height:8px;border-radius:50%;flex-shrink:0;display:inline-block;"></span>
+      <span class="import-asgn-name" title="${a.name}">${a.name}</span>
+      <span style="font-size:11px;color:var(--text-muted);margin-right:4px;">${a.courseName}</span>
+      <span class="import-asgn-date">${fmtDate(a.dueDate)}</span>
+    </div>`;
+  }).join('');
+  updateSelectedCount();
+}
+
+function updateSelectedCount() {
+  const all = document.querySelectorAll('.import-cb');
+  const checked = [...all].filter(c => c.checked).length;
+  document.getElementById('selected-count').textContent = `${checked} of ${all.length} selected`;
+  document.getElementById('import-confirm-btn').textContent = `Import ${checked} assignment${checked !== 1 ? 's' : ''}`;
+}
+
+// ── Study Timer ──
+let _timer = null;
+let _timerInterval = null;
+
+function getTimeSpent(asgnId) {
+  return parseInt(localStorage.getItem('duee_time_' + asgnId) || '0');
+}
+function fmtMs(ms) {
+  const s = Math.floor(ms / 1000);
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  if (h > 0) return `${h}h ${String(m).padStart(2,'0')}m`;
+  if (m > 0) return `${m}m ${String(sec).padStart(2,'0')}s`;
+  return `${sec}s`;
+}
+function fmtMsClock(ms) {
+  const s = Math.floor(ms / 1000);
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  return [h, m, sec].map(v => String(v).padStart(2,'0')).join(':');
+}
+function getElapsedMs() {
+  if (!_timer) return 0;
+  return _timer.pausedMs + (_timer.paused ? 0 : Date.now() - _timer.startMs);
+}
+
+function startTimer(asgnId, asgnName, btn) {
+  // If this assignment is already active, toggle pause
+  if (_timer?.asgnId === asgnId) { toggleTimerPause(); return; }
+  // Stop previous if any
+  if (_timer) stopTimer(true);
+
+  _timer = { asgnId, asgnName, startMs: Date.now(), pausedMs: 0, paused: false };
+  localStorage.setItem('duee_active_timer', JSON.stringify(_timer));
+  clearInterval(_timerInterval);
+  _timerInterval = setInterval(updateTimerDisplay, 1000);
+  showTimerWidget();
+  renderAssignments();
+}
+
+function toggleTimerPause() {
+  if (!_timer) return;
+  if (_timer.paused) {
+    _timer.startMs = Date.now();
+    _timer.paused = false;
+    _timerInterval = setInterval(updateTimerDisplay, 1000);
+    document.getElementById('timer-pause-btn').innerHTML = '<i data-feather="pause" style="width:13px;height:13px;"></i> Pause';
+  } else {
+    _timer.pausedMs += Date.now() - _timer.startMs;
+    _timer.startMs = null;
+    _timer.paused = true;
+    clearInterval(_timerInterval);
+    document.getElementById('timer-pause-btn').innerHTML = '<i data-feather="play" style="width:13px;height:13px;"></i> Resume';
+  }
+  localStorage.setItem('duee_active_timer', JSON.stringify(_timer));
+  feather.replace({ width:13, height:13 });
+}
+
+function stopTimer(save = true) {
+  clearInterval(_timerInterval);
+  if (_timer && save) {
+    const elapsed = getElapsedMs();
+    if (elapsed > 0) {
+      const key = 'duee_time_' + _timer.asgnId;
+      const prev = parseInt(localStorage.getItem(key) || '0');
+      localStorage.setItem(key, prev + elapsed);
+    }
+  }
+  _timer = null;
+  localStorage.removeItem('duee_active_timer');
+  const w = document.getElementById('timer-widget');
+  if (w) w.remove();
+  renderAssignments();
+}
+
+function updateTimerDisplay() {
+  const el = document.getElementById('timer-elapsed');
+  if (el) el.textContent = fmtMsClock(getElapsedMs());
+}
+
+function showTimerWidget() {
+  let w = document.getElementById('timer-widget');
+  if (!w) {
+    w = document.createElement('div');
+    w.id = 'timer-widget';
+    w.className = 'timer-widget';
+    document.body.appendChild(w);
+  }
+  w.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--green);">⏱ Studying</span>
+      <button onclick="stopTimer(false)" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;line-height:1;">×</button>
+    </div>
+    <div style="font-size:13px;font-weight:600;margin-bottom:10px;line-height:1.3;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${_timer?.asgnName}">${_timer?.asgnName}</div>
+    <div id="timer-elapsed" style="font-size:30px;font-weight:800;letter-spacing:-1px;font-variant-numeric:tabular-nums;color:var(--text-primary);margin-bottom:12px;">00:00:00</div>
+    <div style="display:flex;gap:6px;">
+      <button id="timer-pause-btn" class="btn btn-outline btn-sm" onclick="toggleTimerPause()" style="flex:1;justify-content:center;gap:4px;"><i data-feather="pause" style="width:13px;height:13px;"></i> Pause</button>
+      <button class="btn btn-danger btn-sm" onclick="stopTimer(true)" style="flex:1;justify-content:center;">Save</button>
+    </div>`;
+  feather.replace({ width:13, height:13 });
+  updateTimerDisplay();
+}
+
+// Restore timer if page reloaded mid-session
+(function() {
+  const saved = localStorage.getItem('duee_active_timer');
+  if (saved) {
+    try {
+      _timer = JSON.parse(saved);
+      // Adjust for time elapsed while page was closed
+      if (!_timer.paused && _timer.startMs) {
+        // Keep as-is; time will continue from where it was
+      }
+      document.addEventListener('DOMContentLoaded', () => {
+        showTimerWidget();
+        _timerInterval = setInterval(updateTimerDisplay, 1000);
+      });
+    } catch(e) { localStorage.removeItem('duee_active_timer'); }
+  }
+})();
+
+async function confirmImport() {
+  const checkedIdxs = [...document.querySelectorAll('.import-cb:checked')].map(c => parseInt(c.dataset.idx));
+  if (!checkedIdxs.length) { showToast('Select at least one assignment', 'error'); return; }
+
+  const btn = document.getElementById('import-confirm-btn');
+  btn.disabled = true; btn.textContent = 'Importing...';
+
+  try {
+    // Create new classes first
+    const newClassCache = {};
+    for (const i of checkedIdxs) {
+      const a = parsedAssignments[i];
+      if (classMap[a.courseName] === 'new' && !newClassCache[a.courseName]) {
+        const colors = ['#16a34a','#2563eb','#7c3aed','#0891b2','#b45309','#dc2626'];
+        const color = colors[Object.keys(newClassCache).length % colors.length];
+        const newCls = await DB.addClass({ name: a.courseName, professor: '', color, icon: 'book-open' });
+        newClassCache[a.courseName] = newCls.id;
+      }
+    }
+
+    // Import assignments
+    let imported = 0;
+    for (const i of checkedIdxs) {
+      const a = parsedAssignments[i];
+      const mapping = classMap[a.courseName];
+      if (mapping === 'skip') continue;
+      const classId = mapping === 'new' ? newClassCache[a.courseName] : mapping;
+      if (!classId) continue;
+      const exists = _assignments.find(x => x.name.toLowerCase() === a.name.toLowerCase() && x.dueDate === a.dueDate);
+      if (exists) continue;
+      await DB.addAssignment({ name: a.name, classId, dueDate: a.dueDate, dueTime: a.dueTime, priority: a.priority, estimatedTime: a.estimatedTime, notes: a.notes });
+      imported++;
+    }
+
+    await loadData();
+    buildClassFilter();
+    closeImport();
+    renderAssignments();
+    showToast(`Imported ${imported} assignment${imported !== 1 ? 's' : ''} 🎉`, 'success');
+  } catch(err) {
+    showToast(err.message || 'Import failed', 'error');
+    btn.disabled = false; btn.textContent = 'Import';
+  }
+}
+</script>
+</body>
+</html>

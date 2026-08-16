@@ -256,10 +256,10 @@ RULES:
     if (DueePlan.isPro()) { counter.style.display = 'none'; return; }
     counter.style.display = 'block';
     if (!allowed) {
-      counter.innerHTML = `⏱ Resets in <strong>${DueePlan.fmtCountdown(resetIn)}</strong> · <a href="pricing.html" style="color:#7c3aed;font-weight:600;">Upgrade</a>`;
+      counter.innerHTML = `⏱ Resets in <strong>${DueePlan.fmtCountdown(resetIn)}</strong> · <a href="/pricing" style="color:#7c3aed;font-weight:600;">Upgrade</a>`;
       counter.style.color = 'var(--red,#ef4444)';
     } else {
-      counter.innerHTML = `${remaining} free AI message${remaining===1?'':'s'} left today · <a href="pricing.html" style="color:#7c3aed;font-weight:600;">Go Pro</a>`;
+      counter.innerHTML = `${remaining} free AI message${remaining===1?'':'s'} left today · <a href="/pricing" style="color:#7c3aed;font-weight:600;">Go Pro</a>`;
       counter.style.color = remaining <= 3 ? 'var(--red,#ef4444)' : 'var(--text-muted,#9ca3af)';
     }
   }
@@ -275,7 +275,7 @@ RULES:
       const { allowed, remaining, resetIn } = DueePlan.canUseAI();
       if (!allowed) {
         _history.push({ role: 'user', text });
-        _history.push({ role: 'bot', text: `⏱ You've used your **10 free AI messages** for today.\n\nResets in **${DueePlan.fmtCountdown(resetIn)}**.\n\n[✦ Upgrade to Pro](pricing.html) for unlimited messages.` });
+        _history.push({ role: 'bot', text: `⏱ You've used your **10 free AI messages** for today.\n\nResets in **${DueePlan.fmtCountdown(resetIn)}**.\n\n[✦ Upgrade to Pro](/pricing) for unlimited messages.` });
         input.value = '';
         input.style.height = 'auto';
         renderMessages();

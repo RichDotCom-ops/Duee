@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>duee. — Classes</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+  <link rel="stylesheet" href="../css/main.css" />
+  <link rel="stylesheet" href="../css/app.css" />
+</head>
+<body>
+<div class="app-layout">
+
+  <aside class="sidebar">
+    <div class="sidebar-logo"><a href="/dashboard">duee<span>.</span></a></div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" data-page="dashboard" href="/dashboard"><i data-feather="grid"></i> Dashboard</a>
+      <a class="nav-item" data-page="classes" href="/classes"><i data-feather="book-open"></i> Classes</a>
+      <a class="nav-item" data-page="calendar" href="/calendar"><i data-feather="calendar"></i> Calendar</a>
+      <a class="nav-item" data-page="assignments" href="/assignments"><i data-feather="clipboard"></i> Assignments</a>
+      <a class="nav-item" data-page="reminders" href="/reminders"><i data-feather="bell"></i> Reminders</a>
+      <a class="nav-item" data-page="statistics" href="/statistics"><i data-feather="bar-chart-2"></i> Statistics</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <a class="nav-item" data-page="settings" href="/settings"><i data-feather="settings"></i> Settings</a>
+      <a class="nav-item" href="#" onclick="event.preventDefault();signOutUser()"><i data-feather="log-out"></i> Log out</a>
+    </div>
+  </aside>
+
+  <div class="main-area">
+    <header class="topbar">
+      <div class="topbar-left"><h1>Classes</h1></div>
+      <div class="topbar-right">
+        <button class="topbar-icon-btn"><i data-feather="bell"></i></button>
+        <div class="avatar" id="user-avatar" onclick="location.href='/settings'">H</div>
+      </div>
+    </header>
+
+    <main class="page-content">
+      <div class="page-header">
+        <h2 id="class-count">Your Classes</h2>
+        <button class="btn btn-primary btn-sm" onclick="openModal('add-class-modal')">
+          <i data-feather="plus"></i> Add Class
+        </button>
+      </div>
+
+      <div class="classes-grid" id="classes-grid"></div>
+    </main>
+  </div>
+</div>
+
+<!-- Add Class Modal -->
+<div class="modal-overlay" id="add-class-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="class-modal-title">Add Class</span>
+      <button class="modal-close" onclick="closeModal('add-class-modal')"><i data-feather="x"></i></button>
+    </div>
+    <form id="class-form" onsubmit="handleClassSubmit(event)">
+      <input type="hidden" id="class-edit-id" />
+      <div class="form-group">
+        <label>Class Name</label>
+        <input class="form-control" id="class-name" placeholder="e.g. Biology 101" required />
+      </div>
+      <div class="form-group">
+        <label>Professor</label>
+        <input class="form-control" id="class-prof" placeholder="e.g. Prof. Smith" />
+      </div>
+      <div class="form-group">
+        <label>Color</label>
+        <div class="color-picker" id="color-picker"></div>
+      </div>
+      <div class="form-group">
+        <label>Icon</label>
+        <select class="form-control" id="class-icon">
+          <option value="book-open">📖 Book</option>
+          <option value="code">💻 Code</option>
+          <option value="feather">✏️ Feather</option>
+          <option value="globe">🌍 Globe</option>
+          <option value="divide-square">🔢 Math</option>
+          <option value="star">⭐ Star</option>
+          <option value="zap">⚡ Zap</option>
+          <option value="layers">🗂️ Layers</option>
+          <option value="award">🏆 Award</option>
+          <option value="cpu">🖥️ CPU</option>
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="closeModal('add-class-modal')">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="class-submit-btn">Add Class</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://unpkg.com/feather-icons/dist/feather.min.js"></script>
+<script src="../js/data.js"></script>
+<script src="../js/app.js"></script>
+<script src="../js/supabase-client.js"></script>
+<script src="../js/plan.js"></script>
+<script src="../js/ai.js"></script>
+<script src="../js/notifications.js"></script>
+<script>
+const COLORS = ['#16a34a','#2563eb','#7c3aed','#0891b2','#dc2626','#b45309','#0d9488','#9333ea','#db2777','#64748b'];
+let selectedColor = COLORS[0];
+let _classes = [], _assignments = [];
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const session = await Auth.requireAuth();
+  if (!session) return;
+  window._currentUser = session.user;
+  await loadData();
+  renderColorPicker();
+  renderClasses();
+  closeOnOverlay('add-class-modal');
+});
+
+async function loadData() {
+  [_classes, _assignments] = await Promise.all([DB.getClasses(), DB.getAssignments()]);
+}
+
+function renderColorPicker() {
+  document.getElementById('color-picker').innerHTML = COLORS.map(c =>
+    `<div class="color-swatch ${c === selectedColor ? 'selected' : ''}" style="background:${c}" onclick="selectColor('${c}', this)" data-color="${c}"></div>`
+  ).join('');
+}
+
+function selectColor(color, el) {
+  selectedColor = color;
+  document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function renderClasses() {
+  document.getElementById('class-count').textContent = `Your Classes (${_classes.length})`;
+  const grid = document.getElementById('classes-grid');
+
+  if (!_classes.length) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon"><i data-feather="book-open" style="width:24px;height:24px;"></i></div><h3>No classes yet</h3><p>Add your first class to get started</p></div>`;
+    feather.replace();
+    return;
+  }
+
+  grid.innerHTML = _classes.map(c => {
+    const count = _assignments.filter(a => a.classId === c.id && !a.completed).length;
+    const total = _assignments.filter(a => a.classId === c.id).length;
+    return `<div class="class-card">
+      <div class="class-top">
+        <div class="class-icon" style="background:${c.color}">
+          <i data-feather="${c.icon || 'book-open'}" style="color:white;width:20px;height:20px;"></i>
+        </div>
+        <div class="class-actions">
+          <button class="class-action-btn" onclick="editClass('${c.id}')" title="Edit"><i data-feather="edit-2" style="width:13px;height:13px;"></i></button>
+          <button class="class-action-btn delete" onclick="deleteClass('${c.id}')" title="Delete"><i data-feather="trash-2" style="width:13px;height:13px;"></i></button>
+        </div>
+      </div>
+      <div>
+        <div class="class-name">${c.name}</div>
+        <div class="class-prof">${c.professor || 'No professor set'}</div>
+      </div>
+      <div class="class-meta">
+        <div class="class-meta-item">
+          <i data-feather="clipboard" style="width:13px;height:13px;color:${c.color}"></i>
+          ${count} pending
+        </div>
+        <div class="class-meta-item">
+          <i data-feather="check" style="width:13px;height:13px;"></i>
+          ${total - count} done
+        </div>
+      </div>
+    </div>`;
+  }).join('') +
+  `<div class="add-class-card" onclick="openAddClass()">
+    <i data-feather="plus" style="width:24px;height:24px;color:#9ca3af;"></i>
+    <span>Add a new class</span>
+  </div>`;
+
+  feather.replace();
+}
+
+function openAddClass() {
+  document.getElementById('class-edit-id').value = '';
+  document.getElementById('class-name').value = '';
+  document.getElementById('class-prof').value = '';
+  document.getElementById('class-icon').value = 'book-open';
+  selectedColor = COLORS[0];
+  renderColorPicker();
+  document.getElementById('class-modal-title').textContent = 'Add Class';
+  document.getElementById('class-submit-btn').textContent = 'Add Class';
+  openModal('add-class-modal');
+}
+
+function editClass(id) {
+  const c = _classes.find(x => x.id === id);
+  if (!c) return;
+  document.getElementById('class-edit-id').value = c.id;
+  document.getElementById('class-name').value = c.name;
+  document.getElementById('class-prof').value = c.professor || '';
+  document.getElementById('class-icon').value = c.icon || 'book-open';
+  selectedColor = c.color || COLORS[0];
+  renderColorPicker();
+  document.getElementById('class-modal-title').textContent = 'Edit Class';
+  document.getElementById('class-submit-btn').textContent = 'Save Changes';
+  openModal('add-class-modal');
+}
+
+async function handleClassSubmit(e) {
+  e.preventDefault();
+  const editId = document.getElementById('class-edit-id').value;
+  const data = {
+    name: document.getElementById('class-name').value.trim(),
+    professor: document.getElementById('class-prof').value.trim(),
+    color: selectedColor,
+    icon: document.getElementById('class-icon').value
+  };
+  if (!data.name) return;
+  const btn = document.getElementById('class-submit-btn');
+  btn.disabled = true;
+  try {
+    if (editId) { await DB.updateClass(editId, data); showToast('Class updated', 'success'); }
+    else { await DB.addClass(data); showToast('Class added', 'success'); }
+    closeModal('add-class-modal');
+    await loadData();
+    renderClasses();
+  } catch(err) { showToast(err.message || 'Error saving class', 'error'); }
+  finally { btn.disabled = false; }
+}
+
+function deleteClass(id) {
+  const c = _classes.find(x => x.id === id);
+  confirmAction(`Delete "${c?.name || 'this class'}"? Assignments will become unlinked.`, async () => {
+    try {
+      await DB.deleteClass(id);
+      await loadData();
+      renderClasses();
+      showToast('Class deleted');
+    } catch(err) { showToast(err.message || 'Error deleting class', 'error'); }
+  });
+}
+</script>
+</body>
+</html>

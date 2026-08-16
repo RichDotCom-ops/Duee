@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>duee. — Reminders</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+  <link rel="stylesheet" href="../css/main.css" />
+  <link rel="stylesheet" href="../css/app.css" />
+</head>
+<body>
+<div class="app-layout">
+
+  <aside class="sidebar">
+    <div class="sidebar-logo"><a href="/dashboard">duee<span>.</span></a></div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" data-page="dashboard" href="/dashboard"><i data-feather="grid"></i> Dashboard</a>
+      <a class="nav-item" data-page="classes" href="/classes"><i data-feather="book-open"></i> Classes</a>
+      <a class="nav-item" data-page="calendar" href="/calendar"><i data-feather="calendar"></i> Calendar</a>
+      <a class="nav-item" data-page="assignments" href="/assignments"><i data-feather="clipboard"></i> Assignments</a>
+      <a class="nav-item" data-page="reminders" href="/reminders"><i data-feather="bell"></i> Reminders</a>
+      <a class="nav-item" data-page="statistics" href="/statistics"><i data-feather="bar-chart-2"></i> Statistics</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <a class="nav-item" data-page="settings" href="/settings"><i data-feather="settings"></i> Settings</a>
+      <a class="nav-item" href="#" onclick="event.preventDefault();signOutUser()"><i data-feather="log-out"></i> Log out</a>
+    </div>
+  </aside>
+
+  <div class="main-area">
+    <header class="topbar">
+      <div class="topbar-left"><h1>Reminders</h1></div>
+      <div class="topbar-right">
+        <button class="topbar-icon-btn"><i data-feather="bell"></i></button>
+        <div class="avatar" id="user-avatar" onclick="location.href='/settings'">H</div>
+      </div>
+    </header>
+
+    <main class="page-content">
+      <div class="page-header">
+        <h2>Reminder Settings</h2>
+        <button class="btn btn-primary btn-sm" onclick="saveReminders()">
+          <i data-feather="save"></i> Save Changes
+        </button>
+      </div>
+
+      <!-- Browser Permission Banner -->
+      <div id="notif-banner" style="border-radius:var(--radius-md);padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:14px;">
+        <div style="font-size:22px;flex-shrink:0;" id="notif-banner-icon">🔔</div>
+        <div style="flex:1;">
+          <div style="font-size:14px;font-weight:600;color:var(--text-primary);" id="notif-banner-title"></div>
+          <div style="font-size:13px;color:var(--text-secondary);margin-top:2px;" id="notif-banner-sub"></div>
+        </div>
+        <button class="btn btn-primary btn-sm" id="notif-banner-btn" onclick="handlePermissionBtn()" style="display:none;">Allow</button>
+        <button class="btn btn-outline btn-sm" id="notif-test-btn" onclick="testNotification()" style="display:none;">Send Test</button>
+      </div>
+
+      <!-- Enable Reminders -->
+      <div class="reminders-section">
+        <div class="reminder-row">
+          <div class="reminder-info">
+            <h4>Enable Reminders</h4>
+            <p>Turn on/off all deadline reminders</p>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="rem-enabled" onchange="toggleReminders(this.checked)" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="reminder-row" id="reminder-time-row">
+          <div class="reminder-info">
+            <h4>Reminder Time</h4>
+            <p>When to remind you before a deadline</p>
+          </div>
+          <select class="form-control" style="width:180px;" id="rem-time">
+            <option value="same day">Same day</option>
+            <option value="1 day before">1 day before</option>
+            <option value="2 days before">2 days before</option>
+            <option value="3 days before">3 days before</option>
+            <option value="1 week before">1 week before</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Reminder Types -->
+      <div class="reminders-section" id="reminder-types-section">
+        <div class="reminders-section-title">Reminder Types</div>
+        <div class="reminder-row">
+          <div class="reminder-info">
+            <h4>Due Today</h4>
+            <p>Remind me about assignments due today</p>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="rem-today" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="reminder-row">
+          <div class="reminder-info">
+            <h4>Due Tomorrow</h4>
+            <p>Remind me about assignments due tomorrow</p>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="rem-tomorrow" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="reminder-row">
+          <div class="reminder-info">
+            <h4>Due This Week</h4>
+            <p>Remind me about assignments due this week</p>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="rem-week" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="reminder-row">
+          <div class="reminder-info">
+            <h4>Overdue</h4>
+            <p>Alert me when an assignment is overdue</p>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="rem-overdue" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Upcoming reminders preview -->
+      <div class="reminders-section">
+        <div class="reminders-section-title">Upcoming Reminders</div>
+        <div id="upcoming-reminders"></div>
+        <p style="font-size:12px;color:var(--text-muted);margin-top:12px;display:flex;align-items:center;gap:5px;">
+          <i data-feather="info" style="width:13px;height:13px;"></i>
+          Reminders are shown based on your browser notifications settings.
+        </p>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://unpkg.com/feather-icons/dist/feather.min.js"></script>
+<script src="../js/data.js"></script>
+<script src="../js/app.js"></script>
+<script src="../js/supabase-client.js"></script>
+<script src="../js/plan.js"></script>
+<script src="../js/ai.js"></script>
+<script src="../js/notifications.js"></script>
+<script>
+let _classes = [], _assignments = [];
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const session = await Auth.requireAuth();
+  if (!session) return;
+  window._currentUser = session.user;
+  [_classes, _assignments] = await Promise.all([DB.getClasses(), DB.getAssignments()]);
+  loadReminders();
+  renderUpcoming();
+  updatePermissionBanner();
+});
+
+function classById(id) { return _classes.find(c => c.id === id) || null; }
+
+function loadReminders() {
+  const r = DB.getReminders();
+  document.getElementById('rem-enabled').checked = r.enabled;
+  document.getElementById('rem-time').value = r.reminderTime;
+  document.getElementById('rem-today').checked = r.types.dueToday;
+  document.getElementById('rem-tomorrow').checked = r.types.dueTomorrow;
+  document.getElementById('rem-week').checked = r.types.dueThisWeek;
+  document.getElementById('rem-overdue').checked = r.types.overdue;
+  toggleReminders(r.enabled);
+}
+
+function toggleReminders(enabled) {
+  const opacity = enabled ? '1' : '0.4';
+  const pointer = enabled ? '' : 'none';
+  document.getElementById('reminder-time-row').style.opacity = opacity;
+  document.getElementById('reminder-time-row').style.pointerEvents = pointer;
+  document.getElementById('reminder-types-section').style.opacity = opacity;
+  document.getElementById('reminder-types-section').style.pointerEvents = pointer;
+}
+
+function saveReminders() {
+  DB.saveReminders({
+    enabled: document.getElementById('rem-enabled').checked,
+    reminderTime: document.getElementById('rem-time').value,
+    types: {
+      dueToday: document.getElementById('rem-today').checked,
+      dueTomorrow: document.getElementById('rem-tomorrow').checked,
+      dueThisWeek: document.getElementById('rem-week').checked,
+      overdue: document.getElementById('rem-overdue').checked,
+    }
+  });
+  showToast('Reminders saved', 'success');
+  // Re-run notifications with new settings
+  if (DueeNotif.granted()) DueeNotif.run();
+}
+
+function updatePermissionBanner() {
+  const banner = document.getElementById('notif-banner');
+  const icon   = document.getElementById('notif-banner-icon');
+  const title  = document.getElementById('notif-banner-title');
+  const sub    = document.getElementById('notif-banner-sub');
+  const allowBtn = document.getElementById('notif-banner-btn');
+  const testBtn  = document.getElementById('notif-test-btn');
+
+  const status = DueeNotif.permissionStatus();
+
+  if (status === 'unsupported') {
+    banner.style.background = 'var(--yellow-light,#fef9c3)';
+    banner.style.border = '1px solid #d97706';
+    icon.textContent = '⚠️';
+    title.textContent = 'Notifications not supported';
+    sub.textContent = 'Your browser does not support desktop notifications.';
+    allowBtn.style.display = 'none';
+    testBtn.style.display  = 'none';
+  } else if (status === 'denied') {
+    banner.style.background = 'var(--red-light,#fef2f2)';
+    banner.style.border = '1px solid var(--red,#ef4444)';
+    icon.textContent = '🚫';
+    title.textContent = 'Notifications are blocked';
+    sub.textContent = 'Go to your browser settings and allow notifications for this site, then reload.';
+    allowBtn.style.display = 'none';
+    testBtn.style.display  = 'none';
+  } else if (status === 'granted') {
+    banner.style.background = 'var(--green-100,#f0fdf4)';
+    banner.style.border = '1px solid var(--green,#16a34a)';
+    icon.textContent = '✅';
+    title.textContent = 'Notifications are enabled';
+    sub.textContent = "You'll receive alerts for upcoming and overdue assignments.";
+    allowBtn.style.display = 'none';
+    testBtn.style.display  = '';
+  } else {
+    // 'default' — not yet asked
+    banner.style.background = 'var(--blue-light,#eff6ff)';
+    banner.style.border = '1px solid #3b82f6';
+    icon.textContent = '🔔';
+    title.textContent = 'Enable browser notifications';
+    sub.textContent = 'Allow duee. to send you alerts about upcoming deadlines.';
+    allowBtn.style.display = '';
+    testBtn.style.display  = 'none';
+  }
+}
+
+async function handlePermissionBtn() {
+  const result = await DueeNotif.requestPermission();
+  updatePermissionBanner();
+  if (result === 'granted') {
+    showToast('Notifications enabled! ✓', 'success');
+    await DueeNotif.run();
+  } else if (result === 'denied') {
+    showToast('Notifications blocked. Enable them in browser settings.', 'error');
+  }
+}
+
+async function testNotification() {
+  const ok = await DueeNotif.test();
+  if (ok) showToast('Test notification sent!', 'success');
+  else showToast('Could not send — check browser permissions', 'error');
+}
+
+function renderUpcoming() {
+  const now = new Date(); now.setHours(0,0,0,0);
+  const weekEnd = new Date(now); weekEnd.setDate(weekEnd.getDate() + 7);
+  const toDate = s => { const d = new Date(s + 'T00:00:00'); d.setHours(0,0,0,0); return d; };
+
+  const upcoming = _assignments
+    .filter(a => !a.completed && toDate(a.dueDate) >= now && toDate(a.dueDate) <= weekEnd)
+    .sort((a,b) => a.dueDate.localeCompare(b.dueDate))
+    .slice(0, 8);
+
+  const el = document.getElementById('upcoming-reminders');
+  if (!upcoming.length) {
+    el.innerHTML = `<div style="color:var(--text-secondary);font-size:14px;padding:10px 0;">No upcoming deadlines this week. Great job! 🎉</div>`;
+    return;
+  }
+  el.innerHTML = upcoming.map(a => {
+    const cls = classById(a.classId);
+    const color = cls ? cls.color : '#9ca3af';
+    const due = getDaysUntil(a.dueDate);
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
+      <div style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;"></div>
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:500;">${a.name}</div>
+        <div style="font-size:12px;color:var(--text-secondary);">${cls ? cls.name : ''} · ${fmtDate(a.dueDate)}</div>
+      </div>
+      <span class="badge ${due.cls === 'overdue' ? 'badge-red' : due.cls === 'today' ? 'badge-yellow' : 'badge-blue'}">${due.label}</span>
+    </div>`;
+  }).join('');
+  feather.replace({ width:13, height:13 });
+}
+</script>
+</body>
+</html>

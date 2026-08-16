@@ -73,7 +73,7 @@ const DueePlan = (() => {
 
     const el = document.createElement('a');
     el.id   = 'sidebar-plan-badge';
-    el.href = 'pricing.html';
+    el.href = '/pricing';
     el.style.cssText = `
       display:flex;align-items:center;gap:8px;
       margin:8px 10px 0;padding:9px 12px;border-radius:var(--radius);

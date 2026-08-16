@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>duee. — Settings</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+  <link rel="stylesheet" href="../css/main.css" />
+  <link rel="stylesheet" href="../css/app.css" />
+</head>
+<body>
+<div class="app-layout">
+
+  <aside class="sidebar">
+    <div class="sidebar-logo"><a href="/dashboard">duee<span>.</span></a></div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" data-page="dashboard" href="/dashboard"><i data-feather="grid"></i> Dashboard</a>
+      <a class="nav-item" data-page="classes" href="/classes"><i data-feather="book-open"></i> Classes</a>
+      <a class="nav-item" data-page="calendar" href="/calendar"><i data-feather="calendar"></i> Calendar</a>
+      <a class="nav-item" data-page="assignments" href="/assignments"><i data-feather="clipboard"></i> Assignments</a>
+      <a class="nav-item" data-page="reminders" href="/reminders"><i data-feather="bell"></i> Reminders</a>
+      <a class="nav-item" data-page="statistics" href="/statistics"><i data-feather="bar-chart-2"></i> Statistics</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <a class="nav-item" data-page="settings" href="/settings"><i data-feather="settings"></i> Settings</a>
+      <a class="nav-item" href="#" onclick="event.preventDefault();signOutUser()"><i data-feather="log-out"></i> Log out</a>
+    </div>
+  </aside>
+
+  <div class="main-area">
+    <header class="topbar">
+      <div class="topbar-left"><h1>Settings</h1></div>
+      <div class="topbar-right">
+        <button class="topbar-icon-btn"><i data-feather="bell"></i></button>
+        <div class="avatar" id="user-avatar" onclick="location.href='/settings'">H</div>
+      </div>
+    </header>
+
+    <main class="page-content">
+      <div class="page-header">
+        <h2>Settings</h2>
+      </div>
+
+      <div class="settings-grid">
+        <!-- Profile -->
+        <div class="settings-section">
+          <div class="settings-section-title">Profile</div>
+          <form id="profile-form" onsubmit="saveProfile(event)">
+            <div class="form-row" style="margin-bottom:14px;">
+              <div class="form-group" style="margin-bottom:0;">
+                <label>Name</label>
+                <input class="form-control" id="profile-name" placeholder="Your name" />
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label>Email</label>
+                <input class="form-control" type="email" id="profile-email" placeholder="you@university.edu" />
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;">
+              <div id="profile-avatar" style="width:60px;height:60px;border-radius:50%;background:var(--green);color:white;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;">H</div>
+              <div>
+                <div style="font-size:14px;font-weight:600;" id="profile-display-name">Hassen</div>
+                <div style="font-size:13px;color:var(--text-secondary);" id="profile-display-email">hassen@example.com</div>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">Save Changes</button>
+          </form>
+        </div>
+
+        <!-- Preferences -->
+        <div class="settings-section">
+          <div class="settings-section-title">Preferences</div>
+          <div class="form-group">
+            <label>Theme</label>
+            <select class="form-control" id="pref-theme" onchange="applyTheme(this.value)">
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Week Start Day</label>
+            <select class="form-control" id="pref-week-start">
+              <option value="Sunday">Sunday</option>
+              <option value="Monday">Monday</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Time Format</label>
+            <select class="form-control" id="pref-time-format">
+              <option value="12 Hour">12 Hour</option>
+              <option value="24 Hour">24 Hour</option>
+            </select>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="savePreferences()">Save Preferences</button>
+        </div>
+
+        <!-- Account -->
+        <div class="settings-section">
+          <div class="settings-section-title">Account</div>
+          <div class="settings-row" onclick="openModal('change-password-modal')">
+            <span class="settings-row-label">Change Password</span>
+            <span class="settings-row-value"><i data-feather="chevron-right"></i></span>
+          </div>
+          <div class="settings-row" onclick="exportData()">
+            <span class="settings-row-label">Export My Data</span>
+            <span class="settings-row-value"><i data-feather="download"></i></span>
+          </div>
+          <div class="settings-row" onclick="confirmDeleteAccount()">
+            <span class="settings-row-label settings-danger">Delete Account</span>
+            <span class="settings-row-value" style="color:var(--red);"><i data-feather="chevron-right"></i></span>
+          </div>
+        </div>
+
+        <!-- Plan -->
+        <div class="settings-section">
+          <div class="settings-section-title">Your Plan</div>
+
+          <!-- Plan card -->
+          <div id="plan-display" style="display:flex;align-items:center;gap:14px;padding:14px;border-radius:14px;margin-bottom:14px;border:1.5px solid var(--border);">
+            <div id="plan-icon" style="width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;"></div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:15px;font-weight:700;color:var(--text-primary);" id="plan-name-label"></div>
+              <div style="font-size:13px;color:var(--text-secondary);margin-top:2px;" id="plan-detail-label"></div>
+            </div>
+          </div>
+
+          <!-- AI usage bar (free only) -->
+          <div id="plan-ai-bar" style="background:var(--bg-hover);border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;font-size:13px;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+              <span style="font-weight:600;color:var(--text-primary);">AI messages today</span>
+              <span id="plan-ai-count" style="color:var(--text-secondary);font-weight:600;"></span>
+            </div>
+            <div style="background:var(--border);border-radius:99px;height:6px;overflow:hidden;">
+              <div id="plan-ai-bar-fill" style="height:100%;border-radius:99px;background:linear-gradient(90deg,#7c3aed,#2563eb);transition:width 0.4s;"></div>
+            </div>
+          </div>
+
+          <!-- Upgrade CTA -->
+          <a href="/pricing" id="plan-upgrade-btn" style="display:none;text-decoration:none;">
+            <div style="background:linear-gradient(135deg,#7c3aed,#2563eb);border-radius:12px;padding:13px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:opacity 0.15s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+              <div>
+                <div style="font-size:14px;font-weight:700;color:white;">⚡ Upgrade to Pro</div>
+                <div style="font-size:12px;color:rgba(255,255,255,0.75);margin-top:2px;">Unlimited AI · from $5.99/mo</div>
+              </div>
+              <div style="color:white;font-size:18px;opacity:0.8;">→</div>
+            </div>
+          </a>
+        </div>
+
+        <!-- About -->
+        <div class="settings-section">
+          <div class="settings-section-title">About duee.</div>
+          <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">
+            <img src="../Logo2.png" alt="duee." style="height:40px;" />
+          </div>
+          <p style="font-size:14px;color:var(--text-secondary);line-height:1.65;margin-bottom:16px;">
+            duee. helps college students stay organized by tracking classes, assignments, and deadlines in one clean place.
+          </p>
+          <div style="font-size:13px;color:var(--text-muted);">Version 1.0.0</div>
+          <div style="display:flex;gap:16px;margin-top:12px;">
+            <a href="#" style="font-size:13px;color:var(--green);font-weight:600;">Privacy Policy</a>
+            <a href="#" style="font-size:13px;color:var(--green);font-weight:600;">Terms of Service</a>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Change Password Modal -->
+<div class="modal-overlay" id="change-password-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Change Password</span>
+      <button class="modal-close" onclick="closeModal('change-password-modal')"><i data-feather="x"></i></button>
+    </div>
+    <div class="form-group">
+      <label>Current Password</label>
+      <input class="form-control" type="password" placeholder="••••••••" />
+    </div>
+    <div class="form-group">
+      <label>New Password</label>
+      <input class="form-control" type="password" placeholder="••••••••" />
+    </div>
+    <div class="form-group">
+      <label>Confirm New Password</label>
+      <input class="form-control" type="password" placeholder="••••••••" />
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('change-password-modal')">Cancel</button>
+      <button class="btn btn-primary" id="pw-save-btn" onclick="changePassword()">Update Password</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://unpkg.com/feather-icons/dist/feather.min.js"></script>
+<script src="../js/data.js"></script>
+<script src="../js/app.js"></script>
+<script src="../js/supabase-client.js"></script>
+<script src="../js/plan.js"></script>
+<script src="../js/ai.js"></script>
+<script src="../js/notifications.js"></script>
+<script>
+let _currentUser = null;
+let _classes = [], _assignments = [];
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const session = await Auth.requireAuth();
+  if (!session) return;
+  _currentUser = session.user;
+  window._currentUser = session.user;
+  [_classes, _assignments] = await Promise.all([DB.getClasses(), DB.getAssignments()]);
+  loadSettings();
+  closeOnOverlay('change-password-modal');
+});
+
+function loadSettings() {
+  const name  = Auth.getUserName(_currentUser);
+  const email = _currentUser?.email || '';
+  document.getElementById('profile-name').value  = name;
+  document.getElementById('profile-email').value = email;
+  document.getElementById('profile-email').readOnly = true;
+  document.getElementById('profile-email').style.background = 'var(--bg-hover)';
+  const prefs = DB.getPreferences();
+  document.getElementById('pref-theme').value       = prefs.theme       || 'light';
+  document.getElementById('pref-week-start').value  = prefs.weekStartDay || 'Monday';
+  document.getElementById('pref-time-format').value = prefs.timeFormat   || '12 Hour';
+  updateProfileDisplay(name, email);
+  loadPlanDisplay();
+}
+
+function updateProfileDisplay(name, email) {
+  document.getElementById('profile-display-name').textContent  = name  || 'Student';
+  document.getElementById('profile-display-email').textContent = email || '';
+  document.getElementById('profile-avatar').textContent = (name || 'S').charAt(0).toUpperCase();
+  document.getElementById('user-avatar').textContent    = (name || 'S').charAt(0).toUpperCase();
+}
+
+async function saveProfile(e) {
+  e.preventDefault();
+  const name = document.getElementById('profile-name').value.trim();
+  const btn = e.submitter;
+  const orig = btn.textContent;
+  btn.textContent = 'Saving…'; btn.disabled = true;
+  const { error } = await Auth.updateProfile(name);
+  btn.textContent = orig; btn.disabled = false;
+  if (error) { showToast(error.message, 'error'); return; }
+  updateProfileDisplay(name, _currentUser?.email);
+  showToast('Profile saved', 'success');
+}
+
+function savePreferences() {
+  const theme = document.getElementById('pref-theme').value;
+  DB.savePreferences({
+    theme,
+    weekStartDay: document.getElementById('pref-week-start').value,
+    timeFormat: document.getElementById('pref-time-format').value,
+  });
+  applyTheme(theme);
+  showToast('Preferences saved', 'success');
+}
+
+async function changePassword() {
+  const newPw   = document.querySelector('#change-password-modal input[type="password"]:nth-of-type(2)').value;
+  const confirm = document.querySelector('#change-password-modal input[type="password"]:nth-of-type(3)').value;
+  if (!newPw || newPw.length < 6) { showToast('Password must be at least 6 characters', 'error'); return; }
+  if (newPw !== confirm) { showToast('Passwords do not match', 'error'); return; }
+  const btn = document.getElementById('pw-save-btn');
+  btn.textContent = 'Saving…'; btn.disabled = true;
+  const { error } = await Auth.updatePassword(newPw);
+  btn.textContent = 'Update Password'; btn.disabled = false;
+  if (error) { showToast(error.message, 'error'); return; }
+  closeModal('change-password-modal');
+  showToast('Password updated ✓', 'success');
+}
+
+async function exportData() {
+  const [classes, assignments] = await Promise.all([DB.getClasses(), DB.getAssignments()]);
+  const data = {
+    classes, assignments,
+    preferences: DB.getPreferences(),
+    exportedAt: new Date().toISOString()
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'duee-export.json';
+  a.click();
+  showToast('Data exported', 'success');
+}
+
+function loadPlanDisplay() {
+  const { tier } = DueePlan.getTier();
+  const { remaining, resetIn } = DueePlan.canUseAI();
+  const isPro = DueePlan.isPro();
+
+  const icons  = { free: '📚', pro: '⚡', annual: '🌟' };
+  const names  = { free: 'Free Plan', pro: 'Pro Plan', annual: 'Annual Plan' };
+  const colors = { free: 'var(--bg-hover)', pro: 'linear-gradient(135deg,#7c3aed18,#2563eb18)', annual: 'linear-gradient(135deg,#16a34a18,#0891b218)' };
+
+  document.getElementById('plan-icon').textContent = icons[tier] || '📚';
+  document.getElementById('plan-icon').style.background = colors[tier] || 'var(--bg-hover)';
+  document.getElementById('plan-name-label').textContent = names[tier] || 'Free Plan';
+  document.getElementById('plan-detail-label').textContent = isPro
+    ? 'Unlimited AI messages · ' + (tier === 'annual' ? 'Annual billing' : 'Monthly billing')
+    : `${remaining} AI messages remaining today`;
+
+  // AI usage bar (free only)
+  const bar = document.getElementById('plan-ai-bar');
+  if (isPro) {
+    bar.style.display = 'none';
+  } else {
+    bar.style.display = '';
+    const used = 10 - remaining;
+    document.getElementById('plan-ai-count').textContent = `${used} / 10 used`;
+    document.getElementById('plan-ai-bar-fill').style.width = `${Math.min(100, (used / 10) * 100)}%`;
+    document.getElementById('plan-ai-bar-fill').style.background = used >= 8 ? 'var(--red)' : 'linear-gradient(90deg,#7c3aed,#2563eb)';
+  }
+
+  document.getElementById('plan-upgrade-btn').style.display = isPro ? 'none' : '';
+}
+
+function confirmDeleteAccount() {
+  confirmAction('Delete your account? All your data (classes, assignments) will be permanently removed. This cannot be undone.', async () => {
+    await signOutUser();
+  });
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>duee. — Calendar</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+  <link rel="stylesheet" href="../css/main.css" />
+  <link rel="stylesheet" href="../css/app.css" />
+</head>
+<body>
+<div class="app-layout">
+
+  <aside class="sidebar">
+    <div class="sidebar-logo"><a href="/dashboard">duee<span>.</span></a></div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" data-page="dashboard" href="/dashboard"><i data-feather="grid"></i> Dashboard</a>
+      <a class="nav-item" data-page="classes" href="/classes"><i data-feather="book-open"></i> Classes</a>
+      <a class="nav-item" data-page="calendar" href="/calendar"><i data-feather="calendar"></i> Calendar</a>
+      <a class="nav-item" data-page="assignments" href="/assignments"><i data-feather="clipboard"></i> Assignments</a>
+      <a class="nav-item" data-page="reminders" href="/reminders"><i data-feather="bell"></i> Reminders</a>
+      <a class="nav-item" data-page="statistics" href="/statistics"><i data-feather="bar-chart-2"></i> Statistics</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <a class="nav-item" data-page="settings" href="/settings"><i data-feather="settings"></i> Settings</a>
+      <a class="nav-item" href="#" onclick="event.preventDefault();signOutUser()"><i data-feather="log-out"></i> Log out</a>
+    </div>
+  </aside>
+
+  <div class="main-area">
+    <header class="topbar">
+      <div class="topbar-left"><h1>Calendar</h1></div>
+      <div class="topbar-right">
+        <button class="topbar-icon-btn"><i data-feather="bell"></i></button>
+        <div class="avatar" id="user-avatar" onclick="location.href='/settings'">H</div>
+      </div>
+    </header>
+
+    <main class="page-content" onclick="closeEventPopover()">
+      <div class="cal-header">
+        <div class="cal-nav">
+          <button class="cal-nav-btn" onclick="prevPeriod()"><i data-feather="chevron-left"></i></button>
+          <button class="btn btn-outline btn-sm" onclick="goToToday()">Today</button>
+          <button class="cal-nav-btn" onclick="nextPeriod()"><i data-feather="chevron-right"></i></button>
+          <span class="cal-title" id="cal-title"></span>
+        </div>
+        <div class="cal-view-toggle">
+          <button class="cal-view-btn active" id="view-month" onclick="setView('month')">Month</button>
+          <button class="cal-view-btn" id="view-week" onclick="setView('week')">Week</button>
+          <button class="cal-view-btn" id="view-day" onclick="setView('day')">Day</button>
+        </div>
+      </div>
+
+      <div id="cal-container"></div>
+    </main>
+  </div>
+</div>
+
+<!-- Quick Add Modal -->
+<div class="modal-overlay" id="cal-add-modal">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <span class="modal-title" id="cal-modal-title">Add Assignment</span>
+      <button class="modal-close" onclick="closeModal('cal-add-modal')"><i data-feather="x"></i></button>
+    </div>
+    <form id="cal-add-form" onsubmit="handleCalAdd(event)">
+      <div class="form-group">
+        <label>Assignment Name</label>
+        <input class="form-control" id="cal-asgn-name" placeholder="e.g. Lab Report" required />
+      </div>
+      <div class="form-group">
+        <label>Class</label>
+        <select class="form-control" id="cal-asgn-class"></select>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="margin-bottom:0;">
+          <label>Due Date</label>
+          <input class="form-control" type="date" id="cal-asgn-date" required />
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label>Priority</label>
+          <select class="form-control" id="cal-asgn-priority">
+            <option value="high">🔴 High</option>
+            <option value="medium" selected>🟡 Medium</option>
+            <option value="low">🟢 Low</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="closeModal('cal-add-modal')">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="cal-submit-btn">Add Assignment</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://unpkg.com/feather-icons/dist/feather.min.js"></script>
+<script src="../js/data.js"></script>
+<script src="../js/app.js"></script>
+<script src="../js/supabase-client.js"></script>
+<script src="../js/plan.js"></script>
+<script src="../js/ai.js"></script>
+<script src="../js/notifications.js"></script>
+<script>
+let currentView = 'month';
+let currentDate = new Date();
+let _classes = [], _assignments = [];
+
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DAYS_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const HOURS = ['8 AM','9 AM','10 AM','11 AM','12 PM','1 PM','2 PM','3 PM','4 PM','5 PM','6 PM','7 PM','8 PM','9 PM','10 PM'];
+const HOUR_START = 8;
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const session = await Auth.requireAuth();
+  if (!session) return;
+  window._currentUser = session.user;
+  [_classes, _assignments] = await Promise.all([DB.getClasses(), DB.getAssignments()]);
+  closeOnOverlay('cal-add-modal');
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeEventPopover(); });
+  render();
+});
+
+function classById(id) { return _classes.find(c => c.id === id) || null; }
+
+function setView(v) {
+  currentView = v;
+  ['month','week','day'].forEach(x => {
+    document.getElementById('view-' + x).classList.toggle('active', x === v);
+  });
+  render();
+}
+
+function prevPeriod() {
+  if (currentView === 'month') currentDate.setMonth(currentDate.getMonth() - 1);
+  else if (currentView === 'week') currentDate.setDate(currentDate.getDate() - 7);
+  else currentDate.setDate(currentDate.getDate() - 1);
+  render();
+}
+function nextPeriod() {
+  if (currentView === 'month') currentDate.setMonth(currentDate.getMonth() + 1);
+  else if (currentView === 'week') currentDate.setDate(currentDate.getDate() + 7);
+  else currentDate.setDate(currentDate.getDate() + 1);
+  render();
+}
+function goToToday() { currentDate = new Date(); render(); }
+
+function render() {
+  feather.replace({ width:14, height:14 });
+  if (currentView === 'month') renderMonth();
+  else if (currentView === 'week') renderWeek();
+  else renderDay();
+  setTimeout(() => feather.replace({ width:14, height:14 }), 50);
+}
+
+function dateStr(d) { return d.toISOString().split('T')[0]; }
+function todayStr() { return dateStr(new Date()); }
+
+function renderMonth() {
+  const year = currentDate.getFullYear(), month = currentDate.getMonth();
+  document.getElementById('cal-title').textContent = `${MONTHS[month]} ${year}`;
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const startOffset = firstDay.getDay();
+
+  let cells = '';
+  for (let i = 0; i < startOffset; i++) {
+    const prevDate = new Date(year, month, -startOffset + i + 1);
+    cells += `<div class="cal-cell other-month"><div class="cal-cell-num">${prevDate.getDate()}</div></div>`;
+  }
+  for (let d = 1; d <= lastDay.getDate(); d++) {
+    const cellDate = new Date(year, month, d);
+    const ds = dateStr(cellDate);
+    const isToday = ds === todayStr();
+    const dayAsgns = _assignments.filter(a => a.dueDate === ds);
+    const shown = dayAsgns.slice(0, 3);
+    const rest = dayAsgns.length - shown.length;
+    cells += `<div class="cal-cell clickable ${isToday ? 'today' : ''}" onclick="calCellClick('${ds}', event)">
+      <div class="cal-cell-num">${d}</div>
+      ${shown.map(a => {
+        const cls = classById(a.classId);
+        const color = cls ? cls.color : '#16a34a';
+        return `<div class="cal-event" style="background:${color}22;border-left-color:${color};color:${color};"
+          onclick="showEventDetail(event,'${a.id}')" title="${a.name}">${a.name}</div>`;
+      }).join('')}
+      ${rest > 0 ? `<div class="cal-more" onclick="calCellClick('${ds}', event)">+${rest} more</div>` : ''}
+    </div>`;
+  }
+  const totalCells = startOffset + lastDay.getDate();
+  const remaining = (7 - (totalCells % 7)) % 7;
+  for (let i = 1; i <= remaining; i++) {
+    cells += `<div class="cal-cell other-month"><div class="cal-cell-num">${i}</div></div>`;
+  }
+
+  document.getElementById('cal-container').innerHTML = `
+    <div class="cal-month">
+      <div class="cal-month-header">
+        ${DAYS_SHORT.map(d => `<div class="cal-dow">${d}</div>`).join('')}
+      </div>
+      <div class="cal-month-grid">${cells}</div>
+    </div>`;
+}
+
+function renderWeek() {
+  const day = currentDate.getDay();
+  const monday = new Date(currentDate);
+  monday.setDate(currentDate.getDate() - (day === 0 ? 6 : day - 1));
+  const weekDays = Array.from({length:7}, (_,i) => { const d = new Date(monday); d.setDate(monday.getDate()+i); return d; });
+  const td = todayStr();
+  document.getElementById('cal-title').textContent = `${fmtDate(dateStr(weekDays[0]))} – ${fmtDate(dateStr(weekDays[6]))}`;
+
+  const headerCols = weekDays.map(d => {
+    const ds = dateStr(d);
+    const isToday = ds === td;
+    return `<div class="cal-week-day-header ${isToday ? 'today' : ''}">
+      <div class="dow">${DAYS_SHORT[d.getDay()]}</div>
+      <div class="date" style="font-size:18px;font-weight:800;">${d.getDate()}</div>
+    </div>`;
+  }).join('');
+
+  const timeSlots = HOURS.map(h => `<div class="cal-time-slot"><span class="cal-time-label">${h}</span></div>`).join('');
+
+  const dayCols = weekDays.map(d => {
+    const ds = dateStr(d);
+    const dayAsgns = _assignments.filter(a => a.dueDate === ds);
+    const slots = HOURS.map(() => `<div class="cal-day-slot"></div>`).join('');
+    const events = dayAsgns.map(a => {
+      const cls = classById(a.classId);
+      const color = cls ? cls.color : '#16a34a';
+      const [h] = (a.dueTime || '23:59').split(':').map(Number);
+      const startHour = Math.min(Math.max(h - parseFloat(a.estimatedTime || 1), HOUR_START), 22);
+      const topPct = ((startHour - HOUR_START) / HOURS.length) * 100;
+      const heightPct = (parseFloat(a.estimatedTime || 1) / HOURS.length) * 100;
+      return `<div class="cal-week-event" style="top:${topPct}%;height:${Math.max(heightPct, 5)}%;background:${color}22;border-left:3px solid ${color};color:${color};" onclick="showEventDetail(event,'${a.id}')" title="${a.name}">
+        <div style="font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">${a.name}</div>
+        <div style="font-size:10px;font-weight:400;">${fmtTime24to12(a.dueTime)}</div>
+      </div>`;
+    }).join('');
+    return `<div class="cal-day-col" style="position:relative;">${slots}${events}</div>`;
+  }).join('');
+
+  document.getElementById('cal-container').innerHTML = `
+    <div class="cal-week">
+      <div class="cal-week-header">
+        <div class="cal-week-corner"></div>
+        ${headerCols}
+      </div>
+      <div class="cal-week-body">
+        <div class="cal-time-col">${timeSlots}</div>
+        ${dayCols}
+      </div>
+    </div>`;
+}
+
+// ── Click to Add ──
+function calCellClick(ds, e) {
+  e.stopPropagation();
+  closeEventPopover();
+  document.getElementById('cal-asgn-name').value = '';
+  document.getElementById('cal-asgn-date').value = ds;
+  document.getElementById('cal-asgn-priority').value = 'medium';
+  buildClassOptions(document.getElementById('cal-asgn-class'), '', _classes);
+  document.getElementById('cal-modal-title').textContent = `Add — ${fmtDateFull(ds)}`;
+  document.getElementById('cal-submit-btn').disabled = false;
+  document.getElementById('cal-submit-btn').textContent = 'Add Assignment';
+  openModal('cal-add-modal');
+  feather.replace({ width:16, height:16 });
+  document.getElementById('cal-asgn-name').focus();
+}
+
+async function handleCalAdd(e) {
+  e.preventDefault();
+  const btn = document.getElementById('cal-submit-btn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    await DB.addAssignment({
+      name:          document.getElementById('cal-asgn-name').value.trim(),
+      classId:       document.getElementById('cal-asgn-class').value || null,
+      dueDate:       document.getElementById('cal-asgn-date').value,
+      dueTime:       '23:59',
+      priority:      document.getElementById('cal-asgn-priority').value,
+      estimatedTime: '1.5',
+      notes:         '',
+    });
+    [_classes, _assignments] = await Promise.all([DB.getClasses(), DB.getAssignments()]);
+    closeModal('cal-add-modal');
+    render();
+    showToast('Assignment added', 'success');
+  } catch(err) {
+    showToast(err.message || 'Error', 'error');
+    btn.disabled = false; btn.textContent = 'Add Assignment';
+  }
+}
+
+// ── Event popover ──
+function showEventDetail(e, asgnId) {
+  e.stopPropagation();
+  closeEventPopover();
+  const asgn = _assignments.find(a => a.id === asgnId);
+  if (!asgn) return;
+  const cls = classById(asgn.classId);
+  const color = cls ? cls.color : '#9ca3af';
+  const due = getDaysUntil(asgn.dueDate);
+
+  const pop = document.createElement('div');
+  pop.id = 'cal-event-pop';
+  pop.style.cssText = `position:fixed;z-index:500;background:var(--bg-white);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px 16px;box-shadow:var(--shadow-lg);max-width:240px;min-width:200px;font-size:13px;`;
+  pop.innerHTML = `
+    <div style="font-weight:700;font-size:14px;margin-bottom:6px;color:var(--text-primary);">${asgn.name}</div>
+    <div style="display:flex;align-items:center;gap:5px;color:var(--text-secondary);margin-bottom:3px;">
+      <span style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;display:inline-block;"></span>
+      ${cls ? cls.name : 'No class'}
+    </div>
+    <div style="color:var(--text-secondary);margin-bottom:3px;">${fmtDate(asgn.dueDate)} · ${fmtTime24to12(asgn.dueTime)}</div>
+    <div style="margin-bottom:12px;"><span class="badge ${due.cls==='overdue'?'badge-red':due.cls==='today'?'badge-yellow':'badge-blue'}" style="font-size:10px;">${due.label}</span></div>
+    <a href="/assignments" class="btn btn-primary btn-sm" style="width:100%;justify-content:center;font-size:12px;">Edit Assignment</a>`;
+
+  const rect = e.target.getBoundingClientRect();
+  const top = Math.min(rect.bottom + 6, window.innerHeight - 200);
+  const left = Math.min(rect.left, window.innerWidth - 260);
+  pop.style.top = top + 'px';
+  pop.style.left = left + 'px';
+  document.body.appendChild(pop);
+}
+
+function closeEventPopover() {
+  document.getElementById('cal-event-pop')?.remove();
+}
+
+function renderDay() {
+  const ds = dateStr(currentDate);
+  const td = todayStr();
+  document.getElementById('cal-title').textContent = fmtDateFull(ds);
+  const assignments = _assignments.filter(a => a.dueDate === ds);
+
+  const timeSlots = HOURS.map(h => `<div class="cal-time-slot"><span class="cal-time-label">${h}</span></div>`).join('');
+  const daySlots = HOURS.map(() => `<div class="cal-day-slot"></div>`).join('');
+  const events = assignments.map(a => {
+    const cls = classById(a.classId);
+    const color = cls ? cls.color : '#16a34a';
+    const [h] = (a.dueTime || '23:59').split(':').map(Number);
+    const startH = Math.max(h - parseFloat(a.estimatedTime || 1), HOUR_START);
+    const topPct = ((startH - HOUR_START) / HOURS.length) * 100;
+    const heightPct = (parseFloat(a.estimatedTime || 1) / HOURS.length) * 100;
+    return `<div class="cal-week-event" style="top:${topPct}%;height:${Math.max(heightPct, 6)}%;background:${color}22;border-left:3px solid ${color};color:${color};left:4px;right:4px;">
+      <div style="font-weight:700;">${a.name}</div>
+      <div style="font-size:11px;">${cls ? cls.name : ''} · Due ${fmtTime24to12(a.dueTime)}</div>
+      ${a.notes ? `<div style="font-size:10px;opacity:0.8;margin-top:2px;">${a.notes}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  const emptyMsg = !assignments.length
+    ? `<div class="empty-state" style="padding:40px;grid-column:2"><div class="empty-icon"><i data-feather="calendar"></i></div><h3>No assignments</h3><p>Nothing due on ${fmtDateFull(ds)}.</p></div>` : '';
+
+  document.getElementById('cal-container').innerHTML = `
+    <div class="cal-day">
+      <div class="cal-day-header">
+        <div class="cal-day-title" style="${ds===td?'color:var(--green)':''}">${fmtDateFull(ds)}${ds===td?' — Today':''}</div>
+        <div style="font-size:13px;color:var(--text-secondary);margin-top:4px;">${assignments.length} assignment${assignments.length !== 1 ? 's' : ''} due</div>
+      </div>
+      <div class="cal-day-body">
+        <div class="cal-time-col">${timeSlots}</div>
+        <div style="position:relative;min-height:${HOURS.length * 50}px;">
+          ${daySlots}
+          ${events}
+          ${emptyMsg}
+        </div>
+      </div>
+    </div>`;
+  feather.replace({ width:22, height:22 });
+}
+</script>
+</body>
+</html>

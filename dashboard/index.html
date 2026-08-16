@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>duee. — Dashboard</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+  <link rel="stylesheet" href="../css/main.css" />
+  <link rel="stylesheet" href="../css/app.css" />
+  <style>
+    /* ── Onboarding overlay ── */
+    #ob-overlay {
+      position: fixed; inset: 0; z-index: 2000;
+      background: rgba(0,0,0,0.6); backdrop-filter: blur(6px);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; visibility: hidden; transition: opacity 0.3s;
+    }
+    #ob-overlay.open { opacity: 1; visibility: visible; }
+
+    .ob-card {
+      background: white; border-radius: 20px;
+      width: 100%; max-width: 520px; overflow: hidden;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.25);
+      transform: translateY(24px); transition: transform 0.35s cubic-bezier(0.22,1,0.36,1);
+    }
+    #ob-overlay.open .ob-card { transform: translateY(0); }
+
+    .ob-progress-track { height: 4px; background: #f3f4f6; }
+    .ob-progress-fill { height: 100%; background: var(--green); transition: width 0.4s ease; border-radius: 0 4px 4px 0; }
+
+    .ob-body { padding: 36px 36px 28px; }
+    .ob-step { display: none; }
+    .ob-step.active { display: block; }
+
+    .ob-icon {
+      width: 56px; height: 56px; border-radius: 16px;
+      background: var(--green-100); color: var(--green);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 20px; font-size: 26px;
+    }
+    .ob-label { font-size: 12px; font-weight: 700; color: var(--green); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px; }
+    .ob-title { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 10px; }
+    .ob-desc { font-size: 15px; color: var(--text-secondary); line-height: 1.65; margin-bottom: 24px; }
+
+    .ob-footer { display: flex; align-items: center; justify-content: space-between; padding: 20px 36px; border-top: 1px solid var(--border); background: #fafafa; }
+    .ob-dots { display: flex; gap: 6px; }
+    .ob-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); transition: background 0.2s; }
+    .ob-dot.active { background: var(--green); }
+    .ob-actions { display: flex; align-items: center; gap: 10px; }
+    .ob-skip { font-size: 13px; color: var(--text-muted); background: none; border: none; cursor: pointer; padding: 4px 8px; }
+    .ob-skip:hover { color: var(--text-secondary); }
+
+    /* Preview cards inside onboarding */
+    .ob-preview {
+      background: var(--bg-main); border: 1px solid var(--border);
+      border-radius: var(--radius-md); padding: 16px; margin-bottom: 20px;
+    }
+    .ob-preview-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .ob-preview-row:last-child { border-bottom: none; padding-bottom: 0; }
+
+    /* Color swatches in onboarding */
+    .ob-colors { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+    .ob-color { width: 26px; height: 26px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: transform 0.15s; }
+    .ob-color:hover { transform: scale(1.15); }
+    .ob-color.selected { border-color: #111827; transform: scale(1.2); }
+
+    /* Done step feature chips */
+    .ob-chips { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+    .ob-chip { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: var(--bg-main); border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; cursor: pointer; transition: all 0.15s; text-decoration: none; color: var(--text-primary); }
+    .ob-chip:hover { border-color: var(--green); background: var(--green-100); }
+    .ob-chip-icon { width: 34px; height: 34px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .ob-chip span { flex: 1; font-weight: 500; }
+    .ob-chip small { color: var(--text-muted); font-size: 12px; }
+
+    /* Dashboard empty state */
+    .dash-empty { text-align: center; padding: 32px 20px; }
+    .dash-empty-icon { width: 44px; height: 44px; background: var(--bg-hover); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; color: var(--text-muted); }
+    .dash-empty p { font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; }
+
+    /* Getting started banner */
+    .get-started-banner {
+      background: linear-gradient(135deg, #111827 0%, #1f2937 100%);
+      border-radius: var(--radius-md); padding: 24px 28px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 20px; margin-bottom: 24px; color: white;
+    }
+    .gsb-text h3 { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
+    .gsb-text p { font-size: 13px; color: rgba(255,255,255,0.65); }
+    .gsb-steps { display: flex; gap: 8px; }
+    .gsb-step { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.1); border-radius: 999px; padding: 6px 12px; font-size: 12px; font-weight: 600; white-space: nowrap; cursor: pointer; transition: background 0.15s; text-decoration: none; color: white; }
+    .gsb-step:hover { background: rgba(255,255,255,0.2); }
+    .gsb-step.done { background: rgba(22,163,74,0.4); }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+
+  <aside class="sidebar">
+    <div class="sidebar-logo"><a href="/dashboard">duee<span>.</span></a></div>
+    <nav class="sidebar-nav">
+      <a class="nav-item" data-page="dashboard"    href="/dashboard"><i data-feather="grid"></i> Dashboard</a>
+      <a class="nav-item" data-page="classes"      href="/classes"><i data-feather="book-open"></i> Classes</a>
+      <a class="nav-item" data-page="calendar"     href="/calendar"><i data-feather="calendar"></i> Calendar</a>
+      <a class="nav-item" data-page="assignments"  href="/assignments"><i data-feather="clipboard"></i> Assignments</a>
+      <a class="nav-item" data-page="reminders"    href="/reminders"><i data-feather="bell"></i> Reminders</a>
+      <a class="nav-item" data-page="statistics"   href="/statistics"><i data-feather="bar-chart-2"></i> Statistics</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <a class="nav-item" data-page="settings" href="/settings"><i data-feather="settings"></i> Settings</a>
+      <a class="nav-item" href="#" onclick="event.preventDefault();signOutUser()"><i data-feather="log-out"></i> Log out</a>
+    </div>
+  </aside>
+
+  <div class="main-area">
+    <header class="topbar">
+      <div class="topbar-left"><h1>Dashboard</h1></div>
+      <div class="topbar-right">
+        <button class="topbar-icon-btn" title="Help" onclick="showOnboarding()"><i data-feather="help-circle"></i></button>
+        <button class="topbar-icon-btn" title="Notifications"><i data-feather="bell"></i></button>
+        <div class="avatar" id="user-avatar" onclick="location.href='/settings'">?</div>
+      </div>
+    </header>
+
+    <main class="page-content">
+      <div class="greeting">
+        <h1 id="greeting-text">Good morning 👋</h1>
+        <p>Here's what's happening today.</p>
+      </div>
+
+      <!-- Getting started banner (hidden once user has data) -->
+      <div class="get-started-banner" id="gsb" style="display:none;">
+        <div class="gsb-text">
+          <h3>Get started — 3 quick steps</h3>
+          <p>Set up duee. in under 2 minutes.</p>
+        </div>
+        <div class="gsb-steps">
+          <a class="gsb-step" id="gsb-1" href="/classes"><i data-feather="book-open" style="width:13px;height:13px;"></i> Add classes</a>
+          <a class="gsb-step" id="gsb-2" href="/assignments"><i data-feather="clipboard" style="width:13px;height:13px;"></i> Add assignments</a>
+          <a class="gsb-step" id="gsb-3" href="/reminders"><i data-feather="bell" style="width:13px;height:13px;"></i> Set reminders</a>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-icon red"><i data-feather="alert-circle"></i></div>
+          <div class="stat-info"><div class="stat-num" id="stat-today">0</div><div class="stat-label">Due Today</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon yellow"><i data-feather="clock"></i></div>
+          <div class="stat-info"><div class="stat-num" id="stat-week">0</div><div class="stat-label">Due This Week</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon blue"><i data-feather="calendar"></i></div>
+          <div class="stat-info"><div class="stat-num" id="stat-upcoming">0</div><div class="stat-label">Upcoming</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green"><i data-feather="check-circle"></i></div>
+          <div class="stat-info"><div class="stat-num" id="stat-completed">0</div><div class="stat-label">Completed</div></div>
+        </div>
+      </div>
+
+      <!-- Due Today + Upcoming -->
+      <div class="dash-grid">
+        <div class="dash-card">
+          <div class="dash-card-header">
+            <span class="dash-card-title">Due Today</span>
+            <a href="/assignments" class="view-all">View all</a>
+          </div>
+          <div id="due-today-list"></div>
+        </div>
+        <div class="dash-card">
+          <div class="dash-card-header">
+            <span class="dash-card-title">Upcoming</span>
+            <a href="/assignments" class="view-all">View all</a>
+          </div>
+          <div id="upcoming-list"></div>
+        </div>
+      </div>
+
+      <!-- This Week -->
+      <div class="week-card">
+        <div class="week-header">
+          <span class="dash-card-title">This Week</span>
+        </div>
+        <div class="week-strip" id="week-strip"></div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ── Onboarding Overlay ── -->
+<div id="ob-overlay">
+  <div class="ob-card">
+    <div class="ob-progress-track">
+      <div class="ob-progress-fill" id="ob-progress" style="width:0%"></div>
+    </div>
+
+    <div class="ob-body">
+
+      <!-- Step 0: Welcome -->
+      <div class="ob-step active" id="ob-0">
+        <div style="font-size:42px;margin-bottom:16px;">👋</div>
+        <div class="ob-title">Welcome to duee.</div>
+        <div class="ob-desc">The simplest way to stay on top of every class, assignment, and deadline. Let's get you set up — it takes 2 minutes.</div>
+        <div class="ob-preview">
+          <div class="ob-preview-row">
+            <span style="font-size:18px;">📚</span>
+            <div><div style="font-weight:600;font-size:13px;">Add your classes</div><div style="font-size:12px;color:var(--text-muted);">All your courses in one place</div></div>
+          </div>
+          <div class="ob-preview-row">
+            <span style="font-size:18px;">✅</span>
+            <div><div style="font-weight:600;font-size:13px;">Track assignments</div><div style="font-size:12px;color:var(--text-muted);">Due dates, priority & time needed</div></div>
+          </div>
+          <div class="ob-preview-row">
+            <span style="font-size:18px;">🔔</span>
+            <div><div style="font-weight:600;font-size:13px;">Smart reminders</div><div style="font-size:12px;color:var(--text-muted);">Never miss a deadline again</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 1: Add first class -->
+      <div class="ob-step" id="ob-1">
+        <div class="ob-icon">📚</div>
+        <div class="ob-label">Step 1 of 2</div>
+        <div class="ob-title">Add your first class</div>
+        <div class="ob-desc">What courses are you taking this semester? Start with one — you can add more later.</div>
+        <div class="form-group">
+          <label>Class Name</label>
+          <input class="form-control" id="ob-class-name" placeholder="e.g. Biology 101" />
+        </div>
+        <div class="form-group">
+          <label>Professor <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
+          <input class="form-control" id="ob-class-prof" placeholder="e.g. Prof. Smith" />
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label>Pick a color</label>
+          <div class="ob-colors" id="ob-colors"></div>
+        </div>
+      </div>
+
+      <!-- Step 2: Add first assignment -->
+      <div class="ob-step" id="ob-2">
+        <div class="ob-icon">✅</div>
+        <div class="ob-label">Step 2 of 2</div>
+        <div class="ob-title">Add your first assignment</div>
+        <div class="ob-desc">What's coming up? Add one assignment and duee. will track it for you.</div>
+        <div class="form-group">
+          <label>Assignment Name</label>
+          <input class="form-control" id="ob-asgn-name" placeholder="e.g. Lab Report" />
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Due Date</label>
+            <input class="form-control" type="date" id="ob-asgn-date" />
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Priority</label>
+            <select class="form-control" id="ob-asgn-priority">
+              <option value="high">🔴 High</option>
+              <option value="medium" selected>🟡 Medium</option>
+              <option value="low">🟢 Low</option>
+            </select>
+          </div>
+        </div>
+        <div id="ob-class-display" style="margin-top:14px;font-size:13px;color:var(--text-secondary);display:flex;align-items:center;gap:6px;">
+          <span id="ob-class-dot" style="width:9px;height:9px;border-radius:50%;display:inline-block;flex-shrink:0;"></span>
+          For: <span id="ob-class-label" style="font-weight:600;color:var(--text-primary);"></span>
+        </div>
+      </div>
+
+      <!-- Step 3: All set -->
+      <div class="ob-step" id="ob-3">
+        <div style="font-size:42px;margin-bottom:16px;">🎉</div>
+        <div class="ob-title">You're all set!</div>
+        <div class="ob-desc">Here are a few things to explore next:</div>
+        <div class="ob-chips">
+          <a class="ob-chip" href="/classes">
+            <div class="ob-chip-icon" style="background:#f0fdf4;color:#16a34a;"><i data-feather="book-open" style="width:16px;height:16px;"></i></div>
+            <div><span>Add more classes</span><br><small>Keep all your courses organized</small></div>
+            <i data-feather="chevron-right" style="width:15px;height:15px;color:var(--text-muted);"></i>
+          </a>
+          <a class="ob-chip" href="/assignments">
+            <div class="ob-chip-icon" style="background:#eff6ff;color:#2563eb;"><i data-feather="upload" style="width:16px;height:16px;"></i></div>
+            <div><span>Import from Canvas</span><br><small>Auto-import all assignments at once</small></div>
+            <i data-feather="chevron-right" style="width:15px;height:15px;color:var(--text-muted);"></i>
+          </a>
+          <a class="ob-chip" href="/reminders">
+            <div class="ob-chip-icon" style="background:#fef9c3;color:#ca8a04;"><i data-feather="bell" style="width:16px;height:16px;"></i></div>
+            <div><span>Set up reminders</span><br><small>Get notified before deadlines</small></div>
+            <i data-feather="chevron-right" style="width:15px;height:15px;color:var(--text-muted);"></i>
+          </a>
+        </div>
+      </div>
+
+    </div><!-- /ob-body -->
+
+    <div class="ob-footer">
+      <div class="ob-dots" id="ob-dots"></div>
+      <div class="ob-actions">
+        <button class="ob-skip" id="ob-skip-btn" onclick="obSkip()">Skip</button>
+        <button class="btn btn-primary" id="ob-next-btn" onclick="obNext()">Get Started →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://unpkg.com/feather-icons/dist/feather.min.js"></script>
+<script src="../js/data.js"></script>
+<script src="../js/app.js"></script>
+<script src="../js/supabase-client.js"></script>
+<script src="../js/plan.js"></script>
+<script src="../js/ai.js"></script>
+<script src="../js/notifications.js"></script>
+<script>
+// ── Onboarding ──
+const OB_STEPS = 4;
+const OB_COLORS = ['#16a34a','#2563eb','#7c3aed','#0891b2','#dc2626','#b45309','#0d9488','#9333ea','#db2777','#64748b'];
+let obStep = 0;
+let obColor = OB_COLORS[0];
+let obCreatedClassId = null;
+
+let _classes = [], _assignments = [];
+
+function obKey(userId) { return `duee_onboarded_${userId}`; }
+
+function showOnboarding() {
+  obStep = 0;
+  obColor = OB_COLORS[0];
+  obCreatedClassId = null;
+  buildObColors();
+  syncObStep();
+  document.getElementById('ob-overlay').classList.add('open');
+  feather.replace({ width: 16, height: 16 });
+}
+
+function buildObColors() {
+  document.getElementById('ob-colors').innerHTML = OB_COLORS.map(c =>
+    `<div class="ob-color ${c === obColor ? 'selected' : ''}" style="background:${c}" onclick="obSelectColor('${c}', this)"></div>`
+  ).join('');
+}
+
+function obSelectColor(color, el) {
+  obColor = color;
+  document.querySelectorAll('.ob-color').forEach(d => d.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function syncObStep() {
+  document.getElementById('ob-progress').style.width = ((obStep / (OB_STEPS - 1)) * 100) + '%';
+  document.querySelectorAll('.ob-step').forEach((s, i) => s.classList.toggle('active', i === obStep));
+  document.getElementById('ob-dots').innerHTML = Array.from({ length: OB_STEPS }, (_, i) =>
+    `<div class="ob-dot ${i === obStep ? 'active' : ''}"></div>`
+  ).join('');
+  const nextBtn = document.getElementById('ob-next-btn');
+  const skipBtn = document.getElementById('ob-skip-btn');
+  if (obStep === 0) {
+    nextBtn.textContent = 'Get Started →'; skipBtn.style.display = '';
+  } else if (obStep === 1) {
+    nextBtn.textContent = 'Next →'; skipBtn.textContent = 'Skip this step'; skipBtn.style.display = '';
+  } else if (obStep === 2) {
+    nextBtn.textContent = 'Next →'; skipBtn.textContent = 'Skip this step'; skipBtn.style.display = '';
+  } else if (obStep === 3) {
+    nextBtn.textContent = 'Go to Dashboard'; skipBtn.style.display = 'none';
+  }
+  feather.replace({ width: 16, height: 16 });
+}
+
+async function obNext() {
+  if (obStep === 0) { obStep = 1; syncObStep(); return; }
+
+  if (obStep === 1) {
+    const name = document.getElementById('ob-class-name').value.trim();
+    if (name) {
+      try {
+        const prof = document.getElementById('ob-class-prof').value.trim();
+        const cls = await DB.addClass({ name, professor: prof, color: obColor, icon: 'book-open' });
+        obCreatedClassId = cls.id;
+        _classes.push(cls);
+      } catch(e) { console.error(e); }
+    }
+    if (obCreatedClassId) {
+      const cls = _classes.find(c => c.id === obCreatedClassId);
+      document.getElementById('ob-class-label').textContent = cls.name;
+      document.getElementById('ob-class-dot').style.background = cls.color;
+    } else {
+      document.getElementById('ob-class-display').style.display = 'none';
+    }
+    const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+    document.getElementById('ob-asgn-date').value = tomorrow.toISOString().split('T')[0];
+    obStep = 2; syncObStep();
+    return;
+  }
+
+  if (obStep === 2) {
+    const name = document.getElementById('ob-asgn-name').value.trim();
+    const date = document.getElementById('ob-asgn-date').value;
+    if (name && date && obCreatedClassId) {
+      try {
+        const asgn = await DB.addAssignment({
+          name, classId: obCreatedClassId, dueDate: date, dueTime: '23:59',
+          priority: document.getElementById('ob-asgn-priority').value,
+          estimatedTime: '1.5', notes: ''
+        });
+        _assignments.push(asgn);
+      } catch(e) { console.error(e); }
+    }
+    obStep = 3; syncObStep();
+    return;
+  }
+
+  if (obStep === 3) { obFinish(); }
+}
+
+function obSkip() {
+  if (obStep === 1) { obStep = 2; syncObStep(); return; }
+  obFinish();
+}
+
+function obFinish() {
+  const userId = window._currentUser?.id || 'guest';
+  localStorage.setItem(obKey(userId), '1');
+  document.getElementById('ob-overlay').classList.remove('open');
+  loadDashboard(window._currentUser);
+}
+
+// ── Dashboard ──
+window._currentUser = null;
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const session = await Auth.requireAuth();
+  if (!session) return;
+  window._currentUser = session.user;
+  await loadData();
+  loadDashboard(session.user);
+  const userId = session.user.id;
+  if (!localStorage.getItem(obKey(userId))) { showOnboarding(); }
+});
+
+async function loadData() {
+  [_classes, _assignments] = await Promise.all([DB.getClasses(), DB.getAssignments()]);
+}
+
+function classById(id) { return _classes.find(c => c.id === id) || null; }
+
+async function loadDashboard(user) {
+  await loadData();
+  const name = Auth.getUserName(user);
+  document.getElementById('greeting-text').textContent = `${getGreeting()}, ${name} 👋`;
+  document.getElementById('user-avatar').textContent = Auth.getUserInitial(user);
+
+  const stats = DB.computeStats(_assignments);
+  document.getElementById('stat-today').textContent     = stats.dueToday;
+  document.getElementById('stat-week').textContent      = stats.dueThisWeek;
+  document.getElementById('stat-upcoming').textContent  = stats.upcoming;
+  document.getElementById('stat-completed').textContent = stats.completed;
+
+  const hasData = _classes.length > 0 || _assignments.length > 0;
+  const gsb = document.getElementById('gsb');
+  gsb.style.display = hasData ? 'none' : 'flex';
+  if (!hasData) feather.replace({ width: 13, height: 13 });
+
+  if (_classes.length > 0) document.getElementById('gsb-1')?.classList.add('done');
+  if (_assignments.length > 0) document.getElementById('gsb-2')?.classList.add('done');
+
+  const now = new Date(); now.setHours(0, 0, 0, 0);
+  const toDate = s => { const d = new Date(s + 'T00:00:00'); d.setHours(0,0,0,0); return d; };
+  const dueToday = _assignments.filter(a => !a.completed && toDate(a.dueDate).getTime() === now.getTime());
+  renderList('due-today-list', dueToday, true,
+    'Nothing due today!', 'Add assignments to see them here.', 'assignments.html');
+
+  const weekEnd = new Date(now); weekEnd.setDate(weekEnd.getDate() + 7);
+  const upcoming = _assignments
+    .filter(a => { const d = toDate(a.dueDate); return !a.completed && d > now && d <= weekEnd; })
+    .sort((a,b) => a.dueDate.localeCompare(b.dueDate))
+    .slice(0, 5);
+  renderList('upcoming-list', upcoming, false,
+    'No upcoming deadlines', 'You\'re all clear for the next 7 days.', 'assignments.html');
+
+  renderWeekStrip(_assignments);
+  feather.replace({ width: 16, height: 16 });
+}
+
+function renderList(containerId, items, showTime, emptyTitle, emptyDesc, addHref) {
+  const el = document.getElementById(containerId);
+  if (!items.length) {
+    el.innerHTML = `
+      <div class="dash-empty">
+        <div class="dash-empty-icon"><i data-feather="inbox" style="width:20px;height:20px;"></i></div>
+        <p><strong style="display:block;font-size:13px;color:var(--text-primary);margin-bottom:4px;">${emptyTitle}</strong>${emptyDesc}</p>
+        <a href="${addHref}" class="btn btn-outline btn-sm" style="font-size:12px;">
+          <i data-feather="plus" style="width:12px;height:12px;"></i> Add assignment
+        </a>
+      </div>`;
+    feather.replace({ width: 20, height: 20 });
+    return;
+  }
+  el.innerHTML = items.map(a => {
+    const cls = classById(a.classId);
+    const color = cls ? cls.color : '#9ca3af';
+    const due = getDaysUntil(a.dueDate);
+    const timeDisplay = showTime ? fmtTime24to12(a.dueTime) : due.label;
+    return `<div class="asgn-item">
+      <div class="asgn-check ${a.completed ? 'done' : ''}" onclick="toggleItem('${a.id}', this)"></div>
+      <div class="asgn-info">
+        <div class="asgn-name ${a.completed ? 'done-text' : ''}">${a.name}</div>
+        <div class="asgn-class-name" style="display:flex;align-items:center;gap:5px;">
+          <span style="width:7px;height:7px;border-radius:50%;background:${color};display:inline-block;flex-shrink:0;"></span>
+          ${cls ? cls.name : 'No class'}
+        </div>
+      </div>
+      <div class="asgn-time ${due.cls}">${timeDisplay}</div>
+    </div>`;
+  }).join('');
+}
+
+async function toggleItem(id, el) {
+  const asgn = _assignments.find(a => a.id === id);
+  if (!asgn) return;
+  try {
+    const updated = await DB.toggleComplete(id, asgn.completed);
+    const idx = _assignments.findIndex(a => a.id === id);
+    if (idx !== -1) _assignments[idx] = updated;
+    el.classList.toggle('done', updated.completed);
+    el.nextElementSibling.querySelector('.asgn-name').classList.toggle('done-text', updated.completed);
+    const stats = DB.computeStats(_assignments);
+    document.getElementById('stat-today').textContent     = stats.dueToday;
+    document.getElementById('stat-week').textContent      = stats.dueThisWeek;
+    document.getElementById('stat-upcoming').textContent  = stats.upcoming;
+    document.getElementById('stat-completed').textContent = stats.completed;
+  } catch(e) { console.error(e); showToast('Failed to update', 'error'); }
+}
+
+function renderWeekStrip(all) {
+  const strip = document.getElementById('week-strip');
+  const labels = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const now = new Date(); now.setHours(0,0,0,0);
+  const dow = now.getDay();
+  const mondayOffset = dow === 0 ? -6 : 1 - dow;
+  const monday = new Date(now); monday.setDate(monday.getDate() + mondayOffset);
+  strip.innerHTML = labels.map((d, i) => {
+    const date = new Date(monday); date.setDate(monday.getDate() + i);
+    const ds = date.toISOString().split('T')[0];
+    const isToday = date.getTime() === now.getTime();
+    const count = all.filter(a => !a.completed && a.dueDate === ds).length;
+    return `<div class="week-day ${isToday ? 'today' : ''} ${count > 0 ? 'has-tasks' : ''}">
+      <div class="week-day-label">${d}</div>
+      <div class="week-day-num">${date.getDate()}</div>
+      <div class="week-day-count">${count > 0 ? count + ' task' + (count !== 1 ? 's' : '') : ''}</div>
+    </div>`;
+  }).join('');
+}
+</script>
+</body>
+</html>

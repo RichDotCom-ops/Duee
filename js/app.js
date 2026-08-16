@@ -60,7 +60,7 @@ function initAvatar() {
 
 // ── Highlight current nav item ──
 function highlightNav() {
-  const page = window.location.pathname.split('/').pop().replace('.html', '');
+  const page = window.location.pathname.replace(/\/$/, '').split('/').pop().replace('.html', '');
   document.querySelectorAll('.nav-item').forEach(el => {
     el.classList.toggle('active', el.dataset.page === page);
   });

@@ -139,7 +139,10 @@ RULES:
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err?.error?.message || `API error ${res.status}`);
+      const msg = err?.error?.message || `API error ${res.status}`;
+      const e = new Error(msg);
+      e.status = res.status;
+      throw e;
     }
     const data = await res.json();
     return data.choices?.[0]?.message?.content || '';
@@ -306,13 +309,24 @@ RULES:
       if (typeof DueePlan !== 'undefined') DueePlan.incrementAI();
 
     } catch (err) {
-      // Fallback to rule-based on API error
-      try {
-        const fallback = await ruleBasedFallback(normalizedText);
-        _history.push({ role: 'bot', text: fallback });
-        if (typeof DueePlan !== 'undefined') DueePlan.incrementAI();
-      } catch (_) {
-        _history.push({ role: 'bot', text: `Something went wrong: ${err.message}` });
+      if (err.status === 429) {
+        // Rate limited — try rule-based first, then friendly message
+        try {
+          const fallback = await ruleBasedFallback(normalizedText);
+          _history.push({ role: 'bot', text: fallback });
+          if (typeof DueePlan !== 'undefined') DueePlan.incrementAI();
+        } catch (_) {
+          _history.push({ role: 'bot', text: `I'm getting a lot of requests right now — try again in a second!` });
+        }
+      } else {
+        // Other API error — still try rule-based
+        try {
+          const fallback = await ruleBasedFallback(normalizedText);
+          _history.push({ role: 'bot', text: fallback });
+          if (typeof DueePlan !== 'undefined') DueePlan.incrementAI();
+        } catch (_) {
+          _history.push({ role: 'bot', text: `Something went wrong — try again!` });
+        }
       }
     }
 
@@ -405,7 +419,23 @@ RULES:
       return `Study tips:\n• **Pomodoro**: 25 min focus, 5 min break — repeat.\n• **Active recall**: test yourself instead of re-reading.\n• **Teach it**: explain the topic out loud to find gaps.`;
     }
 
-    return `I can help you:\n• **"I finished my essay"** — mark it done\n• **"Remove my math quiz"** — delete it\n• **"Undo my bio homework"** — mark incomplete\n• **"Add a quiz due Friday"** — add to your list\n• **"What's due this week?"** — see upcoming`;
+    // ── Stress / motivation ──
+    if (/\b(stress|overwhelm|anxious|behind|so much|panic|can.t|too many|worried)\b/.test(l)) {
+      const count = list.filter(a => !a.completed).length;
+      return count > 0
+        ? `You've got ${count} thing${count !== 1 ? 's' : ''} pending — start with the nearest deadline and knock them out one at a time. You got this!`
+        : `Looks like your list is actually clear! Take a breath — you're more on top of it than you think.`;
+    }
+
+    // ── Greetings ──
+    if (/^(hey|hi|hello|sup|yo|what.?s up|heyy+|hiii+)\b/.test(l.trim())) {
+      const count = list.filter(a => !a.completed).length;
+      return count > 0
+        ? `Hey! You've got **${count} pending assignment${count !== 1 ? 's' : ''}**. Want to see what's due soon?`
+        : `Hey! Your assignment list is looking clear 🎉 Anything you need to add?`;
+    }
+
+    return `Got it! Just tell me what you need — like "I finished my essay", "delete my math quiz", "what's due this week", or "add a quiz due Friday".`;
   }
 
   // ─────────────────────────────────────────────

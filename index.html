@@ -177,35 +177,45 @@
     .stat-label { font-size:13px; color:var(--text-secondary); margin-top:2px; font-weight:500; }
 
     @media(max-width:768px){
-      .lp-pricing-grid { grid-template-columns:1fr; }
-      .testimonials-grid { grid-template-columns:1fr; }
-      .ai-spotlight { flex-direction:column; padding:36px 24px; }
-      .ai-visual { width:100%; }
-      .stats-bar { gap:20px; flex-wrap:wrap; padding:24px 20px; }
-      .stat-num { font-size:24px; }
+      /* Nav */
+      .land-nav { padding:0 20px; }
+      .land-links { display:none !important; }
+      .btn-login { display:none !important; }
 
-      /* Hide floating hero cards on mobile — they go off screen */
+      /* Hero */
+      .hero { flex-direction:column !important; padding:36px 20px !important; gap:32px !important; min-height:auto !important; text-align:center; }
+      .hero-content { max-width:100% !important; }
+      .hero-actions { justify-content:center; }
+      .hero-perks { justify-content:center; }
+      .hero-visual { width:100% !important; padding:0 !important; }
+      .app-preview { max-width:100% !important; }
       .floating-card, .floating-ai { display:none !important; }
 
-      /* Hero visual full width, no overflow */
-      .hero-visual { width:100%; padding: 0; }
-      .app-preview { max-width:100% !important; right:auto !important; }
+      /* Stats bar */
+      .stats-bar { gap:20px !important; flex-wrap:wrap !important; padding:24px 20px !important; }
+      .stat-num { font-size:24px !important; }
 
-      /* Features grid 1 col */
-      .features-grid { grid-template-columns:1fr !important; }
+      /* Sections */
+      .section { padding:48px 20px !important; }
+      .section-center { padding:48px 20px !important; }
 
-      /* Section padding */
-      .section { padding:40px 20px !important; }
+      /* Features — override inline grid style */
+      .features-grid { grid-template-columns:1fr !important; gap:14px !important; }
 
-      /* AI section */
-      .ai-chat-demo { width:100% !important; max-width:100% !important; }
+      /* AI spotlight */
+      .ai-spotlight { flex-direction:column !important; padding:36px 20px !important; gap:32px !important; }
+      .ai-visual { width:100% !important; max-width:100% !important; }
+      .ai-text { text-align:center; }
+      .ai-chips { justify-content:center; }
+
+      /* How it works — override inline grid */
+      #how-it-works .section > div[style*="grid"] { grid-template-columns:1fr !important; gap:24px !important; }
 
       /* Testimonials */
-      .testimonials-grid { grid-template-columns:1fr !important; }
+      .testimonials-grid { grid-template-columns:1fr !important; gap:16px !important; }
 
       /* Pricing */
-      .lp-plans-grid { flex-direction:column !important; align-items:center !important; }
-      .lp-plan { width:100% !important; max-width:420px !important; }
+      .lp-pricing-grid { grid-template-columns:1fr !important; max-width:420px !important; margin:0 auto !important; }
 
       /* FAQ */
       .faq-grid { grid-template-columns:1fr !important; }
@@ -216,21 +226,19 @@
       /* Footer */
       .land-footer { flex-direction:column !important; gap:16px !important; text-align:center !important; padding:28px 20px !important; }
       .footer-links { justify-content:center !important; flex-wrap:wrap !important; }
-
-      /* Nav */
-      .land-links { display:none !important; }
-      .land-nav { padding:0 20px; }
-      .btn-login { display:none; }
     }
 
     @media(max-width:480px){
-      .hero h1 { font-size:32px !important; }
+      .hero h1 { font-size:30px !important; letter-spacing:-1px !important; }
       .hero-actions { flex-direction:column; align-items:stretch; }
       .btn-how { justify-content:center; }
-      .hero-perks { gap:10px; }
+      .hero-perks { gap:8px; }
       .perk { font-size:12px; }
-      .stats-bar { gap:16px; }
-      .stat-num { font-size:22px; }
+      .stats-bar { gap:14px !important; }
+      .stat-num { font-size:20px !important; }
+      .stat-label { font-size:11px; }
+      .section-title { font-size:24px !important; }
+      .pricing-hero h1 { font-size:28px !important; }
     }
   </style>
 </head>

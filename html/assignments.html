@@ -170,35 +170,31 @@
           <div style="display:flex;flex-direction:column;gap:10px;">
             <div style="display:flex;align-items:flex-start;gap:12px;">
               <div style="min-width:22px;height:22px;border-radius:50%;background:#cc0000;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">1</div>
-              <div style="font-size:13px;color:var(--text-primary);padding-top:2px;">While logged in to Blackboard, go to <strong>Calendar</strong> → gear icon → <strong>Get Calendar Feed</strong> → copy the link</div>
+              <div style="font-size:13px;color:var(--text-primary);padding-top:2px;">While logged in to Blackboard, go to <strong>Calendar</strong> → gear icon → <strong>Get Calendar Feed</strong></div>
             </div>
             <div style="display:flex;align-items:flex-start;gap:12px;">
               <div style="min-width:22px;height:22px;border-radius:50%;background:#cc0000;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">2</div>
-              <div style="font-size:13px;color:var(--text-primary);padding-top:2px;"><strong>Open that link</strong> in a new browser tab — it will show or download your calendar data</div>
-            </div>
-            <div style="display:flex;align-items:flex-start;gap:12px;">
-              <div style="min-width:22px;height:22px;border-radius:50%;background:#cc0000;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">3</div>
-              <div style="font-size:13px;color:var(--text-primary);padding-top:2px;"><strong>On computer:</strong> press <strong>Cmd+A</strong> then <strong>Cmd+C</strong> to copy all the text, then paste it below<br><strong>On phone:</strong> tap and hold → Select All → Copy, then paste below</div>
+              <div style="font-size:13px;color:var(--text-primary);padding-top:2px;"><strong>Copy the calendar link</strong> and paste it below</div>
             </div>
           </div>
         </div>
 
-        <!-- Two sub-tabs: Paste text vs URL -->
+        <!-- Two sub-tabs: URL vs Paste text -->
         <div style="display:flex;gap:6px;margin-bottom:10px;">
-          <button onclick="switchBBMethod('paste')" id="bb-tab-paste" style="flex:1;background:#cc0000;color:white;border:none;padding:7px;border-radius:var(--radius);font-size:12px;font-weight:600;cursor:pointer;">Paste Calendar Text</button>
-          <button onclick="switchBBMethod('url')" id="bb-tab-url" style="flex:1;background:var(--bg-hover);color:var(--text-secondary);border:none;padding:7px;border-radius:var(--radius);font-size:12px;font-weight:600;cursor:pointer;">Try URL (Canvas / others)</button>
+          <button onclick="switchBBMethod('url')" id="bb-tab-url" style="flex:1;background:#cc0000;color:white;border:none;padding:7px;border-radius:var(--radius);font-size:12px;font-weight:600;cursor:pointer;">Paste URL</button>
+          <button onclick="switchBBMethod('paste')" id="bb-tab-paste" style="flex:1;background:var(--bg-hover);color:var(--text-secondary);border:none;padding:7px;border-radius:var(--radius);font-size:12px;font-weight:600;cursor:pointer;">Paste Calendar Text</button>
         </div>
 
-        <div id="bb-method-paste">
-          <textarea id="ics-paste-input" class="form-control" rows="4" placeholder="Paste your calendar text here — it should start with BEGIN:VCALENDAR" style="font-size:12px;font-family:monospace;resize:vertical;"></textarea>
-          <button onclick="importFromPaste()" style="margin-top:8px;width:100%;background:#cc0000;color:white;border:none;padding:10px;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;">Import Pasted Text</button>
-        </div>
-
-        <div id="bb-method-url" style="display:none;">
+        <div id="bb-method-url">
           <div style="display:flex;gap:8px;">
             <input id="ics-url-input" class="form-control" placeholder="Paste your calendar feed URL here…" style="font-size:13px;" />
             <button onclick="importFromUrl('bb')" id="ics-url-btn" style="white-space:nowrap;background:#cc0000;color:white;border:none;padding:8px 14px;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;">Import</button>
           </div>
+        </div>
+
+        <div id="bb-method-paste" style="display:none;">
+          <textarea id="ics-paste-input" class="form-control" rows="4" placeholder="Paste your calendar text here — it should start with BEGIN:VCALENDAR" style="font-size:12px;font-family:monospace;resize:vertical;"></textarea>
+          <button onclick="importFromPaste()" style="margin-top:8px;width:100%;background:#cc0000;color:white;border:none;padding:10px;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;">Import Pasted Text</button>
         </div>
       </div>
 
@@ -421,13 +417,13 @@ function resetImportError() {
 }
 
 function switchBBMethod(method) {
-  const isPaste = method === 'paste';
-  document.getElementById('bb-method-paste').style.display = isPaste ? '' : 'none';
-  document.getElementById('bb-method-url').style.display = isPaste ? 'none' : '';
-  document.getElementById('bb-tab-paste').style.background = isPaste ? '#cc0000' : 'var(--bg-hover)';
-  document.getElementById('bb-tab-paste').style.color = isPaste ? 'white' : 'var(--text-secondary)';
-  document.getElementById('bb-tab-url').style.background = isPaste ? 'var(--bg-hover)' : '#cc0000';
-  document.getElementById('bb-tab-url').style.color = isPaste ? 'var(--text-secondary)' : 'white';
+  const isUrl = method === 'url';
+  document.getElementById('bb-method-url').style.display = isUrl ? '' : 'none';
+  document.getElementById('bb-method-paste').style.display = isUrl ? 'none' : '';
+  document.getElementById('bb-tab-url').style.background = isUrl ? '#cc0000' : 'var(--bg-hover)';
+  document.getElementById('bb-tab-url').style.color = isUrl ? 'white' : 'var(--text-secondary)';
+  document.getElementById('bb-tab-paste').style.background = isUrl ? 'var(--bg-hover)' : '#cc0000';
+  document.getElementById('bb-tab-paste').style.color = isUrl ? 'var(--text-secondary)' : 'white';
   resetImportError();
 }
 

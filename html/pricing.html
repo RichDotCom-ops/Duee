@@ -359,20 +359,21 @@ function initLemonSqueezy() {
 function openCheckout(plan) {
   _pendingPlan = plan;
 
-  // Validate URLs are configured
   const url = plan === 'annual' ? LS_ANNUAL_URL : LS_PRO_URL;
-  if (url.startsWith('PASTE_')) {
-    showToast('Checkout URL not configured yet — see pricing.html', 'error');
-    return;
-  }
-
-  // Pre-fill user email if available
   const email = window._currentUser?.email || '';
   const emailParam = email ? `&checkout[email]=${encodeURIComponent(email)}` : '';
-
-  // Open LemonSqueezy overlay (?embed=1 triggers the overlay instead of redirect)
   const checkoutUrl = `${url}?embed=1${emailParam}`;
-  LemonSqueezy.Url.Open(checkoutUrl);
+
+  // Try LemonSqueezy overlay — fall back to new tab if not ready
+  try {
+    if (typeof LemonSqueezy !== 'undefined' && typeof LemonSqueezy.Url?.Open === 'function') {
+      LemonSqueezy.Url.Open(checkoutUrl);
+    } else {
+      window.open(url, '_blank');
+    }
+  } catch (e) {
+    window.open(url, '_blank');
+  }
 }
 
 function onPaymentSuccess() {

@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>duee. — Admin</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+  <link rel="stylesheet" href="../css/main.css" />
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg-main); min-height: 100vh; font-family: inherit; }
+
+    .admin-topbar {
+      background: var(--bg-white); border-bottom: 1px solid var(--border);
+      padding: 0 28px; height: 56px; display: flex; align-items: center;
+      justify-content: space-between; position: sticky; top: 0; z-index: 100;
+    }
+    .admin-logo { font-size: 18px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.5px; }
+    .admin-logo span { color: var(--green); }
+    .admin-badge { font-size: 11px; font-weight: 700; background: #dc26261a; color: #dc2626;
+      border: 1px solid #dc262630; padding: 3px 10px; border-radius: 99px; letter-spacing: .5px; }
+    .admin-user { font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 10px; }
+    .admin-signout { font-size: 12px; font-weight: 600; color: var(--text-muted); cursor: pointer;
+      background: none; border: 1px solid var(--border); padding: 5px 12px; border-radius: 6px; transition: all .15s; }
+    .admin-signout:hover { color: var(--text-primary); border-color: var(--text-muted); }
+
+    .admin-body { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
+
+    .admin-heading { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+    .admin-sub { font-size: 13px; color: var(--text-secondary); margin-bottom: 28px; }
+
+    /* Status dot */
+    .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+    .dot-green { background: #16a34a; box-shadow: 0 0 0 3px #16a34a28; animation: pulse-green 2s infinite; }
+    .dot-red   { background: #dc2626; box-shadow: 0 0 0 3px #dc262628; }
+    .dot-yellow{ background: #ca8a04; box-shadow: 0 0 0 3px #ca8a0428; }
+    .dot-gray  { background: #94a3b8; }
+    @keyframes pulse-green { 0%,100%{box-shadow:0 0 0 3px #16a34a28} 50%{box-shadow:0 0 0 6px #16a34a10} }
+
+    /* Cards grid */
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-bottom: 28px; }
+    .stat-card {
+      background: var(--bg-white); border: 1px solid var(--border); border-radius: 14px;
+      padding: 20px; display: flex; flex-direction: column; gap: 6px;
+    }
+    .stat-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .6px; }
+    .stat-value { font-size: 32px; font-weight: 800; letter-spacing: -1.5px; color: var(--text-primary); line-height: 1; }
+    .stat-value.loading { font-size: 20px; color: var(--text-muted); animation: shimmer 1.2s infinite; }
+    @keyframes shimmer { 0%,100%{opacity:.4} 50%{opacity:1} }
+    .stat-sub { font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 5px; }
+
+    /* Site status card */
+    .status-card {
+      background: var(--bg-white); border: 1px solid var(--border); border-radius: 14px;
+      padding: 20px 24px; margin-bottom: 28px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    }
+    .status-main { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 200px; }
+    .status-text { font-size: 16px; font-weight: 700; color: var(--text-primary); }
+    .status-url  { font-size: 12px; color: var(--text-muted); }
+    .status-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+    .status-pill {
+      font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 99px;
+      background: var(--bg-hover); color: var(--text-secondary); display: flex; align-items: center; gap: 6px;
+    }
+    .status-pill.ok { background: #f0fdf4; color: #16a34a; }
+    .status-pill.warn { background: #fefce8; color: #ca8a04; }
+    .status-pill.err { background: #fef2f2; color: #dc2626; }
+    .refresh-btn {
+      font-size: 12px; font-weight: 600; background: none; border: 1px solid var(--border);
+      padding: 6px 14px; border-radius: 8px; cursor: pointer; color: var(--text-secondary); transition: all .15s;
+    }
+    .refresh-btn:hover { border-color: var(--green); color: var(--green); }
+
+    /* Sections */
+    .section { margin-bottom: 28px; }
+    .section-title { font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px;
+      text-transform: uppercase; letter-spacing: .5px; display: flex; align-items: center; gap: 8px; }
+    .section-card { background: var(--bg-white); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+
+    /* Users table */
+    .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .data-table th { padding: 10px 16px; text-align: left; font-size: 11px; font-weight: 700;
+      color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px;
+      background: var(--bg-main); border-bottom: 1px solid var(--border); }
+    .data-table td { padding: 12px 16px; border-bottom: 1px solid var(--border); color: var(--text-secondary); }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: var(--bg-main); }
+    .data-table td:first-child { color: var(--text-primary); font-weight: 500; }
+
+    /* Log */
+    .log-list { list-style: none; margin: 0; padding: 0; }
+    .log-item { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 13px;
+      display: flex; align-items: flex-start; gap: 10px; }
+    .log-item:last-child { border-bottom: none; }
+    .log-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+    .log-msg { flex: 1; color: var(--text-secondary); line-height: 1.5; }
+    .log-msg strong { color: var(--text-primary); }
+    .log-time { font-size: 11px; color: var(--text-muted); white-space: nowrap; flex-shrink: 0; }
+    .empty-log { padding: 32px; text-align: center; color: var(--text-muted); font-size: 13px; }
+
+    /* Ping history bar */
+    .ping-bars { display: flex; gap: 3px; align-items: flex-end; height: 32px; }
+    .ping-bar { flex: 1; border-radius: 3px; min-height: 4px; transition: height .3s; cursor: pointer; }
+    .ping-bar.ok   { background: #16a34a; }
+    .ping-bar.slow { background: #ca8a04; }
+    .ping-bar.down { background: #dc2626; }
+
+    [data-theme="dark"] .status-card,
+    [data-theme="dark"] .stat-card,
+    [data-theme="dark"] .section-card { background: #1e293b; }
+    [data-theme="dark"] .data-table th { background: #0f172a; }
+    [data-theme="dark"] .data-table tr:hover td { background: #0f172a; }
+  </style>
+</head>
+<body>
+
+<div class="admin-topbar">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div class="admin-logo">duee<span>.</span></div>
+    <div class="admin-badge">ADMIN</div>
+  </div>
+  <div class="admin-user">
+    <span id="admin-email-label"></span>
+    <button class="admin-signout" onclick="signOutUser()">Sign out</button>
+  </div>
+</div>
+
+<div class="admin-body">
+  <div class="admin-heading">Site Dashboard</div>
+  <div class="admin-sub" id="last-checked">Checking site status…</div>
+
+  <!-- Live site status -->
+  <div class="status-card" id="status-card">
+    <div class="status-main">
+      <div class="dot dot-gray" id="status-dot"></div>
+      <div>
+        <div class="status-text" id="status-text">Checking…</div>
+        <div class="status-url">duee.online</div>
+      </div>
+    </div>
+    <div class="status-pills" id="status-pills">
+      <div class="status-pill" id="pill-ping">⏱ —</div>
+      <div class="status-pill" id="pill-http">HTTP —</div>
+    </div>
+    <div class="ping-bars" id="ping-bars" title="Last 20 pings"></div>
+    <button class="refresh-btn" onclick="runChecks()">↻ Refresh</button>
+  </div>
+
+  <!-- Stats -->
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-label">Total Users</div>
+      <div class="stat-value loading" id="stat-users">…</div>
+      <div class="stat-sub" id="stat-users-sub"></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Assignments</div>
+      <div class="stat-value loading" id="stat-asgns">…</div>
+      <div class="stat-sub" id="stat-asgns-sub"></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Classes</div>
+      <div class="stat-value loading" id="stat-classes">…</div>
+      <div class="stat-sub" id="stat-classes-sub"></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Avg Response</div>
+      <div class="stat-value loading" id="stat-ping">…</div>
+      <div class="stat-sub"><span class="dot dot-gray" id="stat-ping-dot" style="margin-right:4px;"></span><span id="stat-ping-label">measuring…</span></div>
+    </div>
+  </div>
+
+  <!-- Recent signups -->
+  <div class="section">
+    <div class="section-title">
+      <span>👥</span> Recent Signups
+      <span style="font-size:11px;font-weight:500;color:var(--text-muted);text-transform:none;letter-spacing:0;" id="signup-note"></span>
+    </div>
+    <div class="section-card">
+      <table class="data-table">
+        <thead><tr><th>Email</th><th>Joined</th><th>Assignments</th><th>Classes</th></tr></thead>
+        <tbody id="users-tbody"><tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-muted);">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Activity log -->
+  <div class="section">
+    <div class="section-title"><span>📋</span> Activity Log</div>
+    <div class="section-card">
+      <ul class="log-list" id="log-list"></ul>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="../js/app.js"></script>
+<script src="../js/supabase-client.js"></script>
+<script>
+// ── Admin gate ──
+const ADMIN_EMAIL = 'hassen@gmail.com';
+
+// Ping history (last 20)
+const _pings = [];
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const session = await Auth.requireAuth();
+  if (!session) return;
+
+  // Block non-admins immediately
+  if (session.user.email !== ADMIN_EMAIL) {
+    document.body.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--bg-main);">
+        <div style="text-align:center;padding:40px;">
+          <div style="font-size:48px;margin-bottom:16px;">🚫</div>
+          <div style="font-size:20px;font-weight:700;margin-bottom:8px;">Access Denied</div>
+          <div style="color:var(--text-secondary);margin-bottom:24px;">This page is for admins only.</div>
+          <a href="/dashboard" style="background:var(--green);color:white;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:600;">Back to Dashboard</a>
+        </div>
+      </div>`;
+    return;
+  }
+
+  window._currentUser = session.user;
+  document.getElementById('admin-email-label').textContent = session.user.email;
+
+  runChecks();
+  loadStats();
+  renderLog();
+
+  // Auto-refresh every 60 seconds
+  setInterval(runChecks, 60000);
+});
+
+// ── Site health checks ──
+async function runChecks() {
+  const dot   = document.getElementById('status-dot');
+  const text  = document.getElementById('status-text');
+  const pills = document.getElementById('status-pills');
+
+  dot.className = 'dot dot-gray';
+  text.textContent = 'Checking…';
+
+  const start = Date.now();
+  let ok = false, ms = 0, status = 0;
+
+  try {
+    const res = await fetch('https://duee.online', { cache: 'no-store', mode: 'no-cors' });
+    ms = Date.now() - start;
+    ok = true; status = 200; // no-cors doesn't give status
+  } catch (e) {
+    ms = Date.now() - start;
+    ok = false;
+  }
+
+  // Record ping
+  _pings.push({ ok, ms, t: Date.now() });
+  if (_pings.length > 20) _pings.shift();
+
+  // Update UI
+  const quality = !ok ? 'down' : ms < 800 ? 'ok' : 'slow';
+  dot.className = 'dot ' + (quality === 'ok' ? 'dot-green' : quality === 'slow' ? 'dot-yellow' : 'dot-red');
+  text.textContent = quality === 'ok' ? 'Online' : quality === 'slow' ? 'Slow response' : 'Unreachable';
+
+  const pingPill = document.getElementById('pill-ping');
+  pingPill.textContent = ok ? `⏱ ${ms}ms` : '⏱ timeout';
+  pingPill.className = 'status-pill ' + (quality === 'ok' ? 'ok' : quality === 'slow' ? 'warn' : 'err');
+
+  const httpPill = document.getElementById('pill-http');
+  httpPill.textContent = ok ? '✓ Reachable' : '✗ Down';
+  httpPill.className = 'status-pill ' + (ok ? 'ok' : 'err');
+
+  // Ping bars
+  const barsEl = document.getElementById('ping-bars');
+  barsEl.innerHTML = _pings.map(p => {
+    const h = p.ok ? Math.max(8, Math.min(32, Math.round(32 - (p.ms / 50)))) : 32;
+    const cls = !p.ok ? 'down' : p.ms < 800 ? 'ok' : 'slow';
+    return `<div class="ping-bar ${cls}" style="height:${h}px" title="${p.ok ? p.ms+'ms' : 'down'}"></div>`;
+  }).join('');
+
+  // Stat card
+  document.getElementById('stat-ping').textContent = ok ? ms + 'ms' : '—';
+  document.getElementById('stat-ping').className = 'stat-value';
+  const pd = document.getElementById('stat-ping-dot');
+  pd.className = 'dot ' + (quality === 'ok' ? 'dot-green' : quality === 'slow' ? 'dot-yellow' : 'dot-red');
+  document.getElementById('stat-ping-label').textContent = quality === 'ok' ? 'Fast' : quality === 'slow' ? 'Slow' : 'Down';
+
+  document.getElementById('last-checked').textContent =
+    'Last checked ' + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+  // Log the check
+  addLog(quality === 'ok' ? '✅' : quality === 'slow' ? '⚠️' : '🔴',
+    quality === 'ok' ? `Site is <strong>online</strong> — ${ms}ms response`
+                     : quality === 'slow' ? `Slow response: <strong>${ms}ms</strong>`
+                     : `Site appears <strong>unreachable</strong>`);
+}
+
+// ── Load stats from Supabase ──
+async function loadStats() {
+  try {
+    // Total assignments & classes (cross-user via count — works if RLS allows count or is off)
+    const [{ count: asgnCount }, { count: clsCount }] = await Promise.all([
+      _supabase.from('assignments').select('*', { count: 'exact', head: true }),
+      _supabase.from('classes').select('*', { count: 'exact', head: true }),
+    ]);
+
+    document.getElementById('stat-asgns').textContent = asgnCount ?? '—';
+    document.getElementById('stat-asgns').className = 'stat-value';
+    document.getElementById('stat-asgns-sub').textContent = 'across all users';
+
+    document.getElementById('stat-classes').textContent = clsCount ?? '—';
+    document.getElementById('stat-classes').className = 'stat-value';
+    document.getElementById('stat-classes-sub').textContent = 'across all users';
+
+    // Try get_total_users RPC (needs DB function — see setup note)
+    const { data: userCount, error: rpcErr } = await _supabase.rpc('get_total_users');
+    if (!rpcErr && userCount !== null) {
+      document.getElementById('stat-users').textContent = userCount;
+      document.getElementById('stat-users').className = 'stat-value';
+      document.getElementById('stat-users-sub').innerHTML = `<span class="dot dot-green"></span> tracking live`;
+    } else {
+      document.getElementById('stat-users').textContent = '—';
+      document.getElementById('stat-users').className = 'stat-value';
+      document.getElementById('stat-users-sub').innerHTML =
+        `<a href="#setup" style="color:var(--green);font-size:11px;font-weight:600;">Setup needed ↓</a>`;
+      showSetupNote();
+    }
+
+    // Recent users from distinct user_ids in assignments
+    loadRecentUsers();
+  } catch(e) {
+    console.error('Stats error:', e);
+  }
+}
+
+async function loadRecentUsers() {
+  try {
+    // Get distinct user_ids with their assignment/class counts
+    const { data: asgns } = await _supabase.from('assignments').select('user_id, created_at');
+    const { data: clss  } = await _supabase.from('classes').select('user_id, created_at, name');
+
+    if (!asgns && !clss) { document.getElementById('users-tbody').innerHTML =
+      `<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-muted);">No data available — RLS may be restricting cross-user queries</td></tr>`; return; }
+
+    // Build per-user map
+    const users = {};
+    (asgns || []).forEach(a => {
+      if (!users[a.user_id]) users[a.user_id] = { uid: a.user_id, asgns: 0, classes: 0, first: a.created_at };
+      users[a.user_id].asgns++;
+      if (a.created_at < users[a.user_id].first) users[a.user_id].first = a.created_at;
+    });
+    (clss || []).forEach(c => {
+      if (!users[c.user_id]) users[c.user_id] = { uid: c.user_id, asgns: 0, classes: 0, first: c.created_at };
+      users[c.user_id].classes++;
+      if (c.created_at < users[c.user_id].first) users[c.user_id].first = c.created_at;
+    });
+
+    const list = Object.values(users).sort((a, b) => b.first > a.first ? 1 : -1).slice(0, 10);
+
+    if (!list.length) {
+      document.getElementById('users-tbody').innerHTML =
+        `<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-muted);">Only your own data is visible — RLS is active</td></tr>`;
+
+      document.getElementById('stat-users').textContent = '1+';
+      document.getElementById('stat-users').className = 'stat-value';
+      return;
+    }
+
+    document.getElementById('stat-users').textContent = list.length + (list.length === 10 ? '+' : '');
+    document.getElementById('stat-users').className = 'stat-value';
+
+    document.getElementById('users-tbody').innerHTML = list.map(u => `
+      <tr>
+        <td><span style="font-family:monospace;font-size:11px;color:var(--text-muted);">${u.uid.slice(0,8)}…</span></td>
+        <td>${u.first ? new Date(u.first).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : '—'}</td>
+        <td>${u.asgns}</td>
+        <td>${u.classes}</td>
+      </tr>`).join('');
+  } catch(e) {
+    document.getElementById('users-tbody').innerHTML =
+      `<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-muted);">Could not load user data</td></tr>`;
+  }
+}
+
+function showSetupNote() {
+  document.getElementById('signup-note').innerHTML =
+    `<span id="setup" style="color:#ca8a04;">⚠ Run this SQL in Supabase to enable user count:</span>
+     <code style="background:var(--bg-hover);padding:2px 6px;border-radius:4px;font-size:10px;margin-left:4px;">
+       CREATE OR REPLACE FUNCTION get_total_users() RETURNS integer LANGUAGE sql SECURITY DEFINER AS $$ SELECT COUNT(*)::integer FROM auth.users; $$;
+     </code>`;
+}
+
+// ── Activity log (localStorage) ──
+const LOG_KEY = 'duee_admin_log';
+function getLogs() { try { return JSON.parse(localStorage.getItem(LOG_KEY) || '[]'); } catch { return []; } }
+function saveLogs(l) { localStorage.setItem(LOG_KEY, JSON.stringify(l.slice(-50))); }
+
+function addLog(icon, msg) {
+  const logs = getLogs();
+  logs.unshift({ icon, msg, t: new Date().toISOString() });
+  saveLogs(logs);
+  renderLog();
+}
+
+function renderLog() {
+  const logs = getLogs();
+  const el = document.getElementById('log-list');
+  if (!logs.length) {
+    el.innerHTML = `<div class="empty-log">No activity yet — checks will appear here automatically.</div>`;
+    return;
+  }
+  el.innerHTML = logs.slice(0, 20).map(l => `
+    <li class="log-item">
+      <span class="log-icon">${l.icon}</span>
+      <span class="log-msg">${l.msg}</span>
+      <span class="log-time">${new Date(l.t).toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' })}</span>
+    </li>`).join('');
+}
+</script>
+</body>
+</html>

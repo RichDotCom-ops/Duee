@@ -94,14 +94,6 @@ const ICS = {
       courseName = summary.slice(0, idx).trim();
       asgnName   = summary.slice(idx + 2).trim();
     }
-    // Google Classroom → "Assignment Name (Class Name)"
-    else {
-      const gcMatch = summary.match(/^(.+?)\s*\(([^)]+)\)\s*$/);
-      if (gcMatch) {
-        asgnName   = gcMatch[1].trim();
-        courseName = gcMatch[2].trim();
-      }
-    }
 
     // Blackboard → course name in CATEGORIES field
     if (!courseName && event.CATEGORIES) {
@@ -109,21 +101,33 @@ const ICS = {
       if (cat && cat.toLowerCase() !== 'moodle') courseName = cat;
     }
 
-    // Try LOCATION field (some platforms put course there)
+    // Try LOCATION field
     if (!courseName && event.LOCATION) {
       courseName = event.LOCATION.trim();
     }
 
-    // Fallback: try description for course name
+    // Try description for course name
     if (!courseName && desc) {
       const cm = desc.match(/(?:course|class)[:\s]+([^\n\\,]+)/i);
       if (cm) courseName = cm[1].replace(/\\n.*/, '').trim();
     }
 
-    // Clean Canvas suffixes like "[Assignment]", "[Quiz]", "(Due ...)"
+    // Extract course code from start of name e.g. "GEN 103 Final Exam" → course "GEN 103", name "Final Exam"
+    if (!courseName) {
+      const codeMatch = asgnName.match(/^([A-Z]{2,5}\s*\d{2,4}[A-Z]?)\s+(.+)$/);
+      if (codeMatch) {
+        courseName = codeMatch[1].replace(/\s+/, ' ').trim();
+        asgnName   = codeMatch[2].trim();
+      }
+    }
+
+    // Clean up name: remove attempt suffixes, "(Online)", "[brackets]", "(Due ...)"
     asgnName = asgnName
+      .replace(/\s*-\s*Attempt\s*\d+\s*$/i, '')
+      .replace(/\s*\(online\)\s*/gi, ' ')
       .replace(/\s*\[.*?\]\s*$/, '')
       .replace(/\s*\(due[^)]*\)\s*$/i, '')
+      .replace(/\s{2,}/g, ' ')
       .trim();
 
     // Auto-guess priority from keywords
@@ -134,7 +138,7 @@ const ICS = {
 
     return {
       name:          asgnName   || summary,
-      courseName:    courseName || 'Unknown Class',
+      courseName:    courseName || 'Other',
       dueDate:       dateInfo.date,
       dueTime:       dateInfo.time,
       priority,

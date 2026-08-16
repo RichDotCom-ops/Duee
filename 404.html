@@ -49,7 +49,7 @@
     try {
       const { data: { session } } = await _supabase.auth.getSession();
       if (session) {
-        dest = '/html/dashboard.html';
+        dest = '/dashboard';
         homeBtn.textContent = 'Taking you to dashboard →';
         homeBtn.href = dest;
       }

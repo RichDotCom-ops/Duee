@@ -138,6 +138,31 @@
     .dot{width:7px;height:7px;border-radius:50%;display:inline-block;flex-shrink:0;}
     .dg{background:#16a34a;}.dr{background:#dc2626;}.dy{background:#ca8a04;}.dx{background:#334155;}
     .section-title{font-size:10px;font-weight:700;color:#334155;text-transform:uppercase;letter-spacing:.7px;margin-bottom:12px;margin-top:4px;}
+
+    /* ── SHARE MODAL ── */
+    #share-modal{position:fixed;inset:0;z-index:9998;background:#00000080;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+    #share-modal.open{display:flex;}
+    .sm-box{background:#0f172a;border:1px solid #1e293b;border-radius:16px;padding:32px 28px;width:420px;max-width:calc(100vw - 32px);}
+    .sm-title{font-size:16px;font-weight:700;color:#f8fafc;margin-bottom:4px;}
+    .sm-sub{font-size:12px;color:#475569;margin-bottom:24px;}
+    .sm-label{font-size:10px;font-weight:700;color:#334155;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px;}
+    .sm-row{display:flex;gap:8px;margin-bottom:18px;}
+    .sm-field{flex:1;background:#060d1a;border:1.5px solid #1e293b;border-radius:8px;padding:10px 12px;font-size:12px;color:#cbd5e1;font-family:monospace;outline:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .sm-copy{background:#1e293b;border:none;border-radius:8px;padding:10px 14px;font-size:11px;font-weight:600;color:#94a3b8;cursor:pointer;white-space:nowrap;transition:all .15s;}
+    .sm-copy:hover{background:#7c3aed;color:white;}
+    .sm-copy.done{background:#16a34a;color:white;}
+    .sm-divider{border:none;border-top:1px solid #1e293b;margin:4px 0 18px;}
+    .sm-pin-box{background:#060d1a;border:1.5px solid #7c3aed40;border-radius:8px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+    .sm-pin-val{font-size:22px;font-weight:800;letter-spacing:6px;color:#a78bfa;font-family:monospace;}
+    .sm-pin-reveal{font-size:10px;font-weight:600;color:#475569;cursor:pointer;padding:4px 8px;border:1px solid #1e293b;border-radius:6px;background:none;transition:all .15s;}
+    .sm-pin-reveal:hover{border-color:#7c3aed;color:#a78bfa;}
+    .sm-note{font-size:11px;color:#475569;line-height:1.7;background:#ca8a0408;border:1px solid #ca8a0420;border-radius:8px;padding:10px 12px;margin-bottom:20px;}
+    .sm-note strong{color:#fbbf24;}
+    .sm-actions{display:flex;gap:8px;justify-content:flex-end;}
+    .sm-close{background:#1e293b;border:none;border-radius:8px;padding:9px 18px;font-size:12px;font-weight:600;color:#64748b;cursor:pointer;transition:all .15s;}
+    .sm-close:hover{color:#e2e8f0;}
+    .share-btn{font-size:11px;font-weight:600;background:linear-gradient(135deg,#7c3aed,#2563eb);color:white;border:none;padding:5px 14px;border-radius:6px;cursor:pointer;transition:filter .15s;}
+    .share-btn:hover{filter:brightness(1.1);}
   </style>
 </head>
 <body>
@@ -169,7 +194,43 @@
     <div class="tr">
       <span id="last-upd"></span>
       <span id="admin-em"></span>
+      <button class="share-btn" onclick="openShareModal()">Share Access</button>
       <button class="so-btn" onclick="signOutUser()">Sign out</button>
+    </div>
+  </div>
+
+  <!-- SHARE MODAL -->
+  <div id="share-modal">
+    <div class="sm-box">
+      <div class="sm-title">Share Admin Access</div>
+      <div class="sm-sub">Send this to your co-founder — they'll need both the link and the PIN.</div>
+
+      <div class="sm-label">Admin URL</div>
+      <div class="sm-row">
+        <input class="sm-field" id="share-url" readonly />
+        <button class="sm-copy" id="copy-url-btn" onclick="copyField('share-url','copy-url-btn')">Copy</button>
+      </div>
+
+      <hr class="sm-divider" />
+
+      <div class="sm-label">Access PIN</div>
+      <div class="sm-pin-box">
+        <div class="sm-pin-val" id="pin-display">••••</div>
+        <button class="sm-pin-reveal" onclick="togglePin()">Reveal</button>
+      </div>
+      <div class="sm-row" style="margin-bottom:18px;">
+        <input class="sm-field" id="share-pin" readonly value="PIN: ••••" />
+        <button class="sm-copy" id="copy-pin-btn" onclick="copyPinField()">Copy</button>
+      </div>
+
+      <div class="sm-note">
+        <strong>Heads up:</strong> Your co-founder also needs to be signed in to a Supabase account. Share this privately — anyone with the link + PIN can view all user data.
+      </div>
+
+      <div class="sm-actions">
+        <button class="sm-close" onclick="closeShareModal()">Close</button>
+        <button class="share-btn" onclick="copyAll()">Copy Everything</button>
+      </div>
     </div>
   </div>
 
@@ -799,6 +860,57 @@ function renderLog(){
   if(!logs.length){el.innerHTML=`<div class="empty-log">No activity yet.</div>`;return;}
   el.innerHTML=logs.slice(0,50).map(l=>`<li class="log-item"><span class="li-icon">${l.icon}</span><span class="li-msg">${l.msg}</span><span class="li-t">${new Date(l.t).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})}</span></li>`).join('');
 }
+
+// ── SHARE MODAL ──
+let pinRevealed = false;
+function openShareModal() {
+  const url = window.location.origin + '/admin';
+  document.getElementById('share-url').value = url;
+  document.getElementById('pin-display').textContent = '••••';
+  document.getElementById('share-pin').value = 'PIN: ••••';
+  pinRevealed = false;
+  document.getElementById('share-modal').classList.add('open');
+}
+function closeShareModal() {
+  document.getElementById('share-modal').classList.remove('open');
+}
+function togglePin() {
+  pinRevealed = !pinRevealed;
+  const btn = document.querySelector('.sm-pin-reveal');
+  document.getElementById('pin-display').textContent = pinRevealed ? ADMIN_PIN : '••••';
+  document.getElementById('share-pin').value = pinRevealed ? 'PIN: ' + ADMIN_PIN : 'PIN: ••••';
+  btn.textContent = pinRevealed ? 'Hide' : 'Reveal';
+}
+function copyField(fieldId, btnId) {
+  const val = document.getElementById(fieldId).value;
+  navigator.clipboard.writeText(val).then(() => {
+    const btn = document.getElementById(btnId);
+    btn.textContent = 'Copied!';
+    btn.classList.add('done');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('done'); }, 2000);
+  });
+}
+function copyPinField() {
+  navigator.clipboard.writeText(ADMIN_PIN).then(() => {
+    const btn = document.getElementById('copy-pin-btn');
+    btn.textContent = 'Copied!';
+    btn.classList.add('done');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('done'); }, 2000);
+  });
+}
+function copyAll() {
+  const url = window.location.origin + '/admin';
+  const text = `duee. Admin Dashboard\nURL: ${url}\nPIN: ${ADMIN_PIN}\n\nSign in with your account first, then enter the PIN.`;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.target;
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = 'Copy Everything'; }, 2000);
+  });
+}
+// Close on backdrop click
+document.getElementById('share-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeShareModal();
+});
 </script>
 </body>
 </html>

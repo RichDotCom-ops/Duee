@@ -103,10 +103,21 @@ const ICS = {
       }
     }
 
+    // Blackboard → course name in CATEGORIES field
+    if (!courseName && event.CATEGORIES) {
+      const cat = event.CATEGORIES.replace(/^Courses\s*[:/]\s*/i, '').trim();
+      if (cat && cat.toLowerCase() !== 'moodle') courseName = cat;
+    }
+
+    // Try LOCATION field (some platforms put course there)
+    if (!courseName && event.LOCATION) {
+      courseName = event.LOCATION.trim();
+    }
+
     // Fallback: try description for course name
     if (!courseName && desc) {
       const cm = desc.match(/(?:course|class)[:\s]+([^\n\\,]+)/i);
-      if (cm) courseName = cm[1].trim();
+      if (cm) courseName = cm[1].replace(/\\n.*/, '').trim();
     }
 
     // Clean Canvas suffixes like "[Assignment]", "[Quiz]", "(Due ...)"

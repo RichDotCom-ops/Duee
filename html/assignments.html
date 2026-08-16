@@ -384,6 +384,34 @@ async function loadData() {
   [_classes, _assignments] = await Promise.all([DB.getClasses(), DB.getAssignments()]);
 }
 
+function showEmptyCalendarState(extra) {
+  const el = document.getElementById('import-error');
+  el.style.display = 'block';
+  el.style.background = 'none';
+  el.style.color = 'inherit';
+  el.style.padding = '0';
+  el.style.marginTop = '12px';
+  el.innerHTML = `
+    <div style="text-align:center;padding:20px 16px;border:1.5px solid var(--border);border-radius:var(--radius-md);background:var(--bg-main);">
+      <div style="font-size:32px;margin-bottom:8px;">📭</div>
+      <div style="font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:6px;">Your calendar is empty</div>
+      <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;margin-bottom:16px;">${extra || 'Your professors haven\'t added any upcoming due dates to Blackboard\'s calendar yet.'}<br>You can add your assignments manually instead.</div>
+      <div style="display:flex;gap:8px;justify-content:center;">
+        <button onclick="closeImport()" style="background:var(--green);color:white;border:none;padding:9px 20px;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;">Add Manually</button>
+        <button onclick="resetImportError()" style="background:var(--bg-hover);color:var(--text-secondary);border:none;padding:9px 16px;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;">Try Again</button>
+      </div>
+    </div>`;
+}
+
+function resetImportError() {
+  const el = document.getElementById('import-error');
+  el.style.display = 'none';
+  el.style.background = '';
+  el.style.color = '';
+  el.style.padding = '';
+  el.innerHTML = '';
+}
+
 function openBBUrl() {
   var url = document.getElementById('ics-url-input').value.trim();
   if (!url) { showImportError('Paste your Blackboard calendar link first.'); return; }
@@ -406,7 +434,7 @@ function switchImportTab(tab) {
       btn.style.color = 'var(--text-secondary)';
     }
   });
-  document.getElementById('import-error').style.display = 'none';
+  resetImportError();
 }
 
 async function importFromUrl(source) {
@@ -438,12 +466,14 @@ async function importFromUrl(source) {
     const rawEvents = (text.match(/BEGIN:VEVENT/gi) || []).length;
 
     if (rawEvents === 0) {
-      throw new Error('Your Blackboard calendar feed is empty — no events were found. This usually means your instructors have not added due dates to the Blackboard calendar yet. You can still add assignments manually in duee.');
+      showEmptyCalendarState();
+      return;
     }
 
     parsedAssignments = ICS.processFile(text);
     if (!parsedAssignments.length) {
-      throw new Error(`Found ${rawEvents} calendar event${rawEvents !== 1 ? 's' : ''} but none are upcoming assignments. They may all be past due dates, or your instructors may not have added due dates to Blackboard yet.`);
+      showEmptyCalendarState(`We found ${rawEvents} event${rawEvents !== 1 ? 's' : ''} but they all look like past due dates.`);
+      return;
     }
     showStep2();
   } catch(e) {

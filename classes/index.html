@@ -39,9 +39,15 @@
     <main class="page-content">
       <div class="page-header">
         <h2 id="class-count">Your Classes</h2>
-        <button class="btn btn-primary btn-sm" onclick="openModal('add-class-modal')">
-          <i data-feather="plus"></i> Add Class
-        </button>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);cursor:pointer;white-space:nowrap;">
+            <input type="checkbox" id="filter-active" onchange="renderClasses()" style="accent-color:var(--green);width:14px;height:14px;" />
+            Active only
+          </label>
+          <button class="btn btn-primary btn-sm" onclick="openModal('add-class-modal')">
+            <i data-feather="plus"></i> Add Class
+          </button>
+        </div>
       </div>
 
       <div class="classes-grid" id="classes-grid"></div>
@@ -133,16 +139,25 @@ function selectColor(color, el) {
 }
 
 function renderClasses() {
-  document.getElementById('class-count').textContent = `Your Classes (${_classes.length})`;
+  const activeOnly = document.getElementById('filter-active')?.checked;
+  const visible = activeOnly
+    ? _classes.filter(c => _assignments.some(a => a.classId === c.id))
+    : _classes;
+  const label = activeOnly
+    ? `Your Classes (${visible.length} active of ${_classes.length})`
+    : `Your Classes (${_classes.length})`;
+  document.getElementById('class-count').textContent = label;
   const grid = document.getElementById('classes-grid');
 
-  if (!_classes.length) {
-    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon"><i data-feather="book-open" style="width:24px;height:24px;"></i></div><h3>No classes yet</h3><p>Add your first class to get started</p></div>`;
+  if (!visible.length) {
+    grid.innerHTML = activeOnly
+      ? `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon"><i data-feather="book-open" style="width:24px;height:24px;"></i></div><h3>No active classes</h3><p>Uncheck "Active only" to see all classes, or add assignments to a class.</p></div>`
+      : `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon"><i data-feather="book-open" style="width:24px;height:24px;"></i></div><h3>No classes yet</h3><p>Add your first class to get started</p></div>`;
     feather.replace();
     return;
   }
 
-  grid.innerHTML = _classes.map(c => {
+  grid.innerHTML = visible.map(c => {
     const count = _assignments.filter(a => a.classId === c.id && !a.completed).length;
     const total = _assignments.filter(a => a.classId === c.id).length;
     return `<div class="class-card">

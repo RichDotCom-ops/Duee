@@ -181,7 +181,56 @@
       .testimonials-grid { grid-template-columns:1fr; }
       .ai-spotlight { flex-direction:column; padding:36px 24px; }
       .ai-visual { width:100%; }
-      .stats-bar { gap:30px; flex-wrap:wrap; }
+      .stats-bar { gap:20px; flex-wrap:wrap; padding:24px 20px; }
+      .stat-num { font-size:24px; }
+
+      /* Hide floating hero cards on mobile — they go off screen */
+      .floating-card, .floating-ai { display:none !important; }
+
+      /* Hero visual full width, no overflow */
+      .hero-visual { width:100%; padding: 0; }
+      .app-preview { max-width:100% !important; right:auto !important; }
+
+      /* Features grid 1 col */
+      .features-grid { grid-template-columns:1fr !important; }
+
+      /* Section padding */
+      .section { padding:40px 20px !important; }
+
+      /* AI section */
+      .ai-chat-demo { width:100% !important; max-width:100% !important; }
+
+      /* Testimonials */
+      .testimonials-grid { grid-template-columns:1fr !important; }
+
+      /* Pricing */
+      .lp-plans-grid { flex-direction:column !important; align-items:center !important; }
+      .lp-plan { width:100% !important; max-width:420px !important; }
+
+      /* FAQ */
+      .faq-grid { grid-template-columns:1fr !important; }
+
+      /* CTA */
+      .cta-section { padding:50px 20px !important; }
+
+      /* Footer */
+      .land-footer { flex-direction:column !important; gap:16px !important; text-align:center !important; padding:28px 20px !important; }
+      .footer-links { justify-content:center !important; flex-wrap:wrap !important; }
+
+      /* Nav */
+      .land-links { display:none !important; }
+      .land-nav { padding:0 20px; }
+      .btn-login { display:none; }
+    }
+
+    @media(max-width:480px){
+      .hero h1 { font-size:32px !important; }
+      .hero-actions { flex-direction:column; align-items:stretch; }
+      .btn-how { justify-content:center; }
+      .hero-perks { gap:10px; }
+      .perk { font-size:12px; }
+      .stats-bar { gap:16px; }
+      .stat-num { font-size:22px; }
     }
   </style>
 </head>

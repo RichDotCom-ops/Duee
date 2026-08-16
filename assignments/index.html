@@ -731,25 +731,40 @@ function showStep2() {
   const total = parsedAssignments.length;
   const courseNames = ICS.getCourseNames(parsedAssignments);
   document.getElementById('import-summary').textContent =
-    `Found ${total} assignment${total !== 1 ? 's' : ''} across ${courseNames.length} class${courseNames.length !== 1 ? 'es' : ''}`;
+    `Found ${total} assignment${total !== 1 ? 's' : ''} across ${courseNames.length} course${courseNames.length !== 1 ? 's' : ''} — match each course to one of your classes below`;
   buildClassMapping(courseNames);
   buildImportList();
   feather.replace({ width: 14, height: 14 });
+}
+
+function bestClassMatch(name) {
+  const n = name.toLowerCase();
+  // 1. Exact match
+  let m = _classes.find(c => c.name.toLowerCase() === n);
+  if (m) return m;
+  // 2. One fully contains the other
+  m = _classes.find(c => n.includes(c.name.toLowerCase()) || c.name.toLowerCase().includes(n));
+  if (m) return m;
+  // 3. Word overlap — at least 1 meaningful word in common
+  const words = n.split(/\W+/).filter(w => w.length > 2);
+  m = _classes
+    .map(c => ({ c, score: words.filter(w => c.name.toLowerCase().includes(w)).length }))
+    .filter(x => x.score > 0)
+    .sort((a, b) => b.score - a.score)[0]?.c;
+  return m || null;
 }
 
 function buildClassMapping(courseNames) {
   classMap = {};
   const container = document.getElementById('class-mapping-rows');
   container.innerHTML = courseNames.map(name => {
-    const match = _classes.find(c =>
-      c.name.toLowerCase().includes(name.toLowerCase().slice(0, 6)) ||
-      name.toLowerCase().includes(c.name.toLowerCase().slice(0, 6))
-    );
-    const selectedId = match ? match.id : 'new';
+    const match = bestClassMatch(name);
+    // Default: map to matched class if found, otherwise SKIP (not auto-create)
+    const selectedId = match ? match.id : 'skip';
     classMap[name] = selectedId;
     const options = [
-      `<option value="new">✨ Create new class "${name}"</option>`,
-      `<option value="skip">— Skip this class</option>`,
+      `<option value="skip" ${!match ? 'selected' : ''}>— Skip (don't import)</option>`,
+      `<option value="new">✨ Create new class</option>`,
       ..._classes.map(c => `<option value="${c.id}" ${c.id === selectedId ? 'selected' : ''}>${c.name}</option>`)
     ].join('');
     return `<div class="class-map-row">

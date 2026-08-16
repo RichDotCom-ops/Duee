@@ -170,28 +170,35 @@
           <div style="display:flex;flex-direction:column;gap:10px;">
             <div style="display:flex;align-items:flex-start;gap:12px;">
               <div style="min-width:22px;height:22px;border-radius:50%;background:#cc0000;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">1</div>
-              <div style="font-size:13px;color:var(--text-primary);padding-top:2px;">Log in to <strong>Blackboard</strong> and click <strong>Calendar</strong> in the left sidebar</div>
+              <div style="font-size:13px;color:var(--text-primary);padding-top:2px;">While logged in to Blackboard, go to <strong>Calendar</strong> → gear icon → <strong>Get Calendar Feed</strong> → copy the link</div>
             </div>
             <div style="display:flex;align-items:flex-start;gap:12px;">
               <div style="min-width:22px;height:22px;border-radius:50%;background:#cc0000;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">2</div>
-              <div style="font-size:13px;color:var(--text-primary);padding-top:2px;">Click the <strong>gear / settings icon</strong> in the top-right corner of the calendar</div>
+              <div style="font-size:13px;color:var(--text-primary);padding-top:2px;"><strong>Open that link</strong> in a new browser tab — it will show or download your calendar data</div>
             </div>
             <div style="display:flex;align-items:flex-start;gap:12px;">
               <div style="min-width:22px;height:22px;border-radius:50%;background:#cc0000;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">3</div>
-              <div style="font-size:13px;color:var(--text-primary);padding-top:2px;">Click <strong>"Get Calendar Feed"</strong> — a link will appear. <strong>Copy it.</strong></div>
+              <div style="font-size:13px;color:var(--text-primary);padding-top:2px;"><strong>On computer:</strong> press <strong>Cmd+A</strong> then <strong>Cmd+C</strong> to copy all the text, then paste it below<br><strong>On phone:</strong> tap and hold → Select All → Copy, then paste below</div>
             </div>
-            <div style="display:flex;align-items:flex-start;gap:12px;">
-              <div style="min-width:22px;height:22px;border-radius:50%;background:#cc0000;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">4</div>
-              <div style="font-size:13px;color:var(--text-primary);padding-top:2px;"><strong>Copy that link</strong>, paste it below, and hit <strong>Import</strong></div>
-            </div>
-          </div>
-          <div style="margin-top:12px;padding:10px 12px;background:#fffbeb;border:1px solid #fde68a;border-radius:var(--radius);font-size:12px;color:#92400e;line-height:1.6;">
-            <strong>Note:</strong> This only imports assignments your instructors have added to the Blackboard calendar. If nothing imports, your professors may not have set due dates in Blackboard — add those assignments manually.
           </div>
         </div>
-        <div style="display:flex;gap:8px;">
-          <input id="ics-url-input" class="form-control" placeholder="Paste your Blackboard calendar link here…" style="font-size:13px;" />
-          <button onclick="importFromUrl('bb')" id="ics-url-btn" style="white-space:nowrap;background:#cc0000;color:white;border:none;padding:8px 14px;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;">Import</button>
+
+        <!-- Two sub-tabs: Paste text vs URL -->
+        <div style="display:flex;gap:6px;margin-bottom:10px;">
+          <button onclick="switchBBMethod('paste')" id="bb-tab-paste" style="flex:1;background:#cc0000;color:white;border:none;padding:7px;border-radius:var(--radius);font-size:12px;font-weight:600;cursor:pointer;">Paste Calendar Text</button>
+          <button onclick="switchBBMethod('url')" id="bb-tab-url" style="flex:1;background:var(--bg-hover);color:var(--text-secondary);border:none;padding:7px;border-radius:var(--radius);font-size:12px;font-weight:600;cursor:pointer;">Try URL (Canvas / others)</button>
+        </div>
+
+        <div id="bb-method-paste">
+          <textarea id="ics-paste-input" class="form-control" rows="4" placeholder="Paste your calendar text here — it should start with BEGIN:VCALENDAR" style="font-size:12px;font-family:monospace;resize:vertical;"></textarea>
+          <button onclick="importFromPaste()" style="margin-top:8px;width:100%;background:#cc0000;color:white;border:none;padding:10px;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;">Import Pasted Text</button>
+        </div>
+
+        <div id="bb-method-url" style="display:none;">
+          <div style="display:flex;gap:8px;">
+            <input id="ics-url-input" class="form-control" placeholder="Paste your calendar feed URL here…" style="font-size:13px;" />
+            <button onclick="importFromUrl('bb')" id="ics-url-btn" style="white-space:nowrap;background:#cc0000;color:white;border:none;padding:8px 14px;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;">Import</button>
+          </div>
         </div>
       </div>
 
@@ -410,6 +417,37 @@ function resetImportError() {
   el.style.color = '';
   el.style.padding = '';
   el.innerHTML = '';
+}
+
+function switchBBMethod(method) {
+  const isPaste = method === 'paste';
+  document.getElementById('bb-method-paste').style.display = isPaste ? '' : 'none';
+  document.getElementById('bb-method-url').style.display = isPaste ? 'none' : '';
+  document.getElementById('bb-tab-paste').style.background = isPaste ? '#cc0000' : 'var(--bg-hover)';
+  document.getElementById('bb-tab-paste').style.color = isPaste ? 'white' : 'var(--text-secondary)';
+  document.getElementById('bb-tab-url').style.background = isPaste ? 'var(--bg-hover)' : '#cc0000';
+  document.getElementById('bb-tab-url').style.color = isPaste ? 'var(--text-secondary)' : 'white';
+  resetImportError();
+}
+
+function importFromPaste() {
+  const text = document.getElementById('ics-paste-input').value.trim();
+  if (!text) { showImportError('Paste your calendar text first.'); return; }
+  if (!text.includes('BEGIN:VCALENDAR')) {
+    showImportError('This does not look like calendar data. Make sure you copied everything starting from BEGIN:VCALENDAR.');
+    return;
+  }
+  const rawEvents = (text.match(/BEGIN:VEVENT/gi) || []).length;
+  if (rawEvents === 0) {
+    showEmptyCalendarState();
+    return;
+  }
+  parsedAssignments = ICS.processFile(text);
+  if (!parsedAssignments.length) {
+    showEmptyCalendarState('Found ' + rawEvents + ' event' + (rawEvents !== 1 ? 's' : '') + ' but they all look like past due dates.');
+    return;
+  }
+  showStep2();
 }
 
 function openBBUrl() {

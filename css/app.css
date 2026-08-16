@@ -297,3 +297,70 @@
 .cal-cell.clickable { cursor: pointer; transition: background 0.15s; }
 .cal-cell.clickable:hover { background: var(--bg-hover); }
 [data-theme="dark"] .cal-cell.clickable:hover { background: var(--bg-hover); }
+
+/* ── Mobile Responsiveness ── */
+@media (max-width: 768px) {
+  /* Sidebar — hidden by default on mobile, slide in when open */
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    z-index: 200;
+  }
+  .sidebar.mobile-open { transform: translateX(0); }
+
+  /* Overlay behind open sidebar */
+  .sidebar-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 199;
+  }
+  .sidebar-overlay.visible { display: block; }
+
+  /* Main area takes full width */
+  .main-area { margin-left: 0; }
+
+  /* Topbar — show hamburger */
+  .topbar { padding: 0 16px; }
+  .topbar-hamburger {
+    width: 36px; height: 36px; border-radius: 8px;
+    background: none; border: none;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: var(--text-primary);
+    margin-right: 8px;
+  }
+
+  /* Page content */
+  .page-content { padding: 16px; }
+  .page-header { flex-wrap: wrap; gap: 10px; }
+
+  /* Stats row — 2 columns on mobile */
+  .stats-row { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat-num { font-size: 20px; }
+
+  /* Dashboard grid — single column */
+  .dash-grid { grid-template-columns: 1fr; }
+
+  /* Settings grid — single column */
+  .settings-grid { grid-template-columns: 1fr; }
+
+  /* Stats full grid — single column */
+  .stats-full-grid { grid-template-columns: 1fr; }
+
+  /* Form rows — stack on mobile */
+  .form-row { grid-template-columns: 1fr; }
+
+  /* Calendar — hide week labels */
+  .cal-week-labels { display: none; }
+
+  /* Classes grid */
+  .classes-grid { grid-template-columns: 1fr !important; }
+
+  /* Timer widget — bottom left, smaller */
+  .timer-widget { width: 180px; bottom: 80px; }
+}
+
+@media (max-width: 480px) {
+  .stats-row { grid-template-columns: 1fr 1fr; }
+  .topbar-left h1 { font-size: 16px; }
+}

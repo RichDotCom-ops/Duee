@@ -127,3 +127,60 @@
 .footer-links { display: flex; gap: 24px; }
 .footer-links a { font-size: 13px; color: var(--text-muted); transition: color 0.15s; }
 .footer-links a:hover { color: var(--text-secondary); }
+
+/* ── Mobile Responsiveness ── */
+@media (max-width: 768px) {
+  /* Navbar */
+  .land-nav { padding: 0 20px; }
+  .land-links { display: none; }
+  .land-nav-actions .btn-login { display: none; }
+
+  /* Hero */
+  .hero { flex-direction: column; padding: 40px 20px; gap: 40px; min-height: auto; text-align: center; }
+  .hero-content { max-width: 100%; }
+  .hero-actions { justify-content: center; }
+  .hero-perks { justify-content: center; }
+  .hero-visual { width: 100%; }
+  .app-preview { max-width: 100%; }
+  .preview-float { display: none; }
+
+  /* Sections */
+  .section { padding: 50px 20px; }
+  .section-title { font-size: 28px; }
+  .section-sub { font-size: 15px; }
+
+  /* Features */
+  .features-grid { grid-template-columns: 1fr; gap: 16px; margin-top: 32px; }
+
+  /* Stats bar */
+  .stats-bar { flex-wrap: wrap; gap: 20px; padding: 24px 20px; }
+
+  /* AI spotlight */
+  .ai-split { flex-direction: column !important; gap: 32px !important; }
+  .ai-chat-demo { max-width: 100% !important; width: 100% !important; }
+
+  /* Testimonials */
+  .testimonials-grid { grid-template-columns: 1fr !important; }
+
+  /* Pricing */
+  .pricing-grid { grid-template-columns: 1fr; }
+  .lp-plans-grid { flex-direction: column !important; align-items: center; }
+  .lp-plan { max-width: 100% !important; width: 100% !important; }
+
+  /* FAQ */
+  .faq-grid { grid-template-columns: 1fr !important; }
+
+  /* CTA */
+  .cta-section { padding: 50px 20px; }
+
+  /* Footer */
+  .land-footer { flex-direction: column; gap: 16px; text-align: center; padding: 28px 20px; }
+  .footer-links { justify-content: center; }
+}
+
+@media (max-width: 480px) {
+  .hero h1 { font-size: 32px; }
+  .btn-lg { padding: 11px 22px; font-size: 14px; }
+  .hero-actions { flex-direction: column; align-items: stretch; text-align: center; }
+  .btn-how { justify-content: center; }
+}

@@ -14,7 +14,44 @@ document.addEventListener('DOMContentLoaded', () => {
   if (typeof feather !== 'undefined') feather.replace({ width: 16, height: 16 });
   initAvatar();
   highlightNav();
+  initMobileSidebar();
 });
+
+// ── Mobile sidebar toggle ──
+function initMobileSidebar() {
+  const sidebar = document.querySelector('.sidebar');
+  const topbarLeft = document.querySelector('.topbar-left');
+  if (!sidebar || !topbarLeft) return;
+
+  // Inject overlay
+  const overlay = document.createElement('div');
+  overlay.className = 'sidebar-overlay';
+  overlay.onclick = closeMobileSidebar;
+  document.body.appendChild(overlay);
+
+  // Inject hamburger button before page title
+  const btn = document.createElement('button');
+  btn.className = 'topbar-hamburger';
+  btn.setAttribute('aria-label', 'Menu');
+  btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>`;
+  btn.onclick = toggleMobileSidebar;
+  topbarLeft.insertBefore(btn, topbarLeft.firstChild);
+}
+
+function toggleMobileSidebar() {
+  const sidebar = document.querySelector('.sidebar');
+  const overlay = document.querySelector('.sidebar-overlay');
+  const isOpen = sidebar.classList.contains('mobile-open');
+  if (isOpen) { closeMobileSidebar(); } else {
+    sidebar.classList.add('mobile-open');
+    overlay.classList.add('visible');
+  }
+}
+
+function closeMobileSidebar() {
+  document.querySelector('.sidebar')?.classList.remove('mobile-open');
+  document.querySelector('.sidebar-overlay')?.classList.remove('visible');
+}
 
 // ── Avatar initial ──
 function initAvatar() {

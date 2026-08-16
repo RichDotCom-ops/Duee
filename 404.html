@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>duee. — Page Not Found</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="stylesheet" href="/css/main.css" />
+  <style>
+    body { margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; background: var(--bg-main); }
+    .wrap { text-align: center; padding: 40px 24px; max-width: 460px; }
+    .logo { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; color: var(--text-primary); text-decoration: none; display: inline-block; margin-bottom: 40px; }
+    .logo span { color: var(--green); }
+    .code { font-size: 96px; font-weight: 800; letter-spacing: -4px; color: var(--border); line-height: 1; margin-bottom: 8px; }
+    .code span { color: var(--green); }
+    h1 { font-size: 22px; font-weight: 700; margin-bottom: 10px; }
+    p { font-size: 15px; color: var(--text-secondary); line-height: 1.65; margin-bottom: 32px; }
+    .actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn-home { background: var(--green); color: white; padding: 12px 28px; border-radius: var(--radius); font-size: 14px; font-weight: 600; text-decoration: none; transition: background 0.15s; }
+    .btn-home:hover { background: var(--green-hover); }
+    .btn-back { background: none; border: 1.5px solid var(--border); color: var(--text-secondary); padding: 12px 28px; border-radius: var(--radius); font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+    .btn-back:hover { border-color: var(--text-muted); color: var(--text-primary); }
+    .countdown { font-size: 13px; color: var(--text-muted); margin-top: 24px; }
+    .countdown span { color: var(--green); font-weight: 600; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <a class="logo" href="/">duee<span>.</span></a>
+  <div class="code">4<span>0</span>4</div>
+  <h1>Oh no, this page doesn't exist.</h1>
+  <p>Looks like you took a wrong turn. No worries — we'll get you back on track.</p>
+  <div class="actions">
+    <a class="btn-home" id="home-btn" href="/">Taking you home →</a>
+    <button class="btn-back" onclick="history.back()">← Go back</button>
+  </div>
+  <div class="countdown">Redirecting in <span id="sec">5</span> seconds…</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="/js/supabase-client.js"></script>
+<script>
+  const homeBtn = document.getElementById('home-btn');
+  const secEl   = document.getElementById('sec');
+  let dest = '/';
+
+  // Check if user is logged in — send to dashboard instead
+  (async () => {
+    try {
+      const { data: { session } } = await _supabase.auth.getSession();
+      if (session) {
+        dest = '/html/dashboard.html';
+        homeBtn.textContent = 'Taking you to dashboard →';
+        homeBtn.href = dest;
+      }
+    } catch(e) {}
+  })();
+
+  // Countdown redirect
+  let t = 5;
+  const tick = setInterval(() => {
+    t--;
+    secEl.textContent = t;
+    if (t <= 0) { clearInterval(tick); location.href = dest; }
+  }, 1000);
+</script>
+</body>
+</html>

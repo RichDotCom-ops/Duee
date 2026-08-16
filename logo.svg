@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 48">
+  <!-- Icon mark -->
+  <rect width="48" height="48" rx="12" fill="#16a34a"/>
+  <text x="7" y="36" font-family="Georgia, serif" font-size="30" font-weight="700" fill="white">d</text>
+  <circle cx="42" cy="34" r="4.5" fill="white"/>
+
+  <!-- Wordmark -->
+  <text x="60" y="33" font-family="-apple-system, BlinkMacSystemFont, 'Inter', sans-serif" font-size="26" font-weight="800" letter-spacing="-1" fill="#0f172a">duee</text>
+  <circle cx="148" cy="31" r="4" fill="#16a34a"/>
+</svg>

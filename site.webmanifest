@@ -1,0 +1,16 @@
+{
+  "name": "duee.",
+  "short_name": "duee.",
+  "description": "AI-powered student planner and assignment tracker",
+  "start_url": "/html/dashboard.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#16a34a",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

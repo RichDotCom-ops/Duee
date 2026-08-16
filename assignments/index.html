@@ -293,15 +293,9 @@
     <div id="import-step-2" style="display:none;">
       <div id="import-summary" style="background:var(--green-100);border:1px solid var(--green-light);border-radius:var(--radius);padding:12px 16px;margin-bottom:16px;font-size:14px;color:var(--green-text);font-weight:600;"></div>
 
-      <!-- Class mapping -->
-      <div id="class-mapping-section" style="margin-bottom:16px;">
-        <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:var(--text-primary);">Map Classes</div>
-        <div id="class-mapping-rows"></div>
-      </div>
-
       <!-- Assignment preview list -->
       <div style="font-size:13px;font-weight:700;margin-bottom:8px;color:var(--text-primary);display:flex;align-items:center;justify-content:space-between;">
-        <span>Assignments Found</span>
+        <span>Assignments</span>
         <span id="selected-count" style="font-weight:500;color:var(--text-secondary);"></span>
       </div>
       <div id="import-list" style="max-height:260px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-md);"></div>
@@ -724,28 +718,12 @@ function readICSFile(file) {
   reader.readAsText(file);
 }
 
-function showStep2() {
-  document.getElementById('import-step-1').style.display = 'none';
-  document.getElementById('import-step-2').style.display = '';
-  document.getElementById('import-modal-title').textContent = 'Review Import';
-  const total = parsedAssignments.length;
-  const courseNames = ICS.getCourseNames(parsedAssignments);
-  document.getElementById('import-summary').textContent =
-    `Found ${total} assignment${total !== 1 ? 's' : ''} across ${courseNames.length} course${courseNames.length !== 1 ? 's' : ''} — match each course to one of your classes below`;
-  buildClassMapping(courseNames);
-  buildImportList();
-  feather.replace({ width: 14, height: 14 });
-}
-
 function bestClassMatch(name) {
   const n = name.toLowerCase();
-  // 1. Exact match
   let m = _classes.find(c => c.name.toLowerCase() === n);
   if (m) return m;
-  // 2. One fully contains the other
   m = _classes.find(c => n.includes(c.name.toLowerCase()) || c.name.toLowerCase().includes(n));
   if (m) return m;
-  // 3. Word overlap — at least 1 meaningful word in common
   const words = n.split(/\W+/).filter(w => w.length > 2);
   m = _classes
     .map(c => ({ c, score: words.filter(w => c.name.toLowerCase().includes(w)).length }))
@@ -754,27 +732,28 @@ function bestClassMatch(name) {
   return m || null;
 }
 
-function buildClassMapping(courseNames) {
+function showStep2() {
+  document.getElementById('import-step-1').style.display = 'none';
+  document.getElementById('import-step-2').style.display = '';
+  document.getElementById('import-modal-title').textContent = 'Review Import';
+
+  // Auto-build classMap — match to existing class or mark for auto-create
   classMap = {};
-  const container = document.getElementById('class-mapping-rows');
-  container.innerHTML = courseNames.map(name => {
+  const courseNames = ICS.getCourseNames(parsedAssignments);
+  courseNames.forEach(name => {
     const match = bestClassMatch(name);
-    // Default: map to matched class if found, otherwise SKIP (not auto-create)
-    const selectedId = match ? match.id : 'skip';
-    classMap[name] = selectedId;
-    const options = [
-      `<option value="skip" ${!match ? 'selected' : ''}>— Skip (don't import)</option>`,
-      `<option value="new">✨ Create new class</option>`,
-      ..._classes.map(c => `<option value="${c.id}" ${c.id === selectedId ? 'selected' : ''}>${c.name}</option>`)
-    ].join('');
-    return `<div class="class-map-row">
-      <div class="class-map-label" title="${name}">${name}</div>
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-      <select class="form-control class-map-select" onchange="classMap['${name.replace(/'/g, "\\'")}'] = this.value; buildImportList();">
-        ${options}
-      </select>
-    </div>`;
-  }).join('');
+    classMap[name] = match ? match.id : 'new'; // auto-create if no match
+  });
+
+  const total = parsedAssignments.length;
+  const newCount = Object.values(classMap).filter(v => v === 'new').length;
+  const summary = newCount > 0
+    ? `Found ${total} assignment${total !== 1 ? 's' : ''} — ${newCount} new class${newCount !== 1 ? 'es' : ''} will be created automatically`
+    : `Found ${total} assignment${total !== 1 ? 's' : ''} — all matched to your existing classes`;
+  document.getElementById('import-summary').textContent = summary;
+
+  buildImportList();
+  feather.replace({ width: 14, height: 14 });
 }
 
 function buildImportList() {
@@ -782,14 +761,16 @@ function buildImportList() {
   const checkboxes = [...document.querySelectorAll('.import-cb')];
   const checked = new Set(checkboxes.filter(c => c.checked).map(c => c.dataset.idx));
   list.innerHTML = parsedAssignments.map((a, i) => {
-    const skipped = classMap[a.courseName] === 'skip';
     const wasChecked = checked.size === 0 ? true : checked.has(String(i));
     const priorityColor = { high: '#dc2626', medium: '#ca8a04', low: '#16a34a' }[a.priority];
-    return `<div class="import-asgn-row" style="${skipped ? 'opacity:0.4;' : ''}">
-      <input type="checkbox" class="import-cb" data-idx="${i}" ${wasChecked && !skipped ? 'checked' : ''} ${skipped ? 'disabled' : ''} onchange="updateSelectedCount()">
+    const mappedId = classMap[a.courseName];
+    const cls = mappedId === 'new' ? null : _classes.find(c => c.id === mappedId);
+    const clsLabel = cls ? cls.name : (a.courseName || '');
+    return `<div class="import-asgn-row">
+      <input type="checkbox" class="import-cb" data-idx="${i}" ${wasChecked ? 'checked' : ''} onchange="updateSelectedCount()">
       <span style="background:${priorityColor};width:8px;height:8px;border-radius:50%;flex-shrink:0;display:inline-block;"></span>
       <span class="import-asgn-name" title="${a.name}">${a.name}</span>
-      <span style="font-size:11px;color:var(--text-muted);margin-right:4px;">${a.courseName}</span>
+      <span style="font-size:11px;color:var(--text-muted);margin-right:4px;">${clsLabel}</span>
       <span class="import-asgn-date">${fmtDate(a.dueDate)}</span>
     </div>`;
   }).join('');
@@ -930,28 +911,27 @@ async function confirmImport() {
   btn.disabled = true; btn.textContent = 'Importing...';
 
   try {
-    // Create new classes first
+    // Auto-create any new classes needed (deduped by course name)
     const newClassCache = {};
+    const colors = ['#16a34a','#2563eb','#7c3aed','#0891b2','#b45309','#dc2626','#0d9488','#9333ea'];
     for (const i of checkedIdxs) {
       const a = parsedAssignments[i];
       if (classMap[a.courseName] === 'new' && !newClassCache[a.courseName]) {
-        const colors = ['#16a34a','#2563eb','#7c3aed','#0891b2','#b45309','#dc2626'];
         const color = colors[Object.keys(newClassCache).length % colors.length];
         const newCls = await DB.addClass({ name: a.courseName, professor: '', color, icon: 'book-open' });
         newClassCache[a.courseName] = newCls.id;
       }
     }
 
-    // Import assignments
-    let imported = 0;
+    // Import assignments — skip duplicates
+    let imported = 0, skipped = 0;
     for (const i of checkedIdxs) {
       const a = parsedAssignments[i];
-      const mapping = classMap[a.courseName];
-      if (mapping === 'skip') continue;
-      const classId = mapping === 'new' ? newClassCache[a.courseName] : mapping;
-      if (!classId) continue;
+      const classId = classMap[a.courseName] === 'new'
+        ? newClassCache[a.courseName]
+        : classMap[a.courseName] || null;
       const exists = _assignments.find(x => x.name.toLowerCase() === a.name.toLowerCase() && x.dueDate === a.dueDate);
-      if (exists) continue;
+      if (exists) { skipped++; continue; }
       await DB.addAssignment({ name: a.name, classId, dueDate: a.dueDate, dueTime: a.dueTime, priority: a.priority, estimatedTime: a.estimatedTime, notes: a.notes });
       imported++;
     }
@@ -960,7 +940,10 @@ async function confirmImport() {
     buildClassFilter();
     closeImport();
     renderAssignments();
-    showToast(`Imported ${imported} assignment${imported !== 1 ? 's' : ''} 🎉`, 'success');
+    const msg = skipped > 0
+      ? `Imported ${imported} assignment${imported !== 1 ? 's' : ''} (${skipped} already existed) 🎉`
+      : `Imported ${imported} assignment${imported !== 1 ? 's' : ''} 🎉`;
+    showToast(msg, 'success');
   } catch(err) {
     showToast(err.message || 'Import failed', 'error');
     btn.disabled = false; btn.textContent = 'Import';

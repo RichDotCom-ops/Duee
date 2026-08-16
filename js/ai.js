@@ -34,47 +34,61 @@
   }
 
   function buildSystemPrompt(ctx) {
-    const { classes, pending, now } = ctx;
+    const { classes, assignments, pending, now } = ctx;
     const clsLines = classes.length
       ? classes.map(c => `  • ${c.name} [id:${c.id}]`).join('\n')
       : '  (none)';
-    const asgnLines = pending.length
-      ? pending.slice(0,20).map(a => {
-          const cls  = classes.find(c => c.id === a.classId);
-          const diff = Math.round((new Date(a.dueDate+'T00:00:00') - now) / 86400000);
-          const when = diff < 0 ? `${Math.abs(diff)}d overdue` : diff === 0 ? 'TODAY' : diff === 1 ? 'tomorrow' : `in ${diff}d`;
-          return `  • [id:${a.id}] "${a.name}" | ${cls?.name||'No class'} | ${a.dueDate} (${when}) | ${a.priority}`;
-        }).join('\n')
-      : '  (none pending)';
+    const allLines = assignments.slice(0,30).map(a => {
+      const cls  = classes.find(c => c.id === a.classId);
+      const diff = Math.round((new Date(a.dueDate+'T00:00:00') - now) / 86400000);
+      const when = diff < 0 ? `${Math.abs(diff)}d overdue` : diff === 0 ? 'TODAY' : diff === 1 ? 'tomorrow' : `in ${diff}d`;
+      return `  • [id:${a.id}] "${a.name}" | ${cls?.name||'No class'} | ${a.dueDate} (${when}) | ${a.priority} | ${a.completed ? 'DONE' : 'pending'}`;
+    }).join('\n') || '  (none)';
 
-    return `You are a smart, friendly study assistant inside duee., a student planner app.
+    return `You are a smart, friendly AI study assistant inside duee., a student planner app.
 Today: ${todayStr()}
 
 Student's classes:
 ${clsLines}
 
-Pending assignments (soonest first):
-${asgnLines}
+All assignments (pending + done):
+${allLines}
 
-IMPORTANT — when you need to take an action, append ONE action block at the very end of your reply in this exact format (nothing after it):
+You can perform these actions. Pick the RIGHT one based on what the user says:
+
+COMPLETE an assignment (words like: done, finished, complete, completed, turned in, submitted, checked off, mark as done):
 \`\`\`action
-{"type":"mark_complete","id":"<assignment id>","name":"<assignment name>"}
+{"type":"mark_complete","id":"<id>","name":"<name>"}
 \`\`\`
-or
+
+UNCOMPLETE an assignment (words like: uncomplete, undo, uncheck, not done, mark as incomplete, reopen, undo that):
+\`\`\`action
+{"type":"mark_incomplete","id":"<id>","name":"<name>"}
+\`\`\`
+
+DELETE an assignment (words like: delete, remove, get rid of, trash, cancel, erase, drop):
+\`\`\`action
+{"type":"delete_assignment","id":"<id>","name":"<name>"}
+\`\`\`
+
+ADD an assignment (words like: add, create, new, schedule, remind me, set, put):
 \`\`\`action
 {"type":"add_assignment","name":"<title>","due_date":"<YYYY-MM-DD>","priority":"<high|medium|low>","class_id":"<id or empty string>","notes":""}
 \`\`\`
-or
+
+SHOW upcoming (words like: what's due, upcoming, schedule, this week, what do I have):
 \`\`\`action
 {"type":"get_upcoming","days":<number>}
 \`\`\`
 
 Rules:
-- Be concise and warm. 1–3 sentences unless giving study tips.
-- Always compute exact YYYY-MM-DD dates from words like "Friday" or "next week".
-- Only include an action block when the user clearly wants one performed.
-- For study tips give 3 short actionable bullets.
-- Do not mention the action block to the user.`;
+- Always match assignments by name — search the list above, pick the best match.
+- Always compute exact YYYY-MM-DD dates (today=${todayStr()}) from "Friday", "next week", "in 3 days", etc.
+- Be concise and warm. 1–3 sentences max.
+- Only include ONE action block per reply, at the very end.
+- Never mention the action block or JSON to the user.
+- If unsure which assignment the user means, ask which one.
+- For study tips give 3 short bullets.`;
   }
 
   // ── Call OpenRouter ──
@@ -102,6 +116,20 @@ Rules:
     return data.choices?.[0]?.message?.content || '';
   }
 
+  // ── Fuzzy assignment finder: match by id first, then name keywords ──
+  function fuzzyFind(list, id, name) {
+    if (id) {
+      const byId = list.find(a => a.id === id);
+      if (byId) return byId;
+    }
+    if (!name) return null;
+    const words = name.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+    return list
+      .map(a => ({ a, score: words.filter(w => a.name.toLowerCase().includes(w)).length }))
+      .filter(x => x.score > 0)
+      .sort((a, b) => b.score - a.score)[0]?.a || null;
+  }
+
   // ── Parse & execute action block ──
   async function parseAndExecute(rawText, ctx) {
     const match = rawText.match(/```action\s*([\s\S]*?)```/);
@@ -116,15 +144,42 @@ Rules:
     if (action.type === 'mark_complete') {
       try {
         const list = await DB.getAssignments();
-        const asgn = list.find(a => a.id === action.id);
-        if (!asgn)          { actionResult = `⚠️ Couldn't find "${action.name}".`; }
-        else if (asgn.completed) { actionResult = `"${action.name}" was already done!`; }
+        const asgn = fuzzyFind(list, action.id, action.name);
+        if (!asgn)               { actionResult = `⚠️ Couldn't find "${action.name}". Can you give me the exact name?`; }
+        else if (asgn.completed) { actionResult = `"${asgn.name}" was already marked done!`; }
         else {
-          await DB.toggleComplete(action.id, false);
+          await DB.toggleComplete(asgn.id, false);
           refreshPage();
-          actionResult = `✓ Marked **"${action.name}"** complete!`;
+          actionResult = `✓ Marked **"${asgn.name}"** complete!`;
         }
       } catch (e) { actionResult = `Failed to mark complete: ${e.message}`; }
+    }
+
+    else if (action.type === 'mark_incomplete') {
+      try {
+        const list = await DB.getAssignments();
+        const asgn = fuzzyFind(list, action.id, action.name);
+        if (!asgn)                { actionResult = `⚠️ Couldn't find "${action.name}".`; }
+        else if (!asgn.completed) { actionResult = `"${asgn.name}" is already marked as pending.`; }
+        else {
+          await DB.toggleComplete(asgn.id, true);
+          refreshPage();
+          actionResult = `↩️ Reopened **"${asgn.name}"** — marked as pending again.`;
+        }
+      } catch (e) { actionResult = `Failed to uncomplete: ${e.message}`; }
+    }
+
+    else if (action.type === 'delete_assignment') {
+      try {
+        const list = await DB.getAssignments();
+        const asgn = fuzzyFind(list, action.id, action.name);
+        if (!asgn) { actionResult = `⚠️ Couldn't find "${action.name}".`; }
+        else {
+          await DB.deleteAssignment(asgn.id);
+          refreshPage();
+          actionResult = `🗑️ Deleted **"${asgn.name}"**.`;
+        }
+      } catch (e) { actionResult = `Failed to delete: ${e.message}`; }
     }
 
     else if (action.type === 'add_assignment') {
@@ -260,38 +315,66 @@ Rules:
 
   async function ruleBasedFallback(text) {
     const l = text.toLowerCase();
+    const list = await DB.getAssignments();
+    const classes = await DB.getClasses();
 
-    if (/\b(done|finished|completed?|turned? in|submitted?|did)\b/.test(l)) {
-      const list  = await DB.getAssignments();
-      const words = l.split(/\s+/).filter(w => w.length > 2);
-      const asgn  = list.filter(a => !a.completed)
-        .map(a => ({ a, s: words.filter(w => a.name.toLowerCase().includes(w)).length }))
-        .filter(x => x.s > 0).sort((a,b) => b.s - a.s)[0]?.a;
+    // ── Complete ──
+    if (/\b(done|finished|complete[d]?|turned?\s*in|submitted?|checked?\s*off|mark.*done|did\s+my|i\s+did)\b/.test(l)) {
+      const asgn = fuzzyFind(list.filter(a => !a.completed), null, text);
       if (asgn) { await DB.toggleComplete(asgn.id, false); refreshPage(); return `✓ Marked **"${asgn.name}"** complete!`; }
-      return `I couldn't find that assignment. What's the name of the one you finished?`;
+      return `Which assignment did you finish? I couldn't find a match.`;
     }
 
-    if (/\b(upcoming|what.*(due|have)|this week|today|schedule)\b/.test(l)) {
+    // ── Uncomplete ──
+    if (/\b(uncomplete|undo|uncheck|unmark|not\s+done|reopen|incomplete|mark.*incomplete|didn.t|haven.t)\b/.test(l)) {
+      const asgn = fuzzyFind(list.filter(a => a.completed), null, text);
+      if (asgn) { await DB.toggleComplete(asgn.id, true); refreshPage(); return `↩️ Reopened **"${asgn.name}"** — marked as pending again.`; }
+      return `Which assignment do you want to reopen?`;
+    }
+
+    // ── Delete ──
+    if (/\b(delete|remove|get\s*rid\s*of|trash|erase|drop|cancel)\b/.test(l)) {
+      const asgn = fuzzyFind(list, null, text);
+      if (asgn) { await DB.deleteAssignment(asgn.id); refreshPage(); return `🗑️ Deleted **"${asgn.name}"**.`; }
+      return `Which assignment do you want to delete?`;
+    }
+
+    // ── Add ──
+    if (/\b(add|create|new|schedule|remind|set|put)\b/.test(l)) {
+      const due  = parseDate(text);
+      const pri  = /\b(urgent|important|critical|exam|final|midterm)\b/.test(l) ? 'high' : /\b(reading|quiz|small)\b/.test(l) ? 'low' : 'medium';
+      const cls  = classes.find(c => l.includes(c.name.toLowerCase().slice(0,4)));
+      const name = text
+        .replace(/\b(add|create|new|schedule|remind\s*me|set|put|an?|the|assignment|task|for|due|on|by|next|this|monday|tuesday|wednesday|thursday|friday|saturday|sunday|today|tomorrow|week|month)\b/gi, '')
+        .replace(/[^a-zA-Z0-9\s]/g, '').trim();
+      if (name.length > 1) {
+        await DB.addAssignment({ name, classId: cls?.id || null, dueDate: due, dueTime:'23:59', priority: pri, estimatedTime:'1.5', notes:'' });
+        refreshPage();
+        return `📅 Added **"${name}"**${cls ? ` for ${cls.name}` : ''} — due ${due}.`;
+      }
+      return `What should I call the assignment?`;
+    }
+
+    // ── Upcoming ──
+    if (/\b(upcoming|what.*due|what.*have|this\s*week|today|schedule|show|list)\b/.test(l)) {
       const now = new Date(); now.setHours(0,0,0,0);
-      const cut = new Date(now); cut.setDate(cut.getDate() + 8);
-      const [asgns, classes] = await Promise.all([DB.getAssignments(), DB.getClasses()]);
-      const up = asgns.filter(a => !a.completed && new Date(a.dueDate+'T00:00:00') < cut).sort((a,b) => a.dueDate.localeCompare(b.dueDate));
-      if (!up.length) return `Nothing due this week 🎉`;
-      return `Coming up:\n${up.map(a => { const cls=classes.find(c=>c.id===a.classId); const diff=Math.round((new Date(a.dueDate+'T00:00:00')-now)/86400000); return `• ${a.name}${cls?` (${cls.name})`:''} — ${diff===0?'today':diff===1?'tomorrow':`in ${diff}d`}`; }).join('\n')}`;
+      const days = /\b(month|30\s*day)\b/.test(l) ? 30 : /\b(two|2)\s*week\b/.test(l) ? 14 : 8;
+      const cut  = new Date(now); cut.setDate(cut.getDate() + days);
+      const up   = list.filter(a => !a.completed && new Date(a.dueDate+'T00:00:00') <= cut).sort((a,b) => a.dueDate.localeCompare(b.dueDate));
+      if (!up.length) return `Nothing due in the next ${days === 8 ? 'week' : days + ' days'} 🎉`;
+      return `Coming up:\n` + up.map(a => {
+        const cls  = classes.find(c => c.id === a.classId);
+        const diff = Math.round((new Date(a.dueDate+'T00:00:00') - now) / 86400000);
+        return `• ${a.name}${cls ? ` (${cls.name})` : ''} — ${diff === 0 ? 'today' : diff === 1 ? 'tomorrow' : `in ${diff}d`}`;
+      }).join('\n');
     }
 
-    if (/\b(add|create|new)\b.*(assignment|quiz|exam|test|essay|hw|homework)\b/i.test(text)) {
-      const due = parseDate(text);
-      const name = text.replace(/\b(add|create|new|assignment|quiz|exam|test|essay|homework|hw|due|on|by|for)\b/gi,'').replace(/[^a-zA-Z0-9\s]/g,'').trim();
-      if (name.length > 1) { await DB.addAssignment({ name, classId:null, dueDate:due, dueTime:'23:59', priority:'medium', estimatedTime:'1.5', notes:'' }); refreshPage(); return `📅 Added **"${name}"** — due ${due}.`; }
-      return `What should I call this assignment?`;
+    // ── Study tips ──
+    if (/\b(study|tips?|how\s+do\s+i|help\s+me|advice|prepare)\b/.test(l)) {
+      return `Study tips:\n• **Pomodoro**: 25 min focus, 5 min break — repeat.\n• **Active recall**: test yourself instead of re-reading.\n• **Teach it**: explain the topic out loud to find gaps.`;
     }
 
-    if (/\b(study|tips?|help me)\b/.test(l)) {
-      return `Study tips:\n1. Use Pomodoro: 25 min focus, 5 min break.\n2. Test yourself — don't just re-read.\n3. Teach it out loud to find gaps.`;
-    }
-
-    return `I can help you:\n• **"I finished my essay"** — mark it done\n• **"Add a quiz due Friday"** — add to your list\n• **"What's due this week?"** — see upcoming\n• **"Study tips for bio"** — get tips`;
+    return `I can help you:\n• **"I finished my essay"** — mark it done\n• **"Remove my math quiz"** — delete it\n• **"Undo my bio homework"** — mark incomplete\n• **"Add a quiz due Friday"** — add to your list\n• **"What's due this week?"** — see upcoming`;
   }
 
   // ─────────────────────────────────────────────
@@ -333,7 +416,7 @@ Rules:
       : `<span style="font-size:22px;line-height:1;">✦</span>`;
     if (_open) {
       if (_history.length === 0) {
-        _history.push({ role: 'bot', text: "Hey! I'm your AI study assistant ✦\n\nI can:\n• Mark assignments as done\n• Add things to your calendar\n• Tell you what's due\n• Give study tips\n\nWhat do you need?" });
+        _history.push({ role: 'bot', text: "Hey! I'm your AI study assistant ✦\n\nJust talk to me naturally:\n• **\"I finished my essay\"** — mark it done\n• **\"Undo my bio quiz\"** — mark incomplete\n• **\"Remove my math hw\"** — delete it\n• **\"Add a quiz due Friday\"** — add to list\n• **\"What's due this week?\"** — see upcoming\n\nWhat do you need?" });
         renderMessages();
       }
       updateTokenUI();

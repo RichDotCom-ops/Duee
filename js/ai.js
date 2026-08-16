@@ -2,7 +2,7 @@
 
 (function () {
   const OR_KEY   = atob('c2stb3ItdjEtMGIwZjA5ZWI1NmRhOGYyMzc1M2M4ZmQzNDExZTE3MTQwMjc4ZWFmYjYxMjc2NjBhMWJmZTgxZjU1NjRkMDAxOQ==');
-  const OR_MODEL = 'google/gemini-2.0-flash-exp:free';
+  const OR_MODEL = 'openai/gpt-oss-20b:free';
   const OR_URL   = 'https://openrouter.ai/api/v1/chat/completions';
 
   // ── State ──

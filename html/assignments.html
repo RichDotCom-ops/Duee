@@ -148,37 +148,57 @@
 <div class="modal-overlay" id="import-modal">
   <div class="modal" style="max-width:580px;">
     <div class="modal-header">
-      <span class="modal-title" id="import-modal-title">Import from Canvas / Google Classroom</span>
+      <span class="modal-title" id="import-modal-title">Import from Blackboard, Canvas, or Google</span>
       <button class="modal-close" onclick="closeImport()"><i data-feather="x"></i></button>
     </div>
 
     <!-- Step 1: Instructions + drop zone -->
     <div id="import-step-1">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px;">
+
+        <!-- Blackboard -->
+        <div style="border:2px solid #cc0000;border-radius:var(--radius-md);padding:14px;background:#fff5f5;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+            <div style="background:#cc0000;color:white;font-weight:800;font-size:11px;padding:3px 8px;border-radius:4px;">BLACKBOARD</div>
+          </div>
+          <ol style="padding-left:16px;font-size:12px;color:var(--text-secondary);line-height:2.1;margin:0;">
+            <li>Log in to <strong>Blackboard</strong></li>
+            <li>Click <strong>Calendar</strong> in the left menu</li>
+            <li>Click the <strong>settings icon</strong> (top right of calendar)</li>
+            <li>Click <strong>Get Calendar Feed</strong></li>
+            <li>Download the <strong>.ics file</strong></li>
+            <li>Drop it below ↓</li>
+          </ol>
+        </div>
+
         <!-- Canvas -->
         <div style="border:1px solid var(--border);border-radius:var(--radius-md);padding:14px;">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
             <div style="background:#E66000;color:white;font-weight:800;font-size:11px;padding:3px 8px;border-radius:4px;">CANVAS</div>
-            <span style="font-size:13px;font-weight:600;">How to export</span>
           </div>
-          <ol style="padding-left:16px;font-size:12px;color:var(--text-secondary);line-height:2;margin:0;">
+          <ol style="padding-left:16px;font-size:12px;color:var(--text-secondary);line-height:2.1;margin:0;">
             <li>Go to <strong>Calendar</strong> in Canvas</li>
             <li>Click <strong>Calendar Feed</strong> (bottom right)</li>
-            <li>Open the link → <strong>Save as .ics</strong></li>
+            <li>Open the link</li>
+            <li>Save as <strong>.ics file</strong></li>
+            <li>Drop it below ↓</li>
           </ol>
         </div>
+
         <!-- Google Classroom -->
         <div style="border:1px solid var(--border);border-radius:var(--radius-md);padding:14px;">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
             <div style="background:#4285F4;color:white;font-weight:800;font-size:11px;padding:3px 8px;border-radius:4px;">GOOGLE</div>
-            <span style="font-size:13px;font-weight:600;">How to export</span>
           </div>
-          <ol style="padding-left:16px;font-size:12px;color:var(--text-secondary);line-height:2;margin:0;">
+          <ol style="padding-left:16px;font-size:12px;color:var(--text-secondary);line-height:2.1;margin:0;">
             <li>Open <strong>Google Calendar</strong></li>
             <li>Settings → <strong>Import & Export</strong></li>
-            <li>Click <strong>Export</strong> → unzip → select .ics</li>
+            <li>Click <strong>Export</strong></li>
+            <li>Unzip → select <strong>.ics file</strong></li>
+            <li>Drop it below ↓</li>
           </ol>
         </div>
+
       </div>
 
       <!-- Drop zone -->

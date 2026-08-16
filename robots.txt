@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+Allow: /html/pricing.html
+Disallow: /html/dashboard.html
+Disallow: /html/assignments.html
+Disallow: /html/classes.html
+Disallow: /html/calendar.html
+Disallow: /html/reminders.html
+Disallow: /html/statistics.html
+Disallow: /html/settings.html
+Disallow: /js/
+Disallow: /supabase/
+
+Sitemap: https://duee.online/sitemap.xml

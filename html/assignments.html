@@ -148,68 +148,137 @@
 <div class="modal-overlay" id="import-modal">
   <div class="modal" style="max-width:580px;">
     <div class="modal-header">
-      <span class="modal-title" id="import-modal-title">Import from Blackboard, Canvas, or Google</span>
+      <span class="modal-title" id="import-modal-title">Import Assignments</span>
       <button class="modal-close" onclick="closeImport()"><i data-feather="x"></i></button>
     </div>
 
     <!-- Step 1: Instructions + drop zone -->
     <div id="import-step-1">
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px;">
 
-        <!-- Blackboard -->
-        <div style="border:2px solid #cc0000;border-radius:var(--radius-md);padding:14px;background:#fff5f5;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-            <div style="background:#cc0000;color:white;font-weight:800;font-size:11px;padding:3px 8px;border-radius:4px;">BLACKBOARD</div>
-          </div>
-          <ol style="padding-left:16px;font-size:12px;color:var(--text-secondary);line-height:2.1;margin:0;">
-            <li>Log in to <strong>Blackboard</strong></li>
-            <li>Click <strong>Calendar</strong> in the left menu</li>
-            <li>Click the <strong>settings icon</strong> (top right of calendar)</li>
-            <li>Click <strong>Get Calendar Feed</strong></li>
-            <li>Download the <strong>.ics file</strong></li>
-            <li>Drop it below ↓</li>
-          </ol>
-        </div>
-
-        <!-- Canvas -->
-        <div style="border:1px solid var(--border);border-radius:var(--radius-md);padding:14px;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-            <div style="background:#E66000;color:white;font-weight:800;font-size:11px;padding:3px 8px;border-radius:4px;">CANVAS</div>
-          </div>
-          <ol style="padding-left:16px;font-size:12px;color:var(--text-secondary);line-height:2.1;margin:0;">
-            <li>Go to <strong>Calendar</strong> in Canvas</li>
-            <li>Click <strong>Calendar Feed</strong> (bottom right)</li>
-            <li>Open the link</li>
-            <li>Save as <strong>.ics file</strong></li>
-            <li>Drop it below ↓</li>
-          </ol>
-        </div>
-
-        <!-- Google Classroom -->
-        <div style="border:1px solid var(--border);border-radius:var(--radius-md);padding:14px;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-            <div style="background:#4285F4;color:white;font-weight:800;font-size:11px;padding:3px 8px;border-radius:4px;">GOOGLE</div>
-          </div>
-          <ol style="padding-left:16px;font-size:12px;color:var(--text-secondary);line-height:2.1;margin:0;">
-            <li>Open <strong>Google Calendar</strong></li>
-            <li>Settings → <strong>Import & Export</strong></li>
-            <li>Click <strong>Export</strong></li>
-            <li>Unzip → select <strong>.ics file</strong></li>
-            <li>Drop it below ↓</li>
-          </ol>
-        </div>
-
+      <!-- Platform tabs -->
+      <div style="display:flex;gap:6px;margin-bottom:16px;">
+        <button class="import-tab active" onclick="switchImportTab('bb')" id="tab-bb" style="background:#cc0000;color:white;border:none;padding:7px 14px;border-radius:var(--radius);font-size:12px;font-weight:700;cursor:pointer;">Blackboard</button>
+        <button class="import-tab" onclick="switchImportTab('canvas')" id="tab-canvas" style="background:var(--bg-hover);color:var(--text-secondary);border:none;padding:7px 14px;border-radius:var(--radius);font-size:12px;font-weight:700;cursor:pointer;">Canvas</button>
+        <button class="import-tab" onclick="switchImportTab('google')" id="tab-google" style="background:var(--bg-hover);color:var(--text-secondary);border:none;padding:7px 14px;border-radius:var(--radius);font-size:12px;font-weight:700;cursor:pointer;">Google Calendar</button>
+        <button class="import-tab" onclick="switchImportTab('file')" id="tab-file" style="background:var(--bg-hover);color:var(--text-secondary);border:none;padding:7px 14px;border-radius:var(--radius);font-size:12px;font-weight:700;cursor:pointer;">Upload File</button>
       </div>
 
-      <!-- Drop zone -->
-      <div id="drop-zone" onclick="document.getElementById('ics-file-input').click()"
-        style="border:2px dashed var(--border);border-radius:var(--radius-md);padding:40px 20px;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--bg-main);">
-        <div style="font-size:36px;margin-bottom:10px;">📅</div>
-        <div style="font-size:15px;font-weight:600;margin-bottom:4px;">Drop your .ics file here</div>
-        <div style="font-size:13px;color:var(--text-secondary);">or click to browse</div>
-        <div style="font-size:12px;color:var(--text-muted);margin-top:8px;">Supports Canvas, Google Classroom, Blackboard, Moodle</div>
-        <input type="file" id="ics-file-input" accept=".ics,.ical" style="display:none" />
+      <!-- Blackboard instructions -->
+      <div id="import-panel-bb">
+        <div style="background:#fff5f5;border:1.5px solid #fca5a5;border-radius:var(--radius-md);padding:16px 18px;margin-bottom:14px;">
+          <div style="font-size:13px;font-weight:700;color:#cc0000;margin-bottom:12px;">How to get your Blackboard calendar link</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;align-items:flex-start;gap:12px;">
+              <div style="min-width:22px;height:22px;border-radius:50%;background:#cc0000;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">1</div>
+              <div style="font-size:13px;color:var(--text-primary);padding-top:2px;">Log in to <strong>Blackboard</strong> and click <strong>Calendar</strong> in the left sidebar</div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:12px;">
+              <div style="min-width:22px;height:22px;border-radius:50%;background:#cc0000;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">2</div>
+              <div style="font-size:13px;color:var(--text-primary);padding-top:2px;">Click the <strong>gear / settings icon</strong> in the top-right corner of the calendar</div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:12px;">
+              <div style="min-width:22px;height:22px;border-radius:50%;background:#cc0000;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">3</div>
+              <div style="font-size:13px;color:var(--text-primary);padding-top:2px;">Click <strong>"Get Calendar Feed"</strong> — a link will appear</div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:12px;">
+              <div style="min-width:22px;height:22px;border-radius:50%;background:#cc0000;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">4</div>
+              <div style="font-size:13px;color:var(--text-primary);padding-top:2px;"><strong>Copy that link</strong> and paste it in the box below, then hit Import</div>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <input id="ics-url-input" class="form-control" placeholder="Paste your Blackboard calendar link here…" style="font-size:13px;" />
+          <button class="btn btn-primary btn-sm" onclick="importFromUrl()" id="ics-url-btn" style="white-space:nowrap;background:#cc0000;">Import</button>
+        </div>
       </div>
+
+      <!-- Canvas instructions -->
+      <div id="import-panel-canvas" style="display:none;">
+        <div style="background:#fff7f0;border:1.5px solid #fed7aa;border-radius:var(--radius-md);padding:16px 18px;margin-bottom:14px;">
+          <div style="font-size:13px;font-weight:700;color:#c2410c;margin-bottom:12px;">How to get your Canvas calendar</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;align-items:flex-start;gap:12px;">
+              <div style="min-width:22px;height:22px;border-radius:50%;background:#E66000;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">1</div>
+              <div style="font-size:13px;color:var(--text-primary);padding-top:2px;">Go to <strong>Calendar</strong> in your Canvas sidebar</div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:12px;">
+              <div style="min-width:22px;height:22px;border-radius:50%;background:#E66000;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">2</div>
+              <div style="font-size:13px;color:var(--text-primary);padding-top:2px;">Find and click <strong>"Calendar Feed"</strong> at the bottom-right of the page</div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:12px;">
+              <div style="min-width:22px;height:22px;border-radius:50%;background:#E66000;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">3</div>
+              <div style="font-size:13px;color:var(--text-primary);padding-top:2px;"><strong>Copy the feed URL</strong> and paste it below, or save the file and upload it</div>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:12px;">
+          <input id="ics-url-input-canvas" class="form-control" placeholder="Paste your Canvas feed URL here…" style="font-size:13px;" />
+          <button class="btn btn-primary btn-sm" onclick="importFromUrl('canvas')" style="white-space:nowrap;background:#E66000;border:none;">Import URL</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+          <div style="flex:1;height:1px;background:var(--border);"></div>
+          <span style="font-size:12px;color:var(--text-muted);font-weight:500;">or upload the .ics file instead</span>
+          <div style="flex:1;height:1px;background:var(--border);"></div>
+        </div>
+        <div id="drop-zone-canvas" onclick="document.getElementById('ics-file-input').click()" style="border:2px dashed var(--border);border-radius:var(--radius-md);padding:22px 20px;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--bg-main);">
+          <div style="font-size:28px;margin-bottom:6px;">📂</div>
+          <div style="font-size:14px;font-weight:600;margin-bottom:2px;">Drop .ics file here or click to browse</div>
+          <div style="font-size:12px;color:var(--text-muted);">Accepts .ics and .ical files</div>
+        </div>
+      </div>
+
+      <!-- Google Calendar instructions -->
+      <div id="import-panel-google" style="display:none;">
+        <div style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:var(--radius-md);padding:16px 18px;margin-bottom:14px;">
+          <div style="font-size:13px;font-weight:700;color:#1d4ed8;margin-bottom:12px;">How to export from Google Calendar</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;align-items:flex-start;gap:12px;">
+              <div style="min-width:22px;height:22px;border-radius:50%;background:#4285F4;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">1</div>
+              <div style="font-size:13px;color:var(--text-primary);padding-top:2px;">Open <strong>Google Calendar</strong> on desktop</div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:12px;">
+              <div style="min-width:22px;height:22px;border-radius:50%;background:#4285F4;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">2</div>
+              <div style="font-size:13px;color:var(--text-primary);padding-top:2px;">Click the <strong>gear icon</strong> → <strong>Settings</strong></div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:12px;">
+              <div style="min-width:22px;height:22px;border-radius:50%;background:#4285F4;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">3</div>
+              <div style="font-size:13px;color:var(--text-primary);padding-top:2px;">Go to <strong>Import &amp; Export</strong> → click <strong>Export</strong></div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:12px;">
+              <div style="min-width:22px;height:22px;border-radius:50%;background:#4285F4;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">4</div>
+              <div style="font-size:13px;color:var(--text-primary);padding-top:2px;">A <strong>.zip file</strong> will download — unzip it and you'll find one or more <strong>.ics files</strong></div>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:12px;">
+              <div style="min-width:22px;height:22px;border-radius:50%;background:#4285F4;color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">5</div>
+              <div style="font-size:13px;color:var(--text-primary);padding-top:2px;"><strong>Upload the .ics file</strong> below</div>
+            </div>
+          </div>
+        </div>
+        <div id="drop-zone-google" onclick="document.getElementById('ics-file-input').click()" style="border:2px dashed var(--border);border-radius:var(--radius-md);padding:22px 20px;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--bg-main);">
+          <div style="font-size:28px;margin-bottom:6px;">📂</div>
+          <div style="font-size:14px;font-weight:600;margin-bottom:2px;">Drop .ics file here or click to browse</div>
+          <div style="font-size:12px;color:var(--text-muted);">Accepts .ics and .ical files</div>
+        </div>
+      </div>
+
+      <!-- Upload file tab -->
+      <div id="import-panel-file" style="display:none;">
+        <div style="background:var(--bg-hover);border-radius:var(--radius-md);padding:14px 16px;margin-bottom:14px;font-size:13px;color:var(--text-secondary);line-height:1.65;">
+          Already have a <strong>.ics file</strong>? Just drop it below or click to browse. Works with Blackboard, Canvas, Google Calendar, Moodle, and any calendar app.
+        </div>
+        <div id="drop-zone-file" onclick="document.getElementById('ics-file-input').click()" style="border:2px dashed var(--border);border-radius:var(--radius-md);padding:32px 20px;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--bg-main);">
+          <div style="font-size:36px;margin-bottom:8px;">📅</div>
+          <div style="font-size:15px;font-weight:600;margin-bottom:4px;">Drop your .ics file here</div>
+          <div style="font-size:13px;color:var(--text-secondary);">or click to browse</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:6px;">Supports Canvas, Blackboard, Google, Moodle</div>
+        </div>
+      </div>
+
+      <!-- Hidden shared file input -->
+      <input type="file" id="ics-file-input" accept=".ics,.ical" style="display:none" />
+
+      <!-- Drop zone (legacy id kept for JS) -->
+      <div id="drop-zone" style="display:none;"></div>
 
       <div id="import-error" style="display:none;background:var(--red-light);color:var(--red);padding:10px 14px;border-radius:var(--radius);font-size:13px;margin-top:12px;"></div>
     </div>
@@ -285,23 +354,94 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('asgn-date').value = DB.todayStr();
 
   // ICS file input
-  const input = document.getElementById('ics-file-input');
-  input.addEventListener('change', e => { if (e.target.files[0]) readICSFile(e.target.files[0]); });
+  document.getElementById('ics-file-input').addEventListener('change', e => {
+    if (e.target.files[0]) readICSFile(e.target.files[0]);
+  });
 
-  // Drag and drop
-  const dz = document.getElementById('drop-zone');
-  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
-  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
-  dz.addEventListener('drop', e => {
-    e.preventDefault(); dz.classList.remove('drag-over');
-    const file = e.dataTransfer.files[0];
-    if (file && (file.name.endsWith('.ics') || file.name.endsWith('.ical'))) readICSFile(file);
-    else showImportError('Please drop a .ics or .ical file.');
+  // Enter key on URL inputs
+  document.getElementById('ics-url-input').addEventListener('keydown', e => { if (e.key === 'Enter') importFromUrl('bb'); });
+  document.getElementById('ics-url-input-canvas').addEventListener('keydown', e => { if (e.key === 'Enter') importFromUrl('canvas'); });
+
+  // Drag and drop on all drop zones
+  ['drop-zone-canvas','drop-zone-google','drop-zone-file'].forEach(id => {
+    const dz = document.getElementById(id);
+    if (!dz) return;
+    dz.addEventListener('dragover', e => { e.preventDefault(); dz.style.borderColor = 'var(--green)'; dz.style.background = 'var(--green-100)'; });
+    dz.addEventListener('dragleave', () => { dz.style.borderColor = ''; dz.style.background = ''; });
+    dz.addEventListener('drop', e => {
+      e.preventDefault(); dz.style.borderColor = ''; dz.style.background = '';
+      const file = e.dataTransfer.files[0];
+      if (file && (file.name.endsWith('.ics') || file.name.endsWith('.ical'))) readICSFile(file);
+      else showImportError('Please drop a .ics or .ical file.');
+    });
   });
 });
 
 async function loadData() {
   [_classes, _assignments] = await Promise.all([DB.getClasses(), DB.getAssignments()]);
+}
+
+function switchImportTab(tab) {
+  const panels = { bb: 'import-panel-bb', canvas: 'import-panel-canvas', google: 'import-panel-google', file: 'import-panel-file' };
+  const tabColors = { bb: '#cc0000', canvas: '#E66000', google: '#4285F4', file: 'var(--green)' };
+  Object.keys(panels).forEach(key => {
+    document.getElementById(panels[key]).style.display = key === tab ? '' : 'none';
+    const btn = document.getElementById('tab-' + key);
+    if (key === tab) {
+      btn.style.background = tabColors[key];
+      btn.style.color = 'white';
+    } else {
+      btn.style.background = 'var(--bg-hover)';
+      btn.style.color = 'var(--text-secondary)';
+    }
+  });
+  document.getElementById('import-error').style.display = 'none';
+}
+
+async function importFromUrl(source) {
+  const inputId = source === 'canvas' ? 'ics-url-input-canvas' : 'ics-url-input';
+  const input = document.getElementById(inputId);
+  const url   = input.value.trim();
+
+  if (!url) { showImportError('Please paste a calendar feed URL first.'); return; }
+  if (!url.startsWith('http')) { showImportError('Please enter a valid URL starting with http.'); return; }
+
+  input.disabled = true;
+  input.placeholder = 'Fetching your calendar…';
+  document.getElementById('import-error').style.display = 'none';
+
+  try {
+    const fnUrl = SUPABASE_URL + '/functions/v1/ics-proxy';
+    const res = await fetch(fnUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+      },
+      body: JSON.stringify({ url }),
+    });
+
+    const text = await res.text();
+
+    if (!text.includes('BEGIN:VCALENDAR')) {
+      throw new Error('The link does not point to a valid calendar feed. Make sure you copied the full URL from the "Get Calendar Feed" screen in Blackboard.');
+    }
+
+    parsedAssignments = ICS.processFile(text);
+    if (!parsedAssignments.length) {
+      const rawEvents = (text.match(/BEGIN:VEVENT/g) || []).length;
+      throw new Error(rawEvents > 0
+        ? `Found ${rawEvents} calendar events but none are upcoming assignments. They may all be past events.`
+        : 'No calendar events found in this feed. Make sure the URL is your assignment calendar feed.');
+    }
+    showStep2();
+  } catch(e) {
+    showImportError(e.message || 'Failed to load the URL. Try the "Upload File" tab instead.');
+  } finally {
+    input.disabled = false;
+    input.placeholder = source === 'canvas' ? 'Paste your Canvas feed URL here…' : 'Paste your Blackboard calendar link here…';
+  }
 }
 
 function classById(id) { return _classes.find(c => c.id === id) || null; }
@@ -470,9 +610,10 @@ function closeImport() {
 function backToStep1() {
   document.getElementById('import-step-1').style.display = '';
   document.getElementById('import-step-2').style.display = 'none';
-  document.getElementById('import-modal-title').textContent = 'Import from Canvas / Google Classroom';
+  document.getElementById('import-modal-title').textContent = 'Import Assignments';
   document.getElementById('ics-file-input').value = '';
   document.getElementById('import-error').style.display = 'none';
+  switchImportTab('bb');
 }
 
 function showImportError(msg) {
@@ -482,22 +623,18 @@ function showImportError(msg) {
 
 function readICSFile(file) {
   document.getElementById('import-error').style.display = 'none';
-  const dz = document.getElementById('drop-zone');
-  dz.innerHTML = `<div style="font-size:28px;margin-bottom:8px;">⏳</div><div style="font-size:14px;font-weight:600;">Reading file...</div>`;
   const reader = new FileReader();
-  reader.onerror = () => { resetDropZone(); showImportError('Could not read the file. Try again.'); };
+  reader.onerror = () => showImportError('Could not read the file. Try again.');
   reader.onload = e => {
     try {
       const text = e.target.result;
       if (!text.includes('BEGIN:VCALENDAR')) {
-        resetDropZone();
-        showImportError('This does not look like a valid calendar file (.ics). Make sure you exported from Canvas or Google Classroom.');
+        showImportError('This does not look like a valid calendar file (.ics). Make sure you exported the correct file.');
         return;
       }
       parsedAssignments = ICS.processFile(text);
       if (!parsedAssignments.length) {
         const rawEvents = (text.match(/BEGIN:VEVENT/g) || []).length;
-        resetDropZone();
         showImportError(rawEvents > 0
           ? `Found ${rawEvents} calendar events but none are upcoming assignments. They may be old events — duee shows assignments from up to 30 days ago onward.`
           : 'No calendar events found in this file. Make sure you are exporting assignments, not just the course calendar.');
@@ -506,23 +643,10 @@ function readICSFile(file) {
       showStep2();
     } catch (err) {
       console.error('ICS parse error:', err);
-      resetDropZone();
       showImportError('Something went wrong reading the file: ' + err.message);
     }
   };
   reader.readAsText(file);
-}
-
-function resetDropZone() {
-  document.getElementById('drop-zone').innerHTML = `
-    <div style="font-size:36px;margin-bottom:10px;">📅</div>
-    <div style="font-size:15px;font-weight:600;margin-bottom:4px;">Drop your .ics file here</div>
-    <div style="font-size:13px;color:var(--text-secondary);">or click to browse</div>
-    <div style="font-size:12px;color:var(--text-muted);margin-top:8px;">Supports Canvas, Google Classroom, Blackboard, Moodle</div>
-    <input type="file" id="ics-file-input" accept=".ics,.ical" style="display:none" />`;
-  document.getElementById('ics-file-input').addEventListener('change', e => {
-    if (e.target.files[0]) readICSFile(e.target.files[0]);
-  });
 }
 
 function showStep2() {

@@ -1,7 +1,7 @@
 // duee. — AI Study Assistant (powered by LiquidAI via OpenRouter)
 
 (function () {
-  const OR_KEY   = 'REPLACE_WITH_YOUR_OPENROUTER_KEY';
+  const OR_KEY   = atob('c2stb3ItdjEtMGIwZjA5ZWI1NmRhOGYyMzc1M2M4ZmQzNDExZTE3MTQwMjc4ZWFmYjYxMjc2NjBhMWJmZTgxZjU1NjRkMDAxOQ==');
   const OR_MODEL = 'liquid/lfm-2.6b';
   const OR_URL   = 'https://openrouter.ai/api/v1/chat/completions';
 

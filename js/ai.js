@@ -2,7 +2,7 @@
 
 (function () {
   const OR_KEY   = atob('c2stb3ItdjEtMGIwZjA5ZWI1NmRhOGYyMzc1M2M4ZmQzNDExZTE3MTQwMjc4ZWFmYjYxMjc2NjBhMWJmZTgxZjU1NjRkMDAxOQ==');
-  const OR_MODEL = 'openai/gpt-oss-20b:free';
+  const OR_MODEL = 'nvidia/nemotron-nano-9b-v2:free';
   const OR_URL   = 'https://openrouter.ai/api/v1/chat/completions';
 
   // ── State ──
@@ -58,108 +58,77 @@
   }
 
   function buildSystemPrompt(ctx) {
-    const { classes, assignments, pending, now } = ctx;
-    const clsLines = classes.length
-      ? classes.map(c => `  • ${c.name} [id:${c.id}]`).join('\n')
-      : '  (none)';
-    const allLines = assignments.slice(0,30).map(a => {
-      const cls  = classes.find(c => c.id === a.classId);
+    const { classes, pending, now } = ctx;
+    const upcoming = pending.slice(0,8).map(a => {
+      const cls = classes.find(c => c.id === a.classId);
       const diff = Math.round((new Date(a.dueDate+'T00:00:00') - now) / 86400000);
-      const when = diff < 0 ? `${Math.abs(diff)}d overdue` : diff === 0 ? 'TODAY' : diff === 1 ? 'tomorrow' : `in ${diff}d`;
-      return `  • [id:${a.id}] "${a.name}" | ${cls?.name||'No class'} | ${a.dueDate} (${when}) | ${a.priority} | ${a.completed ? 'DONE' : 'pending'}`;
-    }).join('\n') || '  (none)';
+      const when = diff < 0 ? `${Math.abs(diff)}d overdue` : diff === 0 ? 'today' : diff === 1 ? 'tomorrow' : `in ${diff}d`;
+      return `${a.name}${cls ? ` (${cls.name})` : ''} — ${when}`;
+    }).join(', ') || 'none';
 
-    return `You are a smart, friendly AI study assistant inside duee., a student planner app.
-Today is ${todayStr()} (${new Date().toLocaleDateString('en-US',{weekday:'long'})}).
-
-Student's classes:
-${clsLines}
-
-All assignments:
-${allLines}
-
-ACTIONS — output ONE action block at the very end of your reply when the user wants something done.
-
-━━ MARK COMPLETE ━━
-User might say: "done", "finished", "turned in", "submitted", "checked off", "i did it", "completed", "knocked it out", "wrapped up", "got it done", "just did", "handed in"
-\`\`\`action
-{"type":"mark_complete","id":"<id>","name":"<name>"}
-\`\`\`
-
-━━ MARK INCOMPLETE / UNDO ━━
-User might say: "undo", "uncomplete", "not done", "reopen", "uncheck", "actually didn't", "i lied", "mark as pending", "take it back", "haven't done it yet"
-\`\`\`action
-{"type":"mark_incomplete","id":"<id>","name":"<name>"}
-\`\`\`
-
-━━ DELETE / REMOVE ━━
-User might say: "delete", "remove", "get rid of", "trash", "erase", "drop", "cancel", "take off", "nuke", "kill", "i don't need", "remove it"
-\`\`\`action
-{"type":"delete_assignment","id":"<id>","name":"<name>"}
-\`\`\`
-
-━━ ADD NEW ━━
-User might say: "add", "create", "new", "schedule", "remind me", "set", "put", "i have a", "there's a", "need to add", "make a"
-\`\`\`action
-{"type":"add_assignment","name":"<clean title>","due_date":"<YYYY-MM-DD>","priority":"<high|medium|low>","class_id":"<matching class id or empty>","notes":""}
-\`\`\`
-
-━━ SHOW UPCOMING ━━
-User might say: "what's due", "what do i have", "upcoming", "this week", "show me", "what's on my list", "my schedule", "what's next"
-\`\`\`action
-{"type":"get_upcoming","days":<7 or 14 or 30>}
-\`\`\`
-
-RULES:
-- People speak casually — "essay done", "did the bio hw", "yoo remove calc quiz", "bro add chemistry tmrw" all mean something. Figure out the intent.
-- Match assignments by name similarity. Pick the CLOSEST match from the list.
-- Dates: compute exact YYYY-MM-DD. "tomorrow"=${addDays(1)}, "next week"=${addDays(7)}, "in 3 days"=${addDays(3)}, "Friday"=next Friday, "Monday"=next Monday, etc.
-- Priority: exam/midterm/final/project = high. quiz/reading/reflection = low. else medium.
-- Be warm and brief — 1 sentence reply + action block.
-- Never show the action JSON to the user.
-- If truly ambiguous which assignment, ask ONE short question.`;
+    return `You are duee.'s friendly AI study assistant. Today: ${todayStr()}.
+Student's pending assignments: ${upcoming}.
+Reply in 1-2 warm, casual sentences. Be encouraging and helpful. No lists unless asked.`;
   }
 
-  // ── Call OpenRouter ──
+  // ── Call OpenRouter with 6s timeout ──
   async function callAI(apiMessages, systemPrompt) {
-    const res = await fetch(OR_URL, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OR_KEY}`,
-        'Content-Type':  'application/json',
-        'HTTP-Referer':  'https://duee.app',
-        'X-Title':       'duee.'
-      },
-      body: JSON.stringify({
-        model: OR_MODEL,
-        messages: [{ role: 'system', content: systemPrompt }, ...apiMessages],
-        temperature: 0.7,
-        max_tokens: 600
-      })
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      const msg = err?.error?.message || `API error ${res.status}`;
-      const e = new Error(msg);
-      e.status = res.status;
-      throw e;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 6000);
+    try {
+      const res = await fetch(OR_URL, {
+        method: 'POST',
+        signal: controller.signal,
+        headers: {
+          'Authorization': `Bearer ${OR_KEY}`,
+          'Content-Type':  'application/json',
+          'HTTP-Referer':  'https://duee.online',
+          'X-Title':       'duee.'
+        },
+        body: JSON.stringify({
+          model: OR_MODEL,
+          messages: [{ role: 'system', content: systemPrompt }, ...apiMessages],
+          temperature: 0.6,
+          max_tokens: 250
+        })
+      });
+      clearTimeout(timer);
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data.choices?.[0]?.message?.content?.trim() || null;
+    } catch (_) {
+      clearTimeout(timer);
+      return null;
     }
-    const data = await res.json();
-    return data.choices?.[0]?.message?.content || '';
   }
 
-  // ── Fuzzy assignment finder: match by id first, then name keywords ──
+  // ── Fuzzy assignment finder ──
   function fuzzyFind(list, id, name) {
-    if (id) {
-      const byId = list.find(a => a.id === id);
-      if (byId) return byId;
-    }
+    if (id) { const byId = list.find(a => a.id === id); if (byId) return byId; }
     if (!name) return null;
-    const words = name.toLowerCase().split(/\s+/).filter(w => w.length > 2);
-    return list
-      .map(a => ({ a, score: words.filter(w => a.name.toLowerCase().includes(w)).length }))
-      .filter(x => x.score > 0)
-      .sort((a, b) => b.score - a.score)[0]?.a || null;
+    const n = name.toLowerCase();
+    // 1. Direct substring
+    const direct = list.find(a => a.name.toLowerCase().includes(n) || n.includes(a.name.toLowerCase()));
+    if (direct) return direct;
+    // 2. Word overlap (short words included — "bio", "hw" etc.)
+    const words = n.split(/\s+/).filter(w => w.length > 1);
+    const scored = list.map(a => {
+      const an = a.name.toLowerCase();
+      let score = 0;
+      words.forEach(w => {
+        if (an.includes(w)) score += 2;
+        else if (an.split(/\s+/).some(aw => aw.startsWith(w) || w.startsWith(aw))) score += 1;
+      });
+      return { a, score };
+    }).filter(x => x.score > 0).sort((x, y) => y.score - x.score);
+    return scored[0]?.a || null;
+  }
+
+  // ── Smart priority score (urgency × priority weight) ──
+  function urgencyScore(a, now) {
+    const diff = Math.round((new Date(a.dueDate + 'T00:00:00') - now) / 86400000);
+    const pw = { high: 3, medium: 2, low: 1 }[a.priority] || 2;
+    return (diff < 0 ? 100 + Math.abs(diff) : Math.max(0, 30 - diff)) * pw;
   }
 
   // ── Parse & execute action block ──
@@ -354,7 +323,7 @@ RULES:
     return addDays(7);
   }
 
-  // Returns a string if it handled the message, null if it didn't match (so LLM can try)
+  // Returns a string if handled, null if not matched (LLM handles it)
   async function ruleBasedFallback(text, ctx) {
     const l = text.toLowerCase();
     let list, classes;
@@ -362,42 +331,53 @@ RULES:
       if (ctx) { list = ctx.assignments; classes = ctx.classes; }
       else { [list, classes] = await Promise.all([DB.getAssignments(), DB.getClasses()]); }
     } catch (_) { list = []; classes = []; }
+    const now = new Date(); now.setHours(0,0,0,0);
+    const pending = list.filter(a => !a.completed);
+
+    const fmtDiff = (a) => {
+      const diff = Math.round((new Date(a.dueDate+'T00:00:00') - now) / 86400000);
+      return diff < 0 ? `${Math.abs(diff)}d overdue` : diff === 0 ? 'due TODAY' : diff === 1 ? 'due tomorrow' : `due in ${diff}d`;
+    };
+    const fmtItem = (a) => {
+      const cls = classes.find(c => c.id === a.classId);
+      return `• **${a.name}**${cls ? ` (${cls.name})` : ''} — ${fmtDiff(a)}`;
+    };
 
     // ── Complete ──
-    if (/\b(done|finished|complete[d]?|turned?\s*in|submitted?|checked?\s*off|mark.*done|did\s+(the|my|it)|i\s+did|just\s+did|handed?\s*in|got\s+it\s+done|wrapped\s+up|knocked\s+out)\b/.test(l)) {
-      const pending = list.filter(a => !a.completed);
+    if (/\b(done|finished|complete[d]?|turned?\s*in|submitted?|checked?\s*off|mark.*done|did\s+(the|my|it)|i\s+did|just\s+(did|finished)|handed?\s*in|got\s+it\s+done|wrapped\s+up|knocked\s+out|submitted|turned\s+it\s+in)\b/.test(l)) {
       const asgn = fuzzyFind(pending, null, text);
-      if (asgn) { await DB.toggleComplete(asgn.id, false); refreshPage(); return `✓ Marked **"${asgn.name}"** complete!`; }
-      if (pending.length === 0) return `You have no pending assignments — you're all done! 🎉`;
-      // List closest matches
-      const opts = pending.slice(0,3).map(a => `• ${a.name}`).join('\n');
-      return `Which one did you finish?\n${opts}`;
+      if (asgn) { await DB.toggleComplete(asgn.id, false); refreshPage(); return `✅ Done! Marked **"${asgn.name}"** as complete.`; }
+      if (!pending.length) return `You have no pending assignments — you're all caught up! 🎉`;
+      return `Which one did you finish?\n${pending.slice(0,4).map(a => `• ${a.name}`).join('\n')}`;
     }
 
     // ── Uncomplete ──
-    if (/\b(uncomplete|undo|uncheck|unmark|not\s+done|reopen|mark.*incomplete|actually\s+didn.t|haven.t\s+done|take\s+it\s+back|i\s+lied|wait\s+no)\b/.test(l)) {
+    if (/\b(uncomplete|undo|uncheck|unmark|not\s+done|reopen|mark.*incomplete|actually\s+didn.t|haven.t\s+(done|finished)|take\s+it\s+back|i\s+lied|wait\s+no|oops|mistake)\b/.test(l)) {
       const done = list.filter(a => a.completed);
       const asgn = fuzzyFind(done, null, text);
-      if (asgn) { await DB.toggleComplete(asgn.id, true); refreshPage(); return `↩️ Reopened **"${asgn.name}"** — marked as pending again.`; }
+      if (asgn) { await DB.toggleComplete(asgn.id, true); refreshPage(); return `↩️ Got it — **"${asgn.name}"** is back to pending.`; }
       return `Which completed assignment do you want to reopen?`;
     }
 
     // ── Delete ──
-    if (/\b(delete|remove|get\s*rid\s*of|trash|erase|drop|cancel|nuke|kill|take\s+off)\b/.test(l)) {
+    if (/\b(delete|remove|get\s*rid\s*of|trash|erase|drop|cancel|nuke|kill|take\s+off|i\s+don.t\s+need|dont\s+need)\b/.test(l)) {
       const asgn = fuzzyFind(list, null, text);
       if (asgn) { await DB.deleteAssignment(asgn.id); refreshPage(); return `🗑️ Deleted **"${asgn.name}"**.`; }
-      const opts = list.slice(0,3).map(a => `• ${a.name}`).join('\n');
-      return list.length ? `Which assignment do you want to delete?\n${opts}` : `You have no assignments to delete.`;
+      if (!list.length) return `You have no assignments to delete.`;
+      return `Which one do you want to delete?\n${list.slice(0,4).map(a => `• ${a.name}`).join('\n')}`;
     }
 
     // ── Add ──
-    if (/\b(add|create|new|schedule|remind\s*me|set|put|i\s+have\s+(a|an)|there.s\s+(a|an)|need\s+to\s+add|make\s+(a|an))\b/.test(l)) {
-      const due  = parseDate(text);
-      const pri  = /\b(exam|final|midterm|project|presentation)\b/.test(l) ? 'high' : /\b(reading|reflection|quiz)\b/.test(l) ? 'low' : 'medium';
-      const cls  = classes.find(c => l.includes(c.name.toLowerCase().slice(0,5)));
+    if (/\b(add|create|new\s+(assignment|task|hw|homework)|schedule|remind\s*me|i\s+have\s+(a|an)\s+\w|there.s\s+(a|an)|need\s+to\s+add|make\s+(a|an))\b/.test(l)) {
+      const due = parseDate(text);
+      const pri = /\b(exam|final|midterm|project|presentation|test)\b/.test(l) ? 'high' : /\b(reading|reflection|quiz|discussion)\b/.test(l) ? 'low' : 'medium';
+      const cls = classes.find(c => {
+        const cn = c.name.toLowerCase();
+        return l.includes(cn) || l.includes(cn.slice(0,4));
+      });
       const name = text
-        .replace(/\b(add|create|new|schedule|remind\s*me|set|put|i\s+have\s+a|i\s+have\s+an|there.s\s+a|need\s+to\s+add|make\s+a|an?|the|assignment|task|homework|hw|for|due|on|by|next|this|monday|tuesday|wednesday|thursday|friday|saturday|sunday|today|tomorrow|week|month|in\s+\d+\s+days?)\b/gi, ' ')
-        .replace(/\s{2,}/g, ' ').trim();
+        .replace(/\b(add|create|new|schedule|remind\s*me|set|put|i\s+have\s+an?\s*|there.?s\s+an?\s*|need\s+to\s+add|make\s+an?\s*|an?|the|assignment|task|homework|hw|for|due|on|by|next|this|monday|tuesday|wednesday|thursday|friday|saturday|sunday|today|tomorrow|week|month|in\s+\d+\s+days?|jan\w*|feb\w*|mar\w*|apr\w*|may|jun\w*|jul\w*|aug\w*|sep\w*|oct\w*|nov\w*|dec\w*)\b/gi, ' ')
+        .replace(/\d{1,2}(st|nd|rd|th)?/g, '').replace(/\s{2,}/g, ' ').trim();
       if (name.length > 1) {
         await DB.addAssignment({ name, classId: cls?.id || null, dueDate: due, dueTime: '23:59', priority: pri, estimatedTime: '1.5', notes: '' });
         refreshPage();
@@ -406,52 +386,81 @@ RULES:
       return `What should I call the assignment?`;
     }
 
-    // ── Show upcoming ──
-    if (/\b(upcoming|what.?(s|'s)?\s*(due|on\s*my\s*list)|what\s+do\s+i\s+have|this\s*week|today|show\s*(me)?|list|my\s*schedule|what.s\s*next|overdue)\b/.test(l)) {
-      const now = new Date(); now.setHours(0,0,0,0);
+    // ── What's due / upcoming ──
+    if (/\b(upcoming|what.?s?\s*(due|on\s*my\s*list)|what\s+do\s+i\s+have|this\s+week|show\s*(me)?(\s+my)?(\s+assignments)?|list(\s+my)?|my\s+schedule|what.?s\s+next|assignments?(\s+due)?|due\s+soon|overdue)\b/.test(l)) {
       const days = /\b(month|30)\b/.test(l) ? 30 : /\b(two|2)\s*week\b/.test(l) ? 14 : 8;
-      const overdue = /\boverdue\b/.test(l);
+      const isOverdue = /\boverdue\b/.test(l);
       const cut = new Date(now); cut.setDate(cut.getDate() + days);
-      let up = list.filter(a => !a.completed);
-      up = overdue ? up.filter(a => new Date(a.dueDate+'T00:00:00') < now) : up.filter(a => new Date(a.dueDate+'T00:00:00') <= cut);
+      let up = pending.slice();
+      up = isOverdue ? up.filter(a => new Date(a.dueDate+'T00:00:00') < now) : up.filter(a => new Date(a.dueDate+'T00:00:00') <= cut);
       up.sort((a,b) => a.dueDate.localeCompare(b.dueDate));
-      if (!up.length) return overdue ? `Nothing overdue right now 🎉` : `Nothing due in the next ${days === 8 ? 'week' : days + ' days'} 🎉`;
-      return (overdue ? `Overdue:\n` : `Coming up:\n`) + up.map(a => {
-        const cls  = classes.find(c => c.id === a.classId);
-        const diff = Math.round((new Date(a.dueDate+'T00:00:00') - now) / 86400000);
-        const when = diff < 0 ? `${Math.abs(diff)}d overdue` : diff === 0 ? 'today' : diff === 1 ? 'tomorrow' : `in ${diff}d`;
-        return `• **${a.name}**${cls ? ` (${cls.name})` : ''} — ${when}`;
+      if (!up.length) return isOverdue ? `Nothing overdue — you're on top of it! 🎉` : `Nothing due in the next ${days === 8 ? 'week' : days + ' days'} 🎉`;
+      return (isOverdue ? `Overdue:\n` : `Coming up:\n`) + up.map(fmtItem).join('\n');
+    }
+
+    // ── Prioritize / what to do first ──
+    if (/\b(priorit|what\s+(should|do)\s+i\s+(do|work|focus|start)|where\s+do\s+i\s+start|most\s+(urgent|important)|first|focus\s+on|what.?s\s+most)\b/.test(l)) {
+      if (!pending.length) return `Nothing pending — you're all caught up! 🎉`;
+      const ranked = [...pending].sort((a,b) => urgencyScore(b,now) - urgencyScore(a,now)).slice(0,5);
+      return `Here's what to tackle first:\n` + ranked.map((a,i) => {
+        const num = ['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣'][i];
+        return `${num} ${fmtItem(a)}`;
       }).join('\n');
     }
 
-    // ── Study tips ──
-    if (/\b(study\s*tips?|how\s+do\s+i\s+study|help\s+me\s+study|advice|how\s+to\s+prepare)\b/.test(l)) {
-      return `Study tips:\n• **Pomodoro**: 25 min focus, 5 min break\n• **Active recall**: test yourself instead of re-reading\n• **Start with the hardest**: do difficult stuff when your energy is highest`;
+    // ── How much time / time estimate ──
+    if (/\b(how\s+(long|much\s+time)|time\s+(estimate|left|needed?)|hours?|estimate)\b/.test(l)) {
+      const total = pending.reduce((s,a) => s + parseFloat(a.estimatedTime || 1.5), 0);
+      const urgent = pending.filter(a => Math.round((new Date(a.dueDate+'T00:00:00')-now)/86400000) <= 3);
+      const urgentHrs = urgent.reduce((s,a) => s + parseFloat(a.estimatedTime || 1.5), 0);
+      return `You have ~**${total.toFixed(1)} hours** of work across ${pending.length} assignment${pending.length!==1?'s':''}.\n${urgent.length ? `⚠️ **${urgentHrs.toFixed(1)}h** is due within 3 days — prioritize those first!` : `Nothing super urgent in the next 3 days 👍`}`;
     }
 
-    // ── Stress / motivation ──
-    if (/\b(stress|overwhelm|anxious|so\s+much|panic|too\s+many|worried|freaking?\s+out|behind|screwed)\b/.test(l)) {
-      const count = list.filter(a => !a.completed).length;
-      return count > 0
-        ? `You've got ${count} pending — want me to show you what's most urgent so you know where to start?`
-        : `Your list is actually clear! You're more on top of it than you think 💪`;
+    // ── Plan my week ──
+    if (/\b(plan|schedule|organize|help\s+me\s+plan|study\s+plan|week\s+plan|break\s+(it\s+)?down)\b/.test(l)) {
+      if (!pending.length) return `Your slate is clean — nothing to plan right now! 🎉`;
+      const days7 = pending.filter(a => Math.round((new Date(a.dueDate+'T00:00:00')-now)/86400000) <= 7);
+      if (!days7.length) return `Nothing due this week. Here are your upcoming:\n` + pending.slice(0,4).map(fmtItem).join('\n');
+      const ranked = [...days7].sort((a,b) => urgencyScore(b,now) - urgencyScore(a,now));
+      return `This week's game plan:\n` + ranked.map(fmtItem).join('\n') + `\n\nStart from the top and work down 💪`;
+    }
+
+    // ── Stats / progress ──
+    if (/\b(how\s+am\s+i\s+(doing|going)|progress|stats?|completion|percent|track)\b/.test(l)) {
+      const total = list.length, done = list.filter(a=>a.completed).length;
+      const pct = total ? Math.round(done/total*100) : 0;
+      const overdue = pending.filter(a => new Date(a.dueDate+'T00:00:00') < now).length;
+      return `You've completed **${done}/${total}** assignments (${pct}%).\n${overdue > 0 ? `⚠️ ${overdue} overdue` : `No overdue assignments`} · ${pending.length} still pending.`;
+    }
+
+    // ── Stress / overwhelmed ──
+    if (/\b(stress|overwhelm|anxious|so\s+much|panic|too\s+many|worried|freaking?\s+out|behind|can.?t\s+do|screwed|dying|dead)\b/.test(l)) {
+      if (!pending.length) return `Your list is actually empty right now — you're more on top of it than you think! Take a breath 💪`;
+      const ranked = [...pending].sort((a,b) => urgencyScore(b,now) - urgencyScore(a,now));
+      const top = ranked[0];
+      const cls = classes.find(c => c.id === top.classId);
+      return `You've got ${pending.length} pending, but let's focus on one thing at a time.\n\nMost urgent right now:\n**"${top.name}"**${cls ? ` (${cls.name})` : ''} — ${fmtDiff(top)}\n\nStart there. You've got this 💪`;
     }
 
     // ── Greetings ──
-    if (/^(hey+|hi+|hello|sup|yo+|what.?s\s*up|heyy+|hiii+)\b/.test(l.trim())) {
-      const count = list.filter(a => !a.completed).length;
-      return count > 0
-        ? `Hey! You've got **${count} pending assignment${count !== 1 ? 's' : ''}**. Want to see what's due soon?`
-        : `Hey! Your list is clear 🎉 Anything you need to add?`;
+    if (/^(hey+|hi+|hello|sup|yo+|what.?s\s*up|heyy+|hiii+|wassup|wsp)\b/.test(l.trim())) {
+      const overdue = pending.filter(a => new Date(a.dueDate+'T00:00:00') < now).length;
+      if (overdue > 0) return `Hey! 👋 You've got **${overdue} overdue assignment${overdue!==1?'s':''}** — want to see them?`;
+      if (pending.length) return `Hey! You've got **${pending.length} pending assignment${pending.length!==1?'s':''}**. Want to see what's coming up?`;
+      return `Hey! Your list is all clear 🎉 Need to add anything?`;
     }
 
-    // ── Count / how many ──
+    // ── Count ──
     if (/\b(how\s+many|count|total|number\s+of)\b/.test(l)) {
-      const count = list.filter(a => !a.completed).length;
-      return `You have **${count} pending assignment${count !== 1 ? 's' : ''}** right now.`;
+      return `You have **${pending.length} pending assignment${pending.length!==1?'s':''}** right now.`;
     }
 
-    return null; // didn't match — let LLM handle it
+    // ── Study tips ──
+    if (/\b(study\s*tips?|how\s+(to|do\s+i)\s+study|advice|tips\s+for)\b/.test(l)) {
+      return `Top study tips:\n• **Pomodoro**: 25 min focus, 5 min break — repeat\n• **Active recall**: close your notes and test yourself\n• **Start hardest first**: tackle the tough stuff when energy is high\n• **One task at a time**: multitasking tanks productivity`;
+    }
+
+    return null; // no match — let LLM try
   }
 
   // ─────────────────────────────────────────────

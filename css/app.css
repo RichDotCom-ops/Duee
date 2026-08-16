@@ -298,6 +298,9 @@
 .cal-cell.clickable:hover { background: var(--bg-hover); }
 [data-theme="dark"] .cal-cell.clickable:hover { background: var(--bg-hover); }
 
+/* Hide hamburger on desktop */
+.topbar-hamburger { display: none; }
+
 /* ── Mobile Responsiveness ── */
 @media (max-width: 768px) {
   /* Sidebar — hidden by default on mobile, slide in when open */

@@ -3,11 +3,11 @@
 (function () {
   const OR_KEY    = atob('c2stb3ItdjEtMGIwZjA5ZWI1NmRhOGYyMzc1M2M4ZmQzNDExZTE3MTQwMjc4ZWFmYjYxMjc2NjBhMWJmZTgxZjU1NjRkMDAxOQ==');
   const OR_MODELS = [
-    'google/gemma-4-31b-it:free',
+    'google/gemma-4-26b-a4b-it:free',
     'nvidia/nemotron-3-ultra-550b-a55b:free',
     'nvidia/nemotron-3-super-120b-a12b:free',
-    'google/gemma-4-26b-a4b-it:free',
     'nvidia/nemotron-3-nano-30b-a3b:free',
+    'nvidia/nemotron-3.5-lightning:free',
   ];
   const OR_URL    = 'https://openrouter.ai/api/v1/chat/completions';
 
@@ -84,6 +84,18 @@ Rules:
 - Keep replies concise and helpful. For math, show the steps.`;
   }
 
+  // ── Strip model thinking preambles ──
+  function cleanResponse(text) {
+    if (!text) return null;
+    // Remove "Okay, the user asked..." / "Here's a thinking process:..." preambles
+    text = text.replace(/^(okay|alright|sure)[,.]?\s*(the\s+user\s+(asked|said|wants?)[^.]*\.?\s*)/i, '');
+    text = text.replace(/^here'?s?\s+a\s+thinking\s+process:[\s\S]*?(?=\n\n|\*\*|[A-Z])/i, '');
+    text = text.replace(/^(let me|i'll|i will)\s+(think|work|solve|calculate)[^.]*\.\s*/i, '');
+    // Remove <think>...</think> blocks
+    text = text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+    return text.trim() || null;
+  }
+
   // ── Call OpenRouter — race all models, return first good reply ──
   async function callAI(apiMessages, systemPrompt) {
     const body = (model) => JSON.stringify({
@@ -106,8 +118,8 @@ Rules:
         .then(r => r.json())
         .then(d => {
           clearTimeout(timer);
-          const content = d.choices?.[0]?.message?.content?.trim();
-          resolve(content || null);
+          const raw = d.choices?.[0]?.message?.content?.trim();
+          resolve(cleanResponse(raw));
         })
         .catch(() => { clearTimeout(timer); resolve(null); });
     });

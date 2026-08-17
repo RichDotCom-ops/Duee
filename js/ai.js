@@ -3,10 +3,11 @@
 (function () {
   const OR_KEY    = atob('c2stb3ItdjEtMGIwZjA5ZWI1NmRhOGYyMzc1M2M4ZmQzNDExZTE3MTQwMjc4ZWFmYjYxMjc2NjBhMWJmZTgxZjU1NjRkMDAxOQ==');
   const OR_MODELS = [
-    'nvidia/nemotron-nano-9b-v2:free',
+    'google/gemini-2.0-flash-exp:free',
+    'deepseek/deepseek-r1-0528:free',
+    'meta-llama/llama-3.3-70b-instruct:free',
+    'google/gemma-3-27b-it:free',
     'mistralai/mistral-7b-instruct:free',
-    'meta-llama/llama-3.2-3b-instruct:free',
-    'qwen/qwen3-8b:free',
   ];
   const OR_URL    = 'https://openrouter.ai/api/v1/chat/completions';
 
@@ -87,7 +88,7 @@ Rules:
   async function callAI(apiMessages, systemPrompt) {
     for (const model of OR_MODELS) {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 6000);
+      const timer = setTimeout(() => controller.abort(), 15000);
       try {
         const res = await fetch(OR_URL, {
           method: 'POST',
@@ -291,19 +292,22 @@ Rules:
         return;
       }
 
-      // ── Conversational fallback — call LLM only for open-ended messages ──
+      // ── Conversational fallback — call LLM ──
       try {
         const systemPrompt = buildSystemPrompt(ctx);
         const apiMessages = _history
           .filter(m => !m._actionOnly)
           .map(m => ({ role: m.role === 'bot' ? 'assistant' : 'user', content: m.role === 'user' ? normalize(m.text) : m.text }));
         const raw = await callAI(apiMessages, systemPrompt);
-        const { text: replyText, actionResult } = await parseAndExecute(raw, ctx);
-        if (replyText) _history.push({ role: 'bot', text: replyText });
-        if (actionResult) _history.push({ role: 'bot', text: actionResult, _actionOnly: true });
-        if (!replyText && !actionResult) _history.push({ role: 'bot', text: `The AI models are busy right now — try again in a moment!` });
-      } catch (_) {
-        _history.push({ role: 'bot', text: `The AI models are busy right now — try again in a moment!` });
+        if (!raw) {
+          _history.push({ role: 'bot', text: `⚡ AI models are overloaded right now — try again in a few seconds!` });
+        } else {
+          const { text: replyText, actionResult } = await parseAndExecute(raw, ctx);
+          if (replyText) _history.push({ role: 'bot', text: replyText });
+          if (actionResult) _history.push({ role: 'bot', text: actionResult, _actionOnly: true });
+        }
+      } catch (e) {
+        _history.push({ role: 'bot', text: `⚡ AI models are overloaded right now — try again in a few seconds!` });
       }
       if (typeof DueePlan !== 'undefined') DueePlan.incrementAI();
 

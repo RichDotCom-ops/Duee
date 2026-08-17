@@ -26,7 +26,8 @@ const DueePlan = (() => {
     localStorage.setItem(lsKey('plan'), JSON.stringify({ tier, expiresAt }));
   }
 
-  function isPro() { const { tier } = getTier(); return tier === 'pro' || tier === 'annual'; }
+  function isPro() { const { tier } = getTier(); return tier === 'pro' || tier === 'annual' || tier === 'god'; }
+  function isGod() { return getTier().tier === 'god'; }
 
   // ── AI usage ──
   function getUsage() {
@@ -81,7 +82,12 @@ const DueePlan = (() => {
       transition:background 0.15s;cursor:pointer;
     `;
 
-    if (tier === 'free') {
+    if (tier === 'god') {
+      el.style.background = 'linear-gradient(135deg,#f59e0b20,#ef444420)';
+      el.style.color = '#f59e0b';
+      el.style.border = '1px solid #f59e0b40';
+      el.innerHTML = `<span style="font-size:15px;">👑</span><span style="flex:1;">God Mode</span><span style="font-size:10px;background:linear-gradient(135deg,#f59e0b,#ef4444);color:white;border-radius:99px;padding:1px 6px;">UNLIMITED</span>`;
+    } else if (tier === 'free') {
       el.style.background = 'linear-gradient(135deg,#7c3aed18,#2563eb18)';
       el.style.color = '#7c3aed';
       el.style.border = '1px solid #7c3aed30';
@@ -104,8 +110,17 @@ const DueePlan = (() => {
     bottom.insertBefore(el, bottom.firstChild);
   }
 
+  // ── Sync plan from DB (called after auth) ──
+  async function syncFromDB() {
+    try {
+      const { data, error } = await _supabase.rpc('get_my_plan');
+      if (!error && data) setTier(data, null);
+    } catch (_) {}
+  }
+
   // ── Boot ──
-  function boot() {
+  async function boot() {
+    await syncFromDB();
     if (!document.querySelector('.sidebar-bottom')) return;
     injectSidebarBadge();
   }
@@ -116,5 +131,5 @@ const DueePlan = (() => {
     boot();
   }
 
-  return { getTier, setTier, isPro, canUseAI, incrementAI, fmtCountdown };
+  return { getTier, setTier, isPro, isGod, canUseAI, incrementAI, fmtCountdown, syncFromDB };
 })();

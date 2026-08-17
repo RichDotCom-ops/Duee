@@ -495,7 +495,7 @@
 <script src="../js/supabase-client.js"></script>
 <script>
 // ── CONFIG ──
-const ADMIN_EMAIL = 'hassen@gmail.com';
+const ADMIN_EMAILS = ['hassen@gmail.com', 'dipenadhikari2005@gmail.com'];
 const ADMIN_PIN   = '2580';
 const PIN_KEY     = 'duee_admin_pin_ok';
 const LOG_KEY     = 'duee_admin_log';
@@ -538,7 +538,7 @@ function switchTab(name, el) {
 async function bootDashboard() {
   const session = await Auth.requireAuth();
   if (!session) return;
-  if (session.user.email !== ADMIN_EMAIL) {
+  if (!ADMIN_EMAILS.includes(session.user.email)) {
     document.body.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#060d1a;text-align:center;padding:40px;color:#e2e8f0;"><div><div style="font-size:48px;margin-bottom:16px;">🚫</div><div style="font-size:20px;font-weight:700;margin-bottom:8px;">Access Denied</div><a href="/dashboard" style="background:#16a34a;color:white;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:600;">Back</a></div></div>`;
     return;
   }

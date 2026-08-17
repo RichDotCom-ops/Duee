@@ -84,39 +84,46 @@ Rules:
 - Keep replies concise and helpful. For math, show the steps.`;
   }
 
-  // ── Call OpenRouter — tries each model until one works ──
+  // ── Call OpenRouter — race all models, return first good reply ──
   async function callAI(apiMessages, systemPrompt) {
-    for (const model of OR_MODELS) {
+    const body = (model) => JSON.stringify({
+      model,
+      messages: [{ role: 'system', content: systemPrompt }, ...apiMessages],
+      temperature: 0.6,
+      max_tokens: 400,
+    });
+    const headers = {
+      'Authorization': `Bearer ${OR_KEY}`,
+      'Content-Type':  'application/json',
+      'HTTP-Referer':  'https://duee.online',
+      'X-Title':       'duee.',
+    };
+
+    const tryModel = (model) => new Promise((resolve) => {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 15000);
-      try {
-        const res = await fetch(OR_URL, {
-          method: 'POST',
-          signal: controller.signal,
-          headers: {
-            'Authorization': `Bearer ${OR_KEY}`,
-            'Content-Type':  'application/json',
-            'HTTP-Referer':  'https://duee.online',
-            'X-Title':       'duee.'
-          },
-          body: JSON.stringify({
-            model,
-            messages: [{ role: 'system', content: systemPrompt }, ...apiMessages],
-            temperature: 0.6,
-            max_tokens: 250
-          })
+      const timer = setTimeout(() => { controller.abort(); resolve(null); }, 25000);
+      fetch(OR_URL, { method: 'POST', signal: controller.signal, headers, body: body(model) })
+        .then(r => r.json())
+        .then(d => {
+          clearTimeout(timer);
+          const content = d.choices?.[0]?.message?.content?.trim();
+          resolve(content || null);
+        })
+        .catch(() => { clearTimeout(timer); resolve(null); });
+    });
+
+    // Fire all models in parallel, return first non-null result
+    return new Promise((resolve) => {
+      let settled = 0;
+      let resolved = false;
+      OR_MODELS.forEach(model => {
+        tryModel(model).then(result => {
+          settled++;
+          if (result && !resolved) { resolved = true; resolve(result); }
+          else if (settled === OR_MODELS.length && !resolved) resolve(null);
         });
-        clearTimeout(timer);
-        if (!res.ok) continue; // try next model
-        const data = await res.json();
-        const content = data.choices?.[0]?.message?.content?.trim();
-        if (content) return content;
-      } catch (_) {
-        clearTimeout(timer);
-        // try next model
-      }
-    }
-    return null; // all models failed
+      });
+    });
   }
 
   // ── Fuzzy assignment finder ──

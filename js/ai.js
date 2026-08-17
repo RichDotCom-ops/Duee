@@ -616,4 +616,7 @@ Reply in 1-2 warm, casual sentences. Be encouraging and helpful. No lists unless
   } else {
     initAIWidget();
   }
+
+  // Expose so plan.js can refresh counter after async DB sync
+  window.updateTokenUI = updateTokenUI;
 })();

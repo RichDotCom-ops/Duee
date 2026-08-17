@@ -114,7 +114,14 @@ const DueePlan = (() => {
   async function syncFromDB() {
     try {
       const { data, error } = await _supabase.rpc('get_my_plan');
-      if (!error && data) setTier(data, null);
+      if (!error && data) {
+        setTier(data, null);
+        // Re-render any UI that already painted before sync completed
+        document.getElementById('sidebar-plan-badge')?.remove();
+        injectSidebarBadge();
+        // Refresh AI counter if it exists
+        if (typeof updateTokenUI === 'function') updateTokenUI();
+      }
     } catch (_) {}
   }
 

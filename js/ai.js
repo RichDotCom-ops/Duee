@@ -460,7 +460,7 @@ Reply in 1-2 warm, casual sentences. Be encouraging and helpful. No lists unless
     }
 
     // ── Count ──
-    if (/\b(how\s+many|count|total|number\s+of)\b/.test(l)) {
+    if (/\b(how\s+many|count|total)\b/.test(l) && /\b(assignment|task|homework|hw|class|pending|due)\b/.test(l)) {
       return `You have **${pending.length} pending assignment${pending.length!==1?'s':''}** right now.`;
     }
 

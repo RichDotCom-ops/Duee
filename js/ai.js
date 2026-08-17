@@ -71,9 +71,16 @@
       return `${a.name}${cls ? ` (${cls.name})` : ''} — ${when}`;
     }).join(', ') || 'none';
 
-    return `You are duee.'s friendly AI study assistant. Today: ${todayStr()}.
-Student's pending assignments: ${upcoming}.
-Reply in 1-2 warm, casual sentences. Be encouraging and helpful. No lists unless asked.`;
+    return `You are duee.'s AI study assistant — you help students with TWO things:
+1. Managing their assignments (adding, completing, deleting, checking what's due)
+2. Answering any study or homework question they have (math, science, history, writing, etc.)
+
+Today: ${todayStr()}. Student's pending assignments: ${upcoming}.
+
+Rules:
+- If the student asks a homework/study question (math problem, concept explanation, essay help, etc.) → answer it directly and clearly. Show working for math.
+- If they want to manage assignments → use the action system.
+- Keep replies concise and helpful. For math, show the steps.`;
   }
 
   // ── Call OpenRouter — tries each model until one works ──
@@ -294,9 +301,9 @@ Reply in 1-2 warm, casual sentences. Be encouraging and helpful. No lists unless
         const { text: replyText, actionResult } = await parseAndExecute(raw, ctx);
         if (replyText) _history.push({ role: 'bot', text: replyText });
         if (actionResult) _history.push({ role: 'bot', text: actionResult, _actionOnly: true });
-        if (!replyText && !actionResult) _history.push({ role: 'bot', text: `Got it! Tell me what you need — like "I finished my essay", "what's due this week", or "add a quiz due Friday".` });
+        if (!replyText && !actionResult) _history.push({ role: 'bot', text: `The AI models are busy right now — try again in a moment!` });
       } catch (_) {
-        _history.push({ role: 'bot', text: `Got it! Tell me what you need — like "I finished my essay", "what's due this week", or "add a quiz due Friday".` });
+        _history.push({ role: 'bot', text: `The AI models are busy right now — try again in a moment!` });
       }
       if (typeof DueePlan !== 'undefined') DueePlan.incrementAI();
 

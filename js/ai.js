@@ -3,8 +3,8 @@
 (function () {
   const AI_KEY     = atob(['Z3NrXzRRNkZm','ODhDZk5VR0lq','VERDUmI2V0dk','eWIzRlloTk1L','bURnZFF4ZWFIOWl6clQ5bWM1SHM='].join(''));
   const AI_URL     = 'https://api.groq.com/openai/v1/chat/completions';
-  const AI_MODEL   = 'llama-3.3-70b-versatile';
-  const AI_BACKUPS = ['llama-3.1-8b-instant', 'gemma2-9b-it'];
+  const AI_MODEL   = 'openai/gpt-oss-120b';
+  const AI_BACKUPS = ['qwen/qwen3.6-27b', 'openai/gpt-oss-20b'];
 
   // ── State ──
   let _open     = false;

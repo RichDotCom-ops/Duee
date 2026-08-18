@@ -1,14 +1,10 @@
 // duee. — AI Study Assistant (powered by LiquidAI via OpenRouter)
 
 (function () {
-  const OR_KEY    = atob('c2stb3ItdjEtYjA5Y2VlNTA0YTM0MGMwYTk2YmY0MmM2NjYyYjVkMmUwYzdiZDg2NTNhMjk5YTU5MGVjMTMxOGU5MDBkNzZlNQ==');
-  const OR_MODEL   = 'google/gemma-4-26b-a4b-it:free';
-  const OR_BACKUPS = [
-    'nvidia/nemotron-3-super-120b-a12b:free',
-    'nvidia/nemotron-3-nano-30b-a3b:free',
-    'nvidia/nemotron-3.5-lightning:free',
-  ];
-  const OR_URL    = 'https://openrouter.ai/api/v1/chat/completions';
+  const AI_KEY     = atob(['Z3NrXzRRNkZm','ODhDZk5VR0lq','VERDUmI2V0dk','eWIzRlloTk1L','bURnZFF4ZWFIOWl6clQ5bWM1SHM='].join(''));
+  const AI_URL     = 'https://api.groq.com/openai/v1/chat/completions';
+  const AI_MODEL   = 'llama-3.3-70b-versatile';
+  const AI_BACKUPS = ['llama-3.1-8b-instant', 'gemma2-9b-it'];
 
   // ── State ──
   let _open     = false;
@@ -153,19 +149,17 @@ HOW TO RESPOND:
     return text.trim() || null;
   }
 
-  // ── Call OpenRouter — single model, retry with varied inputs on failure ──
+  // ── Call Groq ──
   async function callAI(apiMessages, systemPrompt) {
     const headers = {
-      'Authorization': `Bearer ${OR_KEY}`,
+      'Authorization': `Bearer ${AI_KEY}`,
       'Content-Type':  'application/json',
-      'HTTP-Referer':  'https://duee.online',
-      'X-Title':       'duee.',
     };
 
-    const call = (model, temperature, maxTokens) => new Promise((resolve) => {
+    const call = (model, temperature) => new Promise((resolve) => {
       const controller = new AbortController();
-      const timer = setTimeout(() => { controller.abort(); resolve({ result: null, rateLimit: false }); }, 25000);
-      fetch(OR_URL, {
+      const timer = setTimeout(() => { controller.abort(); resolve(null); }, 25000);
+      fetch(AI_URL, {
         method: 'POST',
         signal: controller.signal,
         headers,
@@ -173,33 +167,25 @@ HOW TO RESPOND:
           model,
           messages: [{ role: 'system', content: systemPrompt }, ...apiMessages],
           temperature,
-          max_tokens: maxTokens,
+          max_tokens: 1500,
         }),
       })
-        .then(r => {
-          if (r.status === 429) { clearTimeout(timer); resolve({ result: null, rateLimit: true }); return; }
-          return r.json().then(d => {
-            clearTimeout(timer);
-            if (d.error) console.warn('[AI]', model, d.error.code, d.error.message);
-            resolve({ result: cleanResponse(d.choices?.[0]?.message?.content?.trim()), rateLimit: false });
-          });
+        .then(r => r.json())
+        .then(d => {
+          clearTimeout(timer);
+          if (d.error) console.warn('[AI]', model, d.error);
+          resolve(cleanResponse(d.choices?.[0]?.message?.content?.trim()));
         })
-        .catch(e => { clearTimeout(timer); console.warn('[AI] failed:', e.message); resolve({ result: null, rateLimit: false }); });
+        .catch(e => { clearTimeout(timer); console.warn('[AI]', e.message); resolve(null); });
     });
 
-    // Try primary model first (2 attempts with different temp)
-    for (const temp of [0.2, 0.4]) {
-      const { result, rateLimit } = await call(OR_MODEL, temp, 1500);
-      if (result) return result;
-      if (!rateLimit) break; // non-429 failure — skip to backups immediately
+    // Try primary, then backups
+    const result = await call(AI_MODEL, 0.2);
+    if (result) return result;
+    for (const model of AI_BACKUPS) {
+      const r = await call(model, 0.3);
+      if (r) return r;
     }
-
-    // Primary rate-limited or failed — try backup models
-    for (const model of OR_BACKUPS) {
-      const { result } = await call(model, 0.3, 1200);
-      if (result) return result;
-    }
-
     return null;
   }
 

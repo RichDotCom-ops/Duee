@@ -1,7 +1,7 @@
 // duee. — AI Study Assistant (powered by LiquidAI via OpenRouter)
 
 (function () {
-  const OR_KEY    = atob('c2stb3ItdjEtMGIwZjA5ZWI1NmRhOGYyMzc1M2M4ZmQzNDExZTE3MTQwMjc4ZWFmYjYxMjc2NjBhMWJmZTgxZjU1NjRkMDAxOQ==');
+  const OR_KEY    = atob('c2stb3ItdjEtYjA5Y2VlNTA0YTM0MGMwYTk2YmY0MmM2NjYyYjVkMmUwYzdiZDg2NTNhMjk5YTU5MGVjMTMxOGU5MDBkNzZlNQ==');
   const OR_MODEL   = 'google/gemma-4-26b-a4b-it:free';
   const OR_BACKUPS = [
     'nvidia/nemotron-3-super-120b-a12b:free',

@@ -2,7 +2,12 @@
 
 (function () {
   const OR_KEY    = atob('c2stb3ItdjEtMGIwZjA5ZWI1NmRhOGYyMzc1M2M4ZmQzNDExZTE3MTQwMjc4ZWFmYjYxMjc2NjBhMWJmZTgxZjU1NjRkMDAxOQ==');
-  const OR_MODEL = 'google/gemma-4-26b-a4b-it:free';
+  const OR_MODEL   = 'google/gemma-4-26b-a4b-it:free';
+  const OR_BACKUPS = [
+    'nvidia/nemotron-3-super-120b-a12b:free',
+    'nvidia/nemotron-3-nano-30b-a3b:free',
+    'nvidia/nemotron-3.5-lightning:free',
+  ];
   const OR_URL    = 'https://openrouter.ai/api/v1/chat/completions';
 
   // ── State ──
@@ -157,34 +162,45 @@ HOW TO RESPOND:
       'X-Title':       'duee.',
     };
 
-    const attempt = (temperature, maxTokens) => new Promise((resolve) => {
+    const call = (model, temperature, maxTokens) => new Promise((resolve) => {
       const controller = new AbortController();
-      const timer = setTimeout(() => { controller.abort(); resolve(null); }, 25000);
+      const timer = setTimeout(() => { controller.abort(); resolve({ result: null, rateLimit: false }); }, 25000);
       fetch(OR_URL, {
         method: 'POST',
         signal: controller.signal,
         headers,
         body: JSON.stringify({
-          model: OR_MODEL,
+          model,
           messages: [{ role: 'system', content: systemPrompt }, ...apiMessages],
           temperature,
           max_tokens: maxTokens,
         }),
       })
-        .then(r => r.json())
-        .then(d => {
-          clearTimeout(timer);
-          if (d.error) console.warn('[AI]', d.error.code, d.error.message);
-          resolve(cleanResponse(d.choices?.[0]?.message?.content?.trim()));
+        .then(r => {
+          if (r.status === 429) { clearTimeout(timer); resolve({ result: null, rateLimit: true }); return; }
+          return r.json().then(d => {
+            clearTimeout(timer);
+            if (d.error) console.warn('[AI]', model, d.error.code, d.error.message);
+            resolve({ result: cleanResponse(d.choices?.[0]?.message?.content?.trim()), rateLimit: false });
+          });
         })
-        .catch(e => { clearTimeout(timer); console.warn('[AI] failed:', e.message); resolve(null); });
+        .catch(e => { clearTimeout(timer); console.warn('[AI] failed:', e.message); resolve({ result: null, rateLimit: false }); });
     });
 
-    // Try 3 times with different temperature/token settings
-    return await attempt(0.2, 1500)
-        || await attempt(0.5, 1200)
-        || await attempt(0.7, 1000)
-        || null;
+    // Try primary model first (2 attempts with different temp)
+    for (const temp of [0.2, 0.4]) {
+      const { result, rateLimit } = await call(OR_MODEL, temp, 1500);
+      if (result) return result;
+      if (!rateLimit) break; // non-429 failure — skip to backups immediately
+    }
+
+    // Primary rate-limited or failed — try backup models
+    for (const model of OR_BACKUPS) {
+      const { result } = await call(model, 0.3, 1200);
+      if (result) return result;
+    }
+
+    return null;
   }
 
   // ── Fuzzy assignment finder ──

@@ -312,6 +312,7 @@ Rules:
       }
 
       // ── Conversational fallback — call LLM ──
+      let llmSucceeded = false;
       try {
         const systemPrompt = buildSystemPrompt(ctx);
         const apiMessages = _history
@@ -319,16 +320,18 @@ Rules:
           .map(m => ({ role: m.role === 'bot' ? 'assistant' : 'user', content: m.role === 'user' ? normalize(m.text) : m.text }));
         const raw = await callAI(apiMessages, systemPrompt);
         if (!raw) {
-          _history.push({ role: 'bot', text: `⚡ AI models are overloaded right now — try again in a few seconds!` });
+          _history.push({ role: 'bot', text: `⚡ AI is busy right now — try again in a moment!` });
         } else {
+          llmSucceeded = true;
           const { text: replyText, actionResult } = await parseAndExecute(raw, ctx);
           if (replyText) _history.push({ role: 'bot', text: replyText });
           if (actionResult) _history.push({ role: 'bot', text: actionResult, _actionOnly: true });
         }
       } catch (e) {
-        _history.push({ role: 'bot', text: `⚡ AI models are overloaded right now — try again in a few seconds!` });
+        _history.push({ role: 'bot', text: `⚡ AI is busy right now — try again in a moment!` });
       }
-      if (typeof DueePlan !== 'undefined') DueePlan.incrementAI();
+      // Only charge a token when AI actually responded
+      if (llmSucceeded && typeof DueePlan !== 'undefined') DueePlan.incrementAI();
 
     } catch (err) {
       _history.push({ role: 'bot', text: `Something went wrong — try again!` });
@@ -507,12 +510,59 @@ Rules:
   // ─────────────────────────────────────────────
 
   function escHtml(s) {
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/\n/g,'<br>');
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
   function mdToHtml(s) {
-    return escHtml(s)
-      .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
-      .replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" style="color:#7c3aed;font-weight:600;">$1</a>');
+    // Strip LaTeX $$ wrappers, keep the expression
+    s = s.replace(/\$\$([^$]+)\$\$/g, '$1');
+    // Strip inline $ math
+    s = s.replace(/\$([^$\n]+)\$/g, '$1');
+    // Remove <think>...</think> blocks
+    s = s.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+
+    const lines = s.split('\n');
+    const out = [];
+    let inList = false;
+
+    for (let i = 0; i < lines.length; i++) {
+      let l = escHtml(lines[i]);
+
+      // Apply inline markdown (bold, italic, code, links)
+      l = l.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+      l = l.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      l = l.replace(/\*(.+?)\*/g, '<em>$1</em>');
+      l = l.replace(/`([^`]+)`/g, '<code style="background:#f1f5f9;padding:1px 5px;border-radius:4px;font-size:12px;font-family:monospace;">$1</code>');
+      l = l.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" style="color:#7c3aed;font-weight:600;">$1</a>');
+
+      // Block-level
+      if (/^#{3}\s+(.+)/.test(l)) {
+        if (inList) { out.push('</ul>'); inList = false; }
+        out.push(`<div style="font-size:13px;font-weight:700;margin:8px 0 4px;">${l.replace(/^#{3}\s+/,'')}</div>`);
+      } else if (/^#{2}\s+(.+)/.test(l)) {
+        if (inList) { out.push('</ul>'); inList = false; }
+        out.push(`<div style="font-size:14px;font-weight:700;margin:8px 0 4px;">${l.replace(/^#{2}\s+/,'')}</div>`);
+      } else if (/^#{1}\s+(.+)/.test(l)) {
+        if (inList) { out.push('</ul>'); inList = false; }
+        out.push(`<div style="font-size:15px;font-weight:800;margin:8px 0 4px;">${l.replace(/^#\s+/,'')}</div>`);
+      } else if (/^(-{3,}|\*{3,})$/.test(lines[i].trim())) {
+        if (inList) { out.push('</ul>'); inList = false; }
+        out.push('<hr style="border:none;border-top:1px solid #e2e8f0;margin:8px 0;">');
+      } else if (/^[-*•]\s+/.test(l)) {
+        if (!inList) { out.push('<ul style="margin:4px 0;padding-left:18px;">'); inList = true; }
+        out.push(`<li style="margin:2px 0;">${l.replace(/^[-*•]\s+/,'')}</li>`);
+      } else if (/^\d+\.\s+/.test(l)) {
+        if (inList) { out.push('</ul>'); inList = false; }
+        out.push(`<div style="margin:2px 0;">${l}</div>`);
+      } else if (l.trim() === '') {
+        if (inList) { out.push('</ul>'); inList = false; }
+        out.push('<br>');
+      } else {
+        if (inList) { out.push('</ul>'); inList = false; }
+        out.push(l + '<br>');
+      }
+    }
+    if (inList) out.push('</ul>');
+    return out.join('').replace(/(<br>){3,}/g,'<br><br>').replace(/^<br>|<br>$/g,'');
   }
 
   function renderMessages() {

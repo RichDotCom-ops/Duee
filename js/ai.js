@@ -3,13 +3,12 @@
 (function () {
   const OR_KEY    = atob('c2stb3ItdjEtMGIwZjA5ZWI1NmRhOGYyMzc1M2M4ZmQzNDExZTE3MTQwMjc4ZWFmYjYxMjc2NjBhMWJmZTgxZjU1NjRkMDAxOQ==');
   const OR_MODELS = [
-    'deepseek/deepseek-r1-0528:free',          // DeepSeek R1 — best reasoning, top priority
-    'deepseek/deepseek-chat-v3-0324:free',     // DeepSeek V3 — fast & reliable
-    'meta-llama/llama-3.3-70b-instruct:free',
-    'qwen/qwen3-235b-a22b:free',
-    'google/gemma-3-27b-it:free',
-    'mistralai/mistral-small-3.2-24b-instruct:free',
-    'nvidia/nemotron-3-ultra-550b-a55b:free',
+    'deepseek/deepseek-chat-v3-0324:free',     // DeepSeek V3 — top priority
+    'google/gemma-4-26b-a4b-it:free',          // confirmed working
+    'nvidia/nemotron-3-ultra-550b-a55b:free',  // confirmed working
+    'nvidia/nemotron-3-super-120b-a12b:free',  // confirmed working
+    'nvidia/nemotron-3-nano-30b-a3b:free',     // confirmed working
+    'nvidia/nemotron-3.5-lightning:free',      // confirmed working, fastest
   ];
   const OR_URL    = 'https://openrouter.ai/api/v1/chat/completions';
 
@@ -176,8 +175,12 @@ HOW TO RESPOND:
       const timer = setTimeout(() => { controller.abort(); resolve({ model, result: null }); }, 28000);
       fetch(OR_URL, { method: 'POST', signal: controller.signal, headers, body: mkBody(model) })
         .then(r => r.json())
-        .then(d => { clearTimeout(timer); resolve({ model, result: cleanResponse(d.choices?.[0]?.message?.content?.trim()) }); })
-        .catch(() => { clearTimeout(timer); resolve({ model, result: null }); });
+        .then(d => {
+          clearTimeout(timer);
+          if (d.error) console.warn('[AI]', model, d.error.code, d.error.message);
+          resolve({ model, result: cleanResponse(d.choices?.[0]?.message?.content?.trim()) });
+        })
+        .catch(e => { clearTimeout(timer); console.warn('[AI] fetch failed:', model, e.message); resolve({ model, result: null }); });
     });
 
     // Race all models — take first good result, but if a better-ranked model arrives

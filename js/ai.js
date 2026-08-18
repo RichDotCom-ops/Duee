@@ -18,22 +18,41 @@
   function _memLoad() { try { return JSON.parse(localStorage.getItem(_MEM_KEY) || '{}'); } catch { return {}; } }
   function _memSave(m) { try { localStorage.setItem(_MEM_KEY, JSON.stringify(m)); } catch {} }
 
-  function _memExtractUser(text) {
-    const mem = _memLoad(); let changed = false;
-    const nm = text.match(/(?:my name is|call me)\s+([A-Za-z]{2,20})/i) ||
-               text.match(/\bi(?:'m| am)\s+([A-Z][a-z]{1,20})(?=[\s,!?.]|$)/);
-    if (nm) { mem.name = nm[1]; changed = true; }
-    const mj = text.match(/(?:i(?:'m| am) (?:studying|majoring in)|my major is)\s+([\w\s]{2,30}?)(?:[.,]|$)/i);
-    if (mj) { mem.major = mj[1].trim(); changed = true; }
-    const sc = text.match(/(?:i (?:go to|attend|study at)|i(?:'m| am) at)\s+([\w\s]{2,40}?(?:university|college|school|institute))\b/i);
-    if (sc) { mem.school = sc[1].trim(); changed = true; }
-    const rm = text.match(/(?:remember|don'?t forget|note that)[:\s]+(.{3,120})/i);
+  function _memExtractUser(raw) {
+    // Always run on the raw original text (not normalized) so nothing gets stripped
+    const mem = _memLoad(); let changed = false; const changed_keys = [];
+
+    // Name — case-insensitive, flexible patterns
+    const nm =
+      raw.match(/(?:my name is|i go by|call me|they call me|name'?s?)\s+([a-z]{2,20})/i) ||
+      raw.match(/\bi(?:'m| am)\s+([a-z]{2,20})(?=[\s,!?.]|$)/i);
+    if (nm && !/^(a|an|the|good|fine|okay|ok|great|bad|tired|bored|studying|majoring)$/i.test(nm[1])) {
+      const name = nm[1].charAt(0).toUpperCase() + nm[1].slice(1).toLowerCase();
+      if (mem.name !== name) { mem.name = name; changed = true; changed_keys.push('name'); }
+    }
+
+    // Major / subject
+    const mj = raw.match(/(?:i(?:'m| am) (?:studying|majoring in|a)|my major is|i study)\s+([\w\s]{2,35}?)(?:[.,!?]|$)/i);
+    if (mj) { const v = mj[1].trim(); if (v && mem.major !== v) { mem.major = v; changed = true; } }
+
+    // School
+    const sc = raw.match(/(?:i (?:go to|attend|study at)|i(?:'m| am) at|my (?:school|university|college) is)\s+([\w\s]{2,50})/i);
+    if (sc) { const v = sc[1].replace(/[.,!?].*$/, '').trim(); if (v && mem.school !== v) { mem.school = v; changed = true; } }
+
+    // Year / grade
+    const yr = raw.match(/\bi(?:'m| am) a\s+(freshman|sophomore|junior|senior|grad student|graduate student|phd student)\b/i);
+    if (yr) { const v = yr[1].toLowerCase(); if (mem.year !== v) { mem.year = v; changed = true; } }
+
+    // Explicit remember command
+    const rm = raw.match(/(?:remember|don'?t forget|keep in mind|note that|save that)[:\s]+(.{3,150})/i);
     if (rm) {
       if (!mem.notes) mem.notes = [];
-      const note = rm[1].trim();
+      const note = rm[1].replace(/[.!?]*$/, '').trim();
       if (!mem.notes.some(n => n.toLowerCase() === note.toLowerCase())) { mem.notes.push(note); changed = true; }
     }
+
     if (changed) _memSave(mem);
+    return changed_keys; // return what changed so we can acknowledge it
   }
 
   function _memExtractAI(text) {
@@ -48,13 +67,14 @@
 
   function _memContext() {
     const mem = _memLoad(); const lines = [];
-    if (mem.name)          lines.push(`• Name: ${mem.name}`);
-    if (mem.major)         lines.push(`• Major/Subject: ${mem.major}`);
+    if (mem.name)          lines.push(`• Name: ${mem.name} (use their name in replies!)`);
+    if (mem.year)          lines.push(`• Year: ${mem.year}`);
+    if (mem.major)         lines.push(`• Major/Studying: ${mem.major}`);
     if (mem.school)        lines.push(`• School: ${mem.school}`);
-    if (mem.notes?.length) mem.notes.forEach(n => lines.push(`• Remembered: ${n}`));
-    const skip = new Set(['name','major','school','notes']);
+    if (mem.notes?.length) mem.notes.forEach(n => lines.push(`• They told me: "${n}"`));
+    const skip = new Set(['name','major','school','notes','year']);
     Object.entries(mem).forEach(([k,v]) => { if (!skip.has(k) && typeof v === 'string') lines.push(`• ${k.replace(/_/g,' ')}: ${v}`); });
-    return lines.length ? `\nWhat I know about this student:\n${lines.join('\n')}\n` : '';
+    return lines.length ? `\n⚠️ IMPORTANT — I already know this student:\n${lines.join('\n')}\nUse this info to personalize every response.\n` : '';
   }
 
   // ── Conversation history ──
@@ -181,7 +201,7 @@ HOW TO RESPOND:
 - Format: use **bold** for key terms, numbered steps for math, bullet points for lists. When answering a question, always bold the direct answer/result (e.g. "The answer is **42**", "**Photosynthesis** is...", final answers in math steps should be bolded).
 - Length: as long as needed to fully answer. Don't cut answers short.
 - NEVER say "I can't help with that" or redirect to other tools. Just answer.
-- Memory: when the student shares something personal (their name, major, school, a preference, or says "remember X"), append a [REMEMBER: key=value] tag at the very end of your reply — e.g. [REMEMBER: favorite_subject=Chemistry]. It's hidden from them but saved for future chats. Use existing memory to personalize responses naturally.`;
+- Memory: USE the student's name naturally in responses when you know it. When they share personal info (name, major, school, year, preferences), append [REMEMBER: key=value] at the end — e.g. [REMEMBER: favorite_subject=Chemistry]. If they say "remember X", confirm it: "Got it, I'll remember that!". Always personalize — never respond like you don't know them if memory exists.`;
   }
 
   // ── Strip model thinking preambles ──
@@ -400,7 +420,7 @@ HOW TO RESPOND:
     renderMessages();
 
     const normalizedText = normalize(text);
-    _memExtractUser(normalizedText);
+    const memChanged = _memExtractUser(text); // use raw text for memory, not normalized
 
     try {
       const ctx = await buildContext();

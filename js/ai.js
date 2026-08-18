@@ -7,9 +7,11 @@
   const AI_BACKUPS = ['qwen/qwen3.6-27b', 'openai/gpt-oss-20b'];
 
   // ── State ──
-  let _open     = false;
-  let _thinking = false;
-  let _history  = []; // { role, text } for display + { role, content } for API
+  let _open          = false;
+  let _thinking      = false;
+  let _history       = []; // { role, text } for display + { role, content } for API
+  let _convId        = null; // current conversation ID
+  let _histOpen      = false; // history panel visible
 
   // ── Persistent memory ──
   const _MEM_KEY = 'duee_ai_mem';
@@ -53,6 +55,57 @@
     const skip = new Set(['name','major','school','notes']);
     Object.entries(mem).forEach(([k,v]) => { if (!skip.has(k) && typeof v === 'string') lines.push(`• ${k.replace(/_/g,' ')}: ${v}`); });
     return lines.length ? `\nWhat I know about this student:\n${lines.join('\n')}\n` : '';
+  }
+
+  // ── Conversation history ──
+  const _CONV_KEY = 'duee_ai_convs';
+  function _convsLoad() { try { return JSON.parse(localStorage.getItem(_CONV_KEY) || '[]'); } catch { return []; } }
+  function _convsSave(c) { try { localStorage.setItem(_CONV_KEY, JSON.stringify(c.slice(0, 30))); } catch {} }
+
+  function _convAutoSave() {
+    const userMsgs = _history.filter(m => m.role === 'user');
+    if (!userMsgs.length || _history.length < 2) return;
+    if (!_convId) _convId = 'c' + Date.now();
+    const convs = _convsLoad();
+    const idx = convs.findIndex(c => c.id === _convId);
+    const entry = { id: _convId, title: userMsgs[0].text.slice(0, 60), ts: Date.now(), messages: _history.filter(m => !m._actionOnly) };
+    if (idx >= 0) convs[idx] = entry; else convs.unshift(entry);
+    _convsSave(convs);
+  }
+
+  function _fmtTs(ts) {
+    const diff = Math.floor((Date.now() - ts) / 86400000);
+    if (diff === 0) return 'Today';
+    if (diff === 1) return 'Yesterday';
+    if (diff < 7) return new Date(ts).toLocaleDateString('en', { weekday: 'long' });
+    return new Date(ts).toLocaleDateString('en', { month: 'short', day: 'numeric' });
+  }
+
+  function renderHistoryPanel() {
+    const list = document.getElementById('ai-hist-list');
+    if (!list) return;
+    const convs = _convsLoad();
+    if (!convs.length) {
+      list.innerHTML = `<div style="text-align:center;padding:40px 16px;color:var(--text-muted,#94a3b8);font-size:13px;line-height:1.6;">No saved conversations yet.<br>Start chatting to build history!</div>`;
+      return;
+    }
+    list.innerHTML = convs.map(c => `
+      <div class="ai-hist-item" onclick="window._aiLoadConv('${c.id}')">
+        <div class="ai-hist-title">${escHtml(c.title)}</div>
+        <div class="ai-hist-meta">${_fmtTs(c.ts)}</div>
+        <button class="ai-hist-del" onclick="event.stopPropagation();window._aiDelConv('${c.id}')" title="Delete">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>`).join('');
+  }
+
+  function _showHistPanel(show) {
+    _histOpen = show;
+    document.getElementById('ai-messages').style.display       = show ? 'none' : '';
+    document.getElementById('ai-input-area').style.display     = show ? 'none' : '';
+    document.getElementById('ai-token-counter').style.display  = show ? 'none' : '';
+    document.getElementById('ai-hist-panel').style.display     = show ? 'flex' : 'none';
+    if (show) renderHistoryPanel();
   }
 
   // ── Page refresh after data changes ──
@@ -356,6 +409,7 @@ HOW TO RESPOND:
       const ruled = await ruleBasedFallback(normalizedText, ctx);
       if (ruled !== null) {
         _history.push({ role: 'bot', text: ruled });
+        _convAutoSave();
         if (typeof DueePlan !== 'undefined') DueePlan.incrementAI();
         _thinking = false;
         renderMessages();
@@ -380,6 +434,7 @@ HOW TO RESPOND:
           const { text: replyText, actionResult } = await parseAndExecute(cleanRaw, ctx);
           if (replyText) _history.push({ role: 'bot', text: replyText });
           if (actionResult) _history.push({ role: 'bot', text: actionResult, _actionOnly: true });
+          _convAutoSave();
         }
       } catch (e) {
         _history.push({ role: 'bot', text: `⚡ AI is busy right now — try again in a moment!` });
@@ -670,6 +725,7 @@ HOW TO RESPOND:
       : `<span style="font-size:22px;line-height:1;">✦</span>`;
     if (_open) {
       if (_history.length === 0) {
+        _convId = 'c' + Date.now();
         _history.push({ role: 'bot', text: "Hey! I'm your AI study assistant ✦\n\nI can help you with **two things**:\n\n**📚 Homework & Study Questions**\n• \"Solve 3x + 5 = 20\"\n• \"Explain photosynthesis\"\n• \"Help me outline my essay\"\n• \"What caused WW2?\"\n\n**✅ Assignment Management**\n• \"I finished my bio lab\" — mark done\n• \"Add a quiz due Friday\"\n• \"What's due this week?\"\n• \"Delete my math hw\"\n\nAsk me anything!" });
         renderMessages();
       }
@@ -678,7 +734,17 @@ HOW TO RESPOND:
     }
   };
 
-  window._aiClear = function () { _history = []; renderMessages(); };
+  window._aiClear = function () { _history = []; _convId = 'c' + Date.now(); _showHistPanel(false); renderMessages(); };
+  window._aiToggleHistory = function () { _showHistPanel(!_histOpen); };
+  window._aiNewChat = function () { _history = []; _convId = 'c' + Date.now(); _showHistPanel(false); renderMessages(); };
+  window._aiLoadConv = function (id) {
+    const conv = _convsLoad().find(c => c.id === id);
+    if (!conv) return;
+    _history = [...conv.messages]; _convId = id;
+    _showHistPanel(false); renderMessages();
+    if (typeof updateTokenUI === 'function') updateTokenUI();
+  };
+  window._aiDelConv = function (id) { _convsSave(_convsLoad().filter(c => c.id !== id)); renderHistoryPanel(); };
 
   window._aiCopy = function(i) {
     const msg = _history[i];
@@ -728,6 +794,16 @@ HOW TO RESPOND:
       .ai-bubble-wrap .ai-bubble{max-width:100%;}
       .ai-copy-btn{background:none;border:none;cursor:pointer;padding:2px 7px;color:var(--text-muted,#94a3b8);border-radius:5px;display:flex;align-items:center;gap:3px;margin-top:4px;opacity:0.55;transition:opacity 0.15s,color 0.15s;font-size:11px;font-family:inherit;line-height:1;}
       .ai-copy-btn:hover{opacity:1;color:var(--text-secondary,#64748b);background:var(--bg-hover,#f1f5f9);}
+      #ai-hist-panel{display:none;flex-direction:column;flex:1;overflow:hidden;}
+      #ai-hist-panel-header{padding:10px 14px;border-bottom:1px solid var(--border,#e2e8f0);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+      #ai-hist-list{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:6px;}
+      .ai-hist-item{position:relative;padding:10px 12px;border-radius:10px;cursor:pointer;border:1px solid var(--border,#e2e8f0);background:var(--bg-white,#fff);transition:background 0.15s;}
+      .ai-hist-item:hover{background:var(--bg-hover,#f1f5f9);}
+      .ai-hist-title{font-size:13px;font-weight:500;color:var(--text-primary,#0f172a);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:22px;}
+      .ai-hist-meta{font-size:11px;color:var(--text-muted,#94a3b8);margin-top:3px;}
+      .ai-hist-del{position:absolute;top:50%;right:8px;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:3px;color:var(--text-muted,#94a3b8);border-radius:4px;opacity:0;transition:opacity 0.15s;display:flex;align-items:center;}
+      .ai-hist-item:hover .ai-hist-del{opacity:1;}
+      .ai-hist-del:hover{color:var(--red,#ef4444);}
       .ai-typing{display:flex;align-items:center;gap:4px;min-width:48px;}
       .ai-typing span{width:6px;height:6px;border-radius:50%;background:var(--text-secondary,#94a3b8);animation:aiDot 1.2s infinite ease-in-out;display:inline-block;}
       .ai-typing span:nth-child(2){animation-delay:0.2s;}
@@ -762,6 +838,9 @@ HOW TO RESPOND:
           <div class="ai-header-name">Study Assistant</div>
           <div class="ai-header-sub">Powered by LiquidAI ✦</div>
         </div>
+        <button class="ai-hbtn" title="Chat history" onclick="window._aiToggleHistory()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </button>
         <button class="ai-hbtn" title="Clear chat" onclick="window._aiClear()">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.49"/></svg>
         </button>
@@ -770,6 +849,13 @@ HOW TO RESPOND:
         </button>
       </div>
       <div id="ai-messages"></div>
+      <div id="ai-hist-panel">
+        <div id="ai-hist-panel-header">
+          <span style="font-size:13px;font-weight:700;color:var(--text-primary,#0f172a);">Chat History</span>
+          <button onclick="window._aiNewChat()" style="background:linear-gradient(135deg,#7c3aed,#2563eb);color:white;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;">+ New Chat</button>
+        </div>
+        <div id="ai-hist-list"></div>
+      </div>
       <div id="ai-token-counter" style="display:none;font-size:11px;text-align:center;padding:4px 12px 0;"></div>
       <div id="ai-input-area">
         <textarea id="ai-input" rows="1" placeholder="Ask me anything…" maxlength="600"></textarea>

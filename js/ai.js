@@ -3,12 +3,13 @@
 (function () {
   const OR_KEY    = atob('c2stb3ItdjEtMGIwZjA5ZWI1NmRhOGYyMzc1M2M4ZmQzNDExZTE3MTQwMjc4ZWFmYjYxMjc2NjBhMWJmZTgxZjU1NjRkMDAxOQ==');
   const OR_MODELS = [
-    'deepseek/deepseek-chat-v3-0324:free',     // DeepSeek V3 — top priority
-    'google/gemma-4-26b-a4b-it:free',          // confirmed working
-    'nvidia/nemotron-3-ultra-550b-a55b:free',  // confirmed working
-    'nvidia/nemotron-3-super-120b-a12b:free',  // confirmed working
-    'nvidia/nemotron-3-nano-30b-a3b:free',     // confirmed working
-    'nvidia/nemotron-3.5-lightning:free',      // confirmed working, fastest
+    'openai/gpt-oss-20b:free',
+    'google/gemma-4-31b-it:free',
+    'nvidia/nemotron-3-ultra-550b-a55b:free',
+    'nvidia/nemotron-3-super-120b-a12b:free',
+    'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
+    'google/gemma-4-26b-a4b-it:free',
+    'nvidia/nemotron-3.5-lightning:free',
   ];
   const OR_URL    = 'https://openrouter.ai/api/v1/chat/completions';
 

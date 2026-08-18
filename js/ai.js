@@ -3,11 +3,13 @@
 (function () {
   const OR_KEY    = atob('c2stb3ItdjEtMGIwZjA5ZWI1NmRhOGYyMzc1M2M4ZmQzNDExZTE3MTQwMjc4ZWFmYjYxMjc2NjBhMWJmZTgxZjU1NjRkMDAxOQ==');
   const OR_MODELS = [
-    'google/gemma-4-26b-a4b-it:free',
+    'deepseek/deepseek-r1-0528:free',          // DeepSeek R1 — best reasoning, top priority
+    'deepseek/deepseek-chat-v3-0324:free',     // DeepSeek V3 — fast & reliable
+    'meta-llama/llama-3.3-70b-instruct:free',
+    'qwen/qwen3-235b-a22b:free',
+    'google/gemma-3-27b-it:free',
+    'mistralai/mistral-small-3.2-24b-instruct:free',
     'nvidia/nemotron-3-ultra-550b-a55b:free',
-    'nvidia/nemotron-3-super-120b-a12b:free',
-    'nvidia/nemotron-3-nano-30b-a3b:free',
-    'nvidia/nemotron-3.5-lightning:free',
   ];
   const OR_URL    = 'https://openrouter.ai/api/v1/chat/completions';
 
@@ -15,6 +17,50 @@
   let _open     = false;
   let _thinking = false;
   let _history  = []; // { role, text } for display + { role, content } for API
+
+  // ── Persistent memory ──
+  const _MEM_KEY = 'duee_ai_mem';
+  function _memLoad() { try { return JSON.parse(localStorage.getItem(_MEM_KEY) || '{}'); } catch { return {}; } }
+  function _memSave(m) { try { localStorage.setItem(_MEM_KEY, JSON.stringify(m)); } catch {} }
+
+  function _memExtractUser(text) {
+    const mem = _memLoad(); let changed = false;
+    const nm = text.match(/(?:my name is|call me)\s+([A-Za-z]{2,20})/i) ||
+               text.match(/\bi(?:'m| am)\s+([A-Z][a-z]{1,20})(?=[\s,!?.]|$)/);
+    if (nm) { mem.name = nm[1]; changed = true; }
+    const mj = text.match(/(?:i(?:'m| am) (?:studying|majoring in)|my major is)\s+([\w\s]{2,30}?)(?:[.,]|$)/i);
+    if (mj) { mem.major = mj[1].trim(); changed = true; }
+    const sc = text.match(/(?:i (?:go to|attend|study at)|i(?:'m| am) at)\s+([\w\s]{2,40}?(?:university|college|school|institute))\b/i);
+    if (sc) { mem.school = sc[1].trim(); changed = true; }
+    const rm = text.match(/(?:remember|don'?t forget|note that)[:\s]+(.{3,120})/i);
+    if (rm) {
+      if (!mem.notes) mem.notes = [];
+      const note = rm[1].trim();
+      if (!mem.notes.some(n => n.toLowerCase() === note.toLowerCase())) { mem.notes.push(note); changed = true; }
+    }
+    if (changed) _memSave(mem);
+  }
+
+  function _memExtractAI(text) {
+    const mem = _memLoad(); let changed = false;
+    for (const m of [...(text.matchAll(/\[REMEMBER:\s*([^=\]]+?)=([^\]]+)\]/gi))]) {
+      const k = m[1].trim().toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'');
+      const v = m[2].trim();
+      if (k && v) { mem[k] = v; changed = true; }
+    }
+    if (changed) _memSave(mem);
+  }
+
+  function _memContext() {
+    const mem = _memLoad(); const lines = [];
+    if (mem.name)          lines.push(`• Name: ${mem.name}`);
+    if (mem.major)         lines.push(`• Major/Subject: ${mem.major}`);
+    if (mem.school)        lines.push(`• School: ${mem.school}`);
+    if (mem.notes?.length) mem.notes.forEach(n => lines.push(`• Remembered: ${n}`));
+    const skip = new Set(['name','major','school','notes']);
+    Object.entries(mem).forEach(([k,v]) => { if (!skip.has(k) && typeof v === 'string') lines.push(`• ${k.replace(/_/g,' ')}: ${v}`); });
+    return lines.length ? `\nWhat I know about this student:\n${lines.join('\n')}\n` : '';
+  }
 
   // ── Page refresh after data changes ──
   function refreshPage() {
@@ -73,7 +119,7 @@
     }).join('\n') || '• none';
 
     return `You are a smart, friendly AI study assistant built into duee. — a student planner app.
-
+${_memContext()}
 You have TWO jobs:
 1. ANSWER any homework or study question the student asks — math, science, history, english, coding, anything. Give clear, step-by-step answers. Never refuse a homework question.
 2. MANAGE their assignments when they ask — mark done, add new, delete, show upcoming.
@@ -86,9 +132,10 @@ HOW TO RESPOND:
 - For homework/study questions: answer directly and fully. Show all steps for math. Explain concepts clearly. Be like a knowledgeable tutor.
 - For assignment management: use the action JSON blocks (already built in).
 - Tone: friendly, encouraging, casual — like a smart friend helping out.
-- Format: use **bold** for key terms, numbered steps for math, bullet points for lists.
+- Format: use **bold** for key terms, numbered steps for math, bullet points for lists. When answering a question, always bold the direct answer/result (e.g. "The answer is **42**", "**Photosynthesis** is...", final answers in math steps should be bolded).
 - Length: as long as needed to fully answer. Don't cut answers short.
-- NEVER say "I can't help with that" or redirect to other tools. Just answer.`;
+- NEVER say "I can't help with that" or redirect to other tools. Just answer.
+- Memory: when the student shares something personal (their name, major, school, a preference, or says "remember X"), append a [REMEMBER: key=value] tag at the very end of your reply — e.g. [REMEMBER: favorite_subject=Chemistry]. It's hidden from them but saved for future chats. Use existing memory to personalize responses naturally.`;
   }
 
   // ── Strip model thinking preambles ──
@@ -109,13 +156,13 @@ HOW TO RESPOND:
     return text.trim() || null;
   }
 
-  // ── Call OpenRouter — race all models, return first good reply ──
+  // ── Call OpenRouter — race all models in parallel, prefer higher-ranked result ──
   async function callAI(apiMessages, systemPrompt) {
-    const body = (model) => JSON.stringify({
+    const mkBody = (model) => JSON.stringify({
       model,
       messages: [{ role: 'system', content: systemPrompt }, ...apiMessages],
-      temperature: 0.6,
-      max_tokens: 400,
+      temperature: 0.2,
+      max_tokens: 1500,
     });
     const headers = {
       'Authorization': `Bearer ${OR_KEY}`,
@@ -126,26 +173,35 @@ HOW TO RESPOND:
 
     const tryModel = (model) => new Promise((resolve) => {
       const controller = new AbortController();
-      const timer = setTimeout(() => { controller.abort(); resolve(null); }, 25000);
-      fetch(OR_URL, { method: 'POST', signal: controller.signal, headers, body: body(model) })
+      const timer = setTimeout(() => { controller.abort(); resolve({ model, result: null }); }, 28000);
+      fetch(OR_URL, { method: 'POST', signal: controller.signal, headers, body: mkBody(model) })
         .then(r => r.json())
-        .then(d => {
-          clearTimeout(timer);
-          const raw = d.choices?.[0]?.message?.content?.trim();
-          resolve(cleanResponse(raw));
-        })
-        .catch(() => { clearTimeout(timer); resolve(null); });
+        .then(d => { clearTimeout(timer); resolve({ model, result: cleanResponse(d.choices?.[0]?.message?.content?.trim()) }); })
+        .catch(() => { clearTimeout(timer); resolve({ model, result: null }); });
     });
 
-    // Fire all models in parallel, return first non-null result
+    // Race all models — take first good result, but if a better-ranked model arrives
+    // within 2s of the first response, prefer it for consistency
     return new Promise((resolve) => {
+      let best = null;       // { rank, result }
       let settled = 0;
       let resolved = false;
-      OR_MODELS.forEach(model => {
-        tryModel(model).then(result => {
+      let resolveTimer = null;
+
+      const pickBest = () => {
+        if (resolved) return;
+        resolved = true;
+        resolve(best?.result || null);
+      };
+
+      OR_MODELS.forEach((model, rank) => {
+        tryModel(model).then(({ result }) => {
           settled++;
-          if (result && !resolved) { resolved = true; resolve(result); }
-          else if (settled === OR_MODELS.length && !resolved) resolve(null);
+          if (result) {
+            if (!best || rank < best.rank) best = { rank, result };
+            if (!resolveTimer) resolveTimer = setTimeout(pickBest, 2000); // wait 2s for a better model
+          }
+          if (settled === OR_MODELS.length) { clearTimeout(resolveTimer); pickBest(); }
         });
       });
     });
@@ -309,6 +365,7 @@ HOW TO RESPOND:
     renderMessages();
 
     const normalizedText = normalize(text);
+    _memExtractUser(normalizedText);
 
     try {
       const ctx = await buildContext();
@@ -336,7 +393,9 @@ HOW TO RESPOND:
           _history.push({ role: 'bot', text: `⚡ AI is busy right now — try again in a moment!` });
         } else {
           llmSucceeded = true;
-          const { text: replyText, actionResult } = await parseAndExecute(raw, ctx);
+          _memExtractAI(raw);
+          const cleanRaw = raw.replace(/\[REMEMBER:[^\]]*\]/gi, '').trim();
+          const { text: replyText, actionResult } = await parseAndExecute(cleanRaw, ctx);
           if (replyText) _history.push({ role: 'bot', text: replyText });
           if (actionResult) _history.push({ role: 'bot', text: actionResult, _actionOnly: true });
         }
@@ -388,6 +447,29 @@ HOW TO RESPOND:
     } catch (_) { list = []; classes = []; }
     const now = new Date(); now.setHours(0,0,0,0);
     const pending = list.filter(a => !a.completed);
+
+    // ── Memory recall ──
+    if (/\b(what'?s?\s+my\s+name|do\s+you\s+(know|remember)\s+my\s+name|who\s+am\s+i)\b/.test(l)) {
+      const mem = _memLoad();
+      return mem.name ? `Your name is **${mem.name}**! 😊` : `I don't know your name yet — what should I call you?`;
+    }
+    if (/\b(what\s+do\s+you\s+(know|remember)\s+about\s+me|do\s+you\s+remember\s+me|what\s+(have\s+you\s+saved|do\s+you\s+have\s+on\s+me)|my\s+info)\b/.test(l)) {
+      const mem = _memLoad();
+      const facts = [];
+      if (mem.name)          facts.push(`Your name is **${mem.name}**`);
+      if (mem.major)         facts.push(`You're studying **${mem.major}**`);
+      if (mem.school)        facts.push(`You go to **${mem.school}**`);
+      if (mem.notes?.length) mem.notes.forEach(n => facts.push(`You told me: *"${n}"*`));
+      const skip = new Set(['name','major','school','notes']);
+      Object.entries(mem).forEach(([k,v]) => { if (!skip.has(k) && typeof v === 'string') facts.push(`**${k.replace(/_/g,' ')}**: ${v}`); });
+      return facts.length
+        ? `Here's what I remember about you:\n${facts.map(f => `• ${f}`).join('\n')}`
+        : `I don't have anything saved about you yet. Tell me your name or anything you'd like me to remember!`;
+    }
+    if (/\b(forget\s+(everything|me|what\s+you\s+know)|clear\s+my\s+(memory|info|data|profile))\b/.test(l)) {
+      _memSave({});
+      return `Done — I've cleared everything I had saved about you. Fresh start! 🧹`;
+    }
 
     const fmtDiff = (a) => {
       const diff = Math.round((new Date(a.dueDate+'T00:00:00') - now) / 86400000);
@@ -578,13 +660,15 @@ HOW TO RESPOND:
     return out.join('').replace(/(<br>){3,}/g,'<br><br>').replace(/^<br>|<br>$/g,'');
   }
 
+  const _COPY_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+
   function renderMessages() {
     const c = document.getElementById('ai-messages');
     if (!c) return;
-    c.innerHTML = _history.map(m =>
+    c.innerHTML = _history.map((m, i) =>
       m.role === 'user'
         ? `<div class="ai-msg ai-msg-user"><div class="ai-bubble ai-bubble-user">${escHtml(m.text)}</div></div>`
-        : `<div class="ai-msg ai-msg-bot"><div class="ai-bubble ai-bubble-bot">${mdToHtml(m.text)}</div></div>`
+        : `<div class="ai-msg ai-msg-bot"><div class="ai-bubble-wrap"><div class="ai-bubble ai-bubble-bot">${mdToHtml(m.text)}</div><button class="ai-copy-btn" data-copy-idx="${i}" onclick="window._aiCopy(${i})" title="Copy answer">${_COPY_SVG} Copy</button></div></div>`
     ).join('') + (_thinking ? `<div class="ai-msg ai-msg-bot"><div class="ai-bubble ai-bubble-bot ai-typing"><span></span><span></span><span></span></div></div>` : '');
     c.scrollTop = c.scrollHeight;
   }
@@ -614,6 +698,23 @@ HOW TO RESPOND:
 
   window._aiClear = function () { _history = []; renderMessages(); };
 
+  window._aiCopy = function(i) {
+    const msg = _history[i];
+    if (!msg) return;
+    const plain = msg.text
+      .replace(/\*\*\*(.+?)\*\*\*/g, '$1').replace(/\*\*(.+?)\*\*/g, '$1').replace(/\*(.+?)\*/g, '$1')
+      .replace(/`([^`]+)`/g, '$1').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/^#{1,3}\s+/gm, '').trim();
+    navigator.clipboard.writeText(plain).then(() => {
+      const btn = document.querySelector(`[data-copy-idx="${i}"]`);
+      if (!btn) return;
+      const orig = btn.innerHTML;
+      btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Copied!`;
+      btn.style.color = '#22c55e'; btn.style.opacity = '1';
+      setTimeout(() => { btn.innerHTML = orig; btn.style.color = ''; btn.style.opacity = ''; }, 1800);
+    }).catch(() => {});
+  };
+
   // ─────────────────────────────────────────────
   //  INIT
   // ─────────────────────────────────────────────
@@ -641,6 +742,10 @@ HOW TO RESPOND:
       .ai-bubble{max-width:82%;padding:9px 12px;border-radius:12px;font-size:13px;line-height:1.55;word-break:break-word;}
       .ai-bubble-user{background:linear-gradient(135deg,#7c3aed,#2563eb);color:white;border-bottom-right-radius:4px;}
       .ai-bubble-bot{background:var(--bg-hover,#f1f5f9);color:var(--text-primary,#0f172a);border-bottom-left-radius:4px;}
+      .ai-bubble-wrap{display:flex;flex-direction:column;align-items:flex-start;max-width:82%;}
+      .ai-bubble-wrap .ai-bubble{max-width:100%;}
+      .ai-copy-btn{background:none;border:none;cursor:pointer;padding:2px 7px;color:var(--text-muted,#94a3b8);border-radius:5px;display:flex;align-items:center;gap:3px;margin-top:4px;opacity:0.55;transition:opacity 0.15s,color 0.15s;font-size:11px;font-family:inherit;line-height:1;}
+      .ai-copy-btn:hover{opacity:1;color:var(--text-secondary,#64748b);background:var(--bg-hover,#f1f5f9);}
       .ai-typing{display:flex;align-items:center;gap:4px;min-width:48px;}
       .ai-typing span{width:6px;height:6px;border-radius:50%;background:var(--text-secondary,#94a3b8);animation:aiDot 1.2s infinite ease-in-out;display:inline-block;}
       .ai-typing span:nth-child(2){animation-delay:0.2s;}

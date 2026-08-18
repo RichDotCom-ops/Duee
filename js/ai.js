@@ -65,34 +65,47 @@
 
   function buildSystemPrompt(ctx) {
     const { classes, pending, now } = ctx;
-    const upcoming = pending.slice(0,8).map(a => {
+    const upcoming = pending.slice(0, 10).map(a => {
       const cls = classes.find(c => c.id === a.classId);
-      const diff = Math.round((new Date(a.dueDate+'T00:00:00') - now) / 86400000);
+      const diff = Math.round((new Date(a.dueDate + 'T00:00:00') - now) / 86400000);
       const when = diff < 0 ? `${Math.abs(diff)}d overdue` : diff === 0 ? 'today' : diff === 1 ? 'tomorrow' : `in ${diff}d`;
-      return `${a.name}${cls ? ` (${cls.name})` : ''} — ${when}`;
-    }).join(', ') || 'none';
+      return `• ${a.name}${cls ? ` [${cls.name}]` : ''} — ${when} (${a.priority} priority)`;
+    }).join('\n') || '• none';
 
-    return `You are duee.'s AI study assistant — you help students with TWO things:
-1. Managing their assignments (adding, completing, deleting, checking what's due)
-2. Answering any study or homework question they have (math, science, history, writing, etc.)
+    return `You are a smart, friendly AI study assistant built into duee. — a student planner app.
 
-Today: ${todayStr()}. Student's pending assignments: ${upcoming}.
+You have TWO jobs:
+1. ANSWER any homework or study question the student asks — math, science, history, english, coding, anything. Give clear, step-by-step answers. Never refuse a homework question.
+2. MANAGE their assignments when they ask — mark done, add new, delete, show upcoming.
 
-Rules:
-- If the student asks a homework/study question (math problem, concept explanation, essay help, etc.) → answer it directly and clearly. Show working for math.
-- If they want to manage assignments → use the action system.
-- Keep replies concise and helpful. For math, show the steps.`;
+Today's date: ${todayStr()}
+Student's current assignments:
+${upcoming}
+
+HOW TO RESPOND:
+- For homework/study questions: answer directly and fully. Show all steps for math. Explain concepts clearly. Be like a knowledgeable tutor.
+- For assignment management: use the action JSON blocks (already built in).
+- Tone: friendly, encouraging, casual — like a smart friend helping out.
+- Format: use **bold** for key terms, numbered steps for math, bullet points for lists.
+- Length: as long as needed to fully answer. Don't cut answers short.
+- NEVER say "I can't help with that" or redirect to other tools. Just answer.`;
   }
 
   // ── Strip model thinking preambles ──
   function cleanResponse(text) {
     if (!text) return null;
-    // Remove "Okay, the user asked..." / "Here's a thinking process:..." preambles
-    text = text.replace(/^(okay|alright|sure)[,.]?\s*(the\s+user\s+(asked|said|wants?)[^.]*\.?\s*)/i, '');
-    text = text.replace(/^here'?s?\s+a\s+thinking\s+process:[\s\S]*?(?=\n\n|\*\*|[A-Z])/i, '');
-    text = text.replace(/^(let me|i'll|i will)\s+(think|work|solve|calculate)[^.]*\.\s*/i, '');
-    // Remove <think>...</think> blocks
-    text = text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+    // Remove <think>...</think> blocks (DeepSeek, reasoning models)
+    text = text.replace(/<think>[\s\S]*?<\/think>/gi, '');
+    // Remove "Okay/Alright/Sure, the user asked/said/wants..."
+    text = text.replace(/^(okay|alright|sure|right|so)[,.]?\s*(the\s+user\s+(asked|said|wants?|is asking)[^.]*\.\s*)/i, '');
+    // Remove "Here's a thinking process: ..."
+    text = text.replace(/^here'?s?\s+a\s+(thinking\s+process|plan|approach)[:\-][^\n]*\n/i, '');
+    // Remove "Let me think/work/solve/analyze..."
+    text = text.replace(/^(let me|i('ll| will))\s+(think|work|solve|calculate|analyze|break|figure)[^.\n]*[.\n]\s*/i, '');
+    // Remove lines that are just meta-commentary about the request
+    text = text.replace(/^(the\s+user\s+(wants?|is asking|asked|said)[^.\n]*\.\s*\n?)/im, '');
+    // Remove "I need to respond with..." type lines
+    text = text.replace(/^(i need to|i should|i will now|my response)[^.\n]*\.\s*\n?/im, '');
     return text.trim() || null;
   }
 
@@ -591,7 +604,7 @@ Rules:
       : `<span style="font-size:22px;line-height:1;">✦</span>`;
     if (_open) {
       if (_history.length === 0) {
-        _history.push({ role: 'bot', text: "Hey! I'm your AI study assistant ✦\n\nJust talk to me naturally:\n• **\"I finished my essay\"** — mark it done\n• **\"Undo my bio quiz\"** — mark incomplete\n• **\"Remove my math hw\"** — delete it\n• **\"Add a quiz due Friday\"** — add to list\n• **\"What's due this week?\"** — see upcoming\n\nWhat do you need?" });
+        _history.push({ role: 'bot', text: "Hey! I'm your AI study assistant ✦\n\nI can help you with **two things**:\n\n**📚 Homework & Study Questions**\n• \"Solve 3x + 5 = 20\"\n• \"Explain photosynthesis\"\n• \"Help me outline my essay\"\n• \"What caused WW2?\"\n\n**✅ Assignment Management**\n• \"I finished my bio lab\" — mark done\n• \"Add a quiz due Friday\"\n• \"What's due this week?\"\n• \"Delete my math hw\"\n\nAsk me anything!" });
         renderMessages();
       }
       updateTokenUI();

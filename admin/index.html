@@ -1231,8 +1231,8 @@ HOW YOU RESPOND:
 - If data shows "—", tell sir the dashboard hasn't loaded that data yet and suggest checking the Overview tab
 - Give real opinions and insights, not just facts
 - For assignments: read between the lines — if something is overdue, point it out. If there's a lot due soon, flag it with urgency
-- Keep replies under 3 sentences unless sir asks for more detail
-- No bullet lists unless sir specifically asks for a breakdown
+- Keep replies to 1-2 short sentences max. Never more unless sir says "full report" or "explain"
+- No bullet lists, no breakdowns unless asked
 - No asterisks, no markdown symbols
 - If sir is just chatting, chat back naturally`;
 
@@ -1259,16 +1259,27 @@ HOW YOU RESPOND:
   }
 
   // ── TTS ──
+  let _voices = [];
+  if (window.speechSynthesis) {
+    const loadVoices = () => { _voices = speechSynthesis.getVoices(); };
+    loadVoices();
+    speechSynthesis.addEventListener('voiceschanged', loadVoices);
+  }
+
   function lqSpeak(text) {
     if (!window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    const utt = new SpeechSynthesisUtterance(text);
-    utt.rate = 1.05; utt.pitch = 0.9; utt.volume = 1;
-    const voices = speechSynthesis.getVoices();
-    const preferred = voices.find(v => /Google UK English Male|Daniel|Alex|Fred/i.test(v.name)) || voices.find(v => v.lang === 'en-GB') || voices[0];
-    if (preferred) utt.voice = preferred;
+    speechSynthesis.cancel();
+    // Trim to 2 sentences so it's quick
+    const short = text.replace(/\*\*/g,'').split(/(?<=[.!?])\s+/).slice(0,2).join(' ');
+    const utt = new SpeechSynthesisUtterance(short);
+    utt.rate = 1.05; utt.pitch = 0.88; utt.volume = 1;
+    const v = _voices.find(v => /Google UK English Male|Daniel|Alex|Fred/i.test(v.name))
+           || _voices.find(v => v.lang === 'en-GB')
+           || _voices.find(v => v.lang.startsWith('en'))
+           || _voices[0];
+    if (v) utt.voice = v;
     utt.onstart = () => setStatus('speaking', 'SPEAKING', '');
-    utt.onend = () => setStatus('standby', 'STANDBY', _micOn ? 'Listening for "Liquid"…' : 'Say "Liquid" to activate');
+    utt.onend = () => setStatus('standby', 'LISTENING', 'Say "Liquid" to wake me…');
     speechSynthesis.speak(utt);
   }
 

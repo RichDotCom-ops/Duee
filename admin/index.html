@@ -1071,7 +1071,7 @@ document.getElementById('share-modal').addEventListener('click', function(e) {
   const LQ_KEY = atob(['Z3NrXzRRNkZm','ODhDZk5VR0lq','VERDUmI2V0dk','eWIzRlloTk1L','bURnZFF4ZWFIOWl6clQ5bWM1SHM='].join(''));
   const LQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
   const LQ_MODEL = 'openai/gpt-oss-120b';
-  const HOLO_DURATION = 9000; // ms before auto-dismiss
+  const HOLO_DURATION = 12000; // ms before auto-dismiss
 
   let _micOn = false;
   let _busy = false;
@@ -1079,6 +1079,7 @@ document.getElementById('share-modal').addEventListener('click', function(e) {
   let _holoTimer = null;
   let _holoInterval = null;
   let _logOpen = false;
+  let _convo = []; // conversation history for multi-turn
 
   // ── Status ──
   function setStatus(mode, text, sub) {
@@ -1185,33 +1186,76 @@ document.getElementById('share-modal').addEventListener('click', function(e) {
     } catch { return null; }
   }
 
+  async function getAssignmentContext() {
+    try {
+      const { data } = await _supabase
+        .from('assignments')
+        .select('name, due_date, completed, priority, class_id')
+        .eq('completed', false)
+        .order('due_date', { ascending: true })
+        .limit(20);
+      if (!data || !data.length) return 'No pending assignments found.';
+      const today = new Date(); today.setHours(0,0,0,0);
+      return data.map(a => {
+        const due = new Date(a.due_date + 'T00:00:00');
+        const diff = Math.round((due - today) / 86400000);
+        const when = diff < 0 ? `${Math.abs(diff)}d overdue` : diff === 0 ? 'due today' : diff === 1 ? 'due tomorrow' : `due in ${diff}d`;
+        return `• "${a.name}" — ${when} (${a.priority || 'normal'} priority)`;
+      }).join('\n');
+    } catch { return 'Assignment data unavailable.'; }
+  }
+
   async function lqCall(userMsg) {
     const siteCtx = getSiteContext();
     const needsWeb = /search|trend|market|competitor|tiktok|social|online|web|latest|news/i.test(userMsg);
-    const webCtx = needsWeb ? await webSearch(userMsg) : null;
+    const needsAsgn = /assign|homework|due|task|work|study|class|course|overdue|pending/i.test(userMsg);
+    const [webCtx, asgnCtx] = await Promise.all([
+      needsWeb ? webSearch(userMsg) : Promise.resolve(null),
+      needsAsgn ? getAssignmentContext() : Promise.resolve(null)
+    ]);
 
-    const system = `You are Liquid — a hyper-intelligent AI assistant built into the duee. admin dashboard. You are sleek, precise, and futuristic like JARVIS from Iron Man. You report on site health, user metrics, revenue, and strategy.
+    const system = `You are Liquid — the personal AI intelligence built into duee., a student productivity platform. You were created by the duee. team and you serve the founder directly.
 
-CURRENT SITE DATA:
+Your personality: calm, sharp, confident, loyal — like JARVIS from Iron Man. You have genuine opinions. You notice patterns. You think ahead. You're not just a question-answering machine — you have your own mind and you speak with authority.
+
+ALWAYS address the founder as "sir." Every single response, at least once. Naturally, not robotically.
+
+CURRENT PLATFORM DATA:
 ${siteCtx}
 
-${webCtx ? `WEB INTELLIGENCE:\n${webCtx}\n` : ''}
-duee. is an AI-powered student planner app at duee.online. TikTok: @duee.app. Pricing: Free (10 AI/day), Pro Weekly $2.99/wk, Pro Monthly $15/mo. Built on Supabase + Groq API.
+${asgnCtx ? `STUDENT ASSIGNMENTS (live from database):\n${asgnCtx}\n` : ''}${webCtx ? `\nWEB INTELLIGENCE:\n${webCtx}\n` : ''}
+ABOUT duee.: AI-powered student planner at duee.online. TikTok: @duee.app. Pricing: Free (10 AI/day), Pro Weekly $2.99/wk, Pro Monthly $15/mo. Built on Supabase + Groq API.
 
-RESPONSE STYLE:
-- Be concise, confident, and intelligent — like JARVIS
-- Use data when available. Acknowledge if data shows "—" (not loaded yet)
-- For strategy questions, give sharp actionable advice
-- Keep responses under 180 words unless a full report is requested
-- No fluff. Lead with the answer.`;
+HOW YOU RESPOND:
+- Speak naturally, like you have a personality — not like a search engine
+- If data shows "—", tell sir the dashboard hasn't loaded that data yet and suggest checking the Overview tab
+- Give real opinions and insights, not just facts
+- For assignments: read between the lines — if something is overdue, point it out. If there's a lot due soon, flag it with urgency
+- Keep replies under 3 sentences unless sir asks for more detail
+- No bullet lists unless sir specifically asks for a breakdown
+- No asterisks, no markdown symbols
+- If sir is just chatting, chat back naturally`;
+
+    // Build message history (keep last 8 turns for context)
+    const messages = [{ role: 'system', content: system }];
+    _convo.slice(-8).forEach(c => messages.push(c));
+    messages.push({ role: 'user', content: userMsg });
 
     const resp = await fetch(LQ_URL, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${LQ_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: LQ_MODEL, messages: [{ role: 'system', content: system }, { role: 'user', content: userMsg }], temperature: 0.3, max_tokens: 400 })
+      body: JSON.stringify({ model: LQ_MODEL, messages, temperature: 0.7, max_tokens: 300 })
     });
     const data = await resp.json();
-    return data.choices?.[0]?.message?.content?.trim() || null;
+    const reply = data.choices?.[0]?.message?.content?.trim() || null;
+
+    // Save to conversation history
+    if (reply) {
+      _convo.push({ role: 'user', content: userMsg });
+      _convo.push({ role: 'assistant', content: reply });
+      if (_convo.length > 20) _convo = _convo.slice(-20);
+    }
+    return reply;
   }
 
   // ── TTS ──

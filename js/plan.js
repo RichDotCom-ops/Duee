@@ -93,7 +93,7 @@ const DueePlan = (() => {
       el.style.border = '1px solid #7c3aed30';
       el.innerHTML = `
         <span style="font-size:15px;">⚡</span>
-        <span style="flex:1;">Upgrade to Pro</span>
+        <span style="flex:1;">Upgrade · from $2.99/wk</span>
         ${remaining <= 3 ? `<span style="font-size:10px;background:#7c3aed;color:white;border-radius:99px;padding:1px 6px;">${remaining} AI left</span>` : ''}
       `;
     } else {

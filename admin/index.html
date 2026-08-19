@@ -1309,6 +1309,9 @@ HOW YOU RESPOND:
   };
 
   // ── Voice ──
+  let _awake = false; // true after wake word, waiting for question
+  let _awakeTimeout = null;
+
   window.lqToggleMic = function () {
     _micOn = !_micOn;
     const btn = document.getElementById('lq-mic-btn');
@@ -1318,37 +1321,93 @@ HOW YOU RESPOND:
     } else {
       btn?.classList.remove('active');
       _recognition?.stop();
-      if (!_busy) setStatus('standby', 'STANDBY', 'Say "Liquid" to activate');
+      _awake = false;
+      clearTimeout(_awakeTimeout);
+      if (!_busy) setStatus('standby', 'STANDBY', 'Tap mic to activate');
     }
   };
 
+  function setAwake(on) {
+    _awake = on;
+    clearTimeout(_awakeTimeout);
+    if (on) {
+      setStatus('listening', 'AWAKE', 'Go ahead, sir…');
+      // If no question comes within 8s, go back to standby listening
+      _awakeTimeout = setTimeout(() => {
+        _awake = false;
+        if (!_busy) setStatus('standby', 'LISTENING', 'Say "Liquid" to wake me…');
+      }, 8000);
+    }
+  }
+
   function initSpeechRecognition() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { lqLog('sys', '— Voice not supported in this browser. Use Chrome or Edge. —'); _micOn = false; return; }
+    if (!SR) { lqLog('sys', '— Voice not supported. Use Chrome or Edge. —'); _micOn = false; return; }
     _recognition?.stop();
     _recognition = new SR();
     _recognition.continuous = true;
     _recognition.interimResults = false;
     _recognition.lang = 'en-US';
 
-    _recognition.onstart = () => setStatus('listening', 'LISTENING', 'Say "Liquid, …" to command');
+    _recognition.onstart = () => {
+      if (!_busy) setStatus('standby', 'LISTENING', 'Say "Liquid" to wake me…');
+    };
+
     _recognition.onresult = (e) => {
       const transcript = e.results[e.results.length - 1][0].transcript.trim();
       const lower = transcript.toLowerCase();
-      if (lower === 'close' || lower === 'close it' || lower === 'dismiss') {
+
+      // Dismiss command always works
+      if (/^(close|close it|dismiss|stop)$/.test(lower)) {
         lqDismissHolo();
         return;
       }
-      if (lower.includes('liquid')) {
-        const question = lower.replace(/^.*?liquid[,.]?\s*/i, '').trim();
-        if (question.length > 2) lqAsk(question);
-        else lqSpeak('Yes, I\'m here. What do you need?');
+
+      const hasWake = lower.includes('liquid') || lower.includes('liqued') || lower.includes('liquide');
+
+      if (_awake && !_busy) {
+        // Already awake — treat this as the question
+        clearTimeout(_awakeTimeout);
+        _awake = false;
+        const q = hasWake
+          ? lower.replace(/^.*?liqu[ie][dc][e]?[,.]?\s*/i, '').trim()
+          : transcript;
+        if (q.length > 1) lqAsk(q);
+        return;
+      }
+
+      if (hasWake) {
+        // Wake word detected
+        const inlineQ = lower.replace(/^.*?liqu[ie][dc][e]?[,.]?\s*/i, '').trim();
+        if (inlineQ.length > 2) {
+          // Question was in same breath
+          lqAsk(inlineQ);
+        } else {
+          // Wake word only — signal ready and wait
+          setAwake(true);
+          lqSpeak('Yes, sir?');
+        }
       }
     };
+
     _recognition.onerror = (e) => { if (e.error !== 'no-speech') lqLog('sys', `— Mic error: ${e.error} —`); };
     _recognition.onend = () => { if (_micOn) _recognition.start(); };
     _recognition.start();
   }
+
+  // Auto-start mic when Liquid tab is clicked
+  document.addEventListener('click', (e) => {
+    const tab = e.target.closest('.tab');
+    if (tab && tab.textContent.includes('LIQUID')) {
+      setTimeout(() => {
+        if (!_micOn) {
+          _micOn = true;
+          document.getElementById('lq-mic-btn')?.classList.add('active');
+          initSpeechRecognition();
+        }
+      }, 400);
+    }
+  });
 
 })();
 </script>

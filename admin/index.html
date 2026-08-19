@@ -1260,27 +1260,39 @@ HOW YOU RESPOND:
 
   // ── TTS ──
   let _voices = [];
+  const _loadVoices = () => { _voices = speechSynthesis.getVoices(); };
   if (window.speechSynthesis) {
-    const loadVoices = () => { _voices = speechSynthesis.getVoices(); };
-    loadVoices();
-    speechSynthesis.addEventListener('voiceschanged', loadVoices);
+    _loadVoices();
+    speechSynthesis.addEventListener('voiceschanged', _loadVoices);
+  }
+
+  // Prime speech on first user gesture so async calls work in Chrome
+  function _primeSpeech() {
+    if (!window.speechSynthesis || _voices.length) return;
+    _loadVoices();
+    const silent = new SpeechSynthesisUtterance(' ');
+    silent.volume = 0;
+    speechSynthesis.speak(silent);
   }
 
   function lqSpeak(text) {
     if (!window.speechSynthesis) return;
-    speechSynthesis.cancel();
-    // Trim to 2 sentences so it's quick
     const short = text.replace(/\*\*/g,'').split(/(?<=[.!?])\s+/).slice(0,2).join(' ');
-    const utt = new SpeechSynthesisUtterance(short);
-    utt.rate = 1.05; utt.pitch = 0.88; utt.volume = 1;
-    const v = _voices.find(v => /Google UK English Male|Daniel|Alex|Fred/i.test(v.name))
-           || _voices.find(v => v.lang === 'en-GB')
-           || _voices.find(v => v.lang.startsWith('en'))
-           || _voices[0];
-    if (v) utt.voice = v;
-    utt.onstart = () => setStatus('speaking', 'SPEAKING', '');
-    utt.onend = () => setStatus('standby', 'LISTENING', 'Say "Liquid" to wake me…');
-    speechSynthesis.speak(utt);
+    const go = () => {
+      if (_voices.length === 0) _loadVoices();
+      const utt = new SpeechSynthesisUtterance(short);
+      utt.rate = 1.05; utt.pitch = 0.88; utt.volume = 1;
+      const v = _voices.find(v => /Google UK English Male|Daniel|Alex|Fred/i.test(v.name))
+             || _voices.find(v => v.lang === 'en-GB')
+             || _voices.find(v => v.lang.startsWith('en'))
+             || _voices[0];
+      if (v) utt.voice = v;
+      utt.onstart = () => setStatus('speaking', 'SPEAKING', '');
+      utt.onend = () => setStatus('standby', 'LISTENING', 'Say "Liquid" to wake me…');
+      speechSynthesis.speak(utt);
+    };
+    speechSynthesis.cancel();
+    setTimeout(go, 120); // small delay after cancel so Chrome doesn't drop it
   }
 
   // ── Main ask ──
@@ -1325,6 +1337,7 @@ HOW YOU RESPOND:
 
   window.lqToggleMic = function () {
     _micOn = !_micOn;
+    _primeSpeech(); // prime TTS on user gesture
     const btn = document.getElementById('lq-mic-btn');
     if (_micOn) {
       btn?.classList.add('active');
@@ -1406,10 +1419,11 @@ HOW YOU RESPOND:
     _recognition.start();
   }
 
-  // Auto-start mic when Liquid tab is clicked
+  // Auto-start mic + prime TTS when Liquid tab is clicked
   document.addEventListener('click', (e) => {
     const tab = e.target.closest('.tab');
     if (tab && tab.textContent.includes('LIQUID')) {
+      _primeSpeech();
       setTimeout(() => {
         if (!_micOn) {
           _micOn = true;

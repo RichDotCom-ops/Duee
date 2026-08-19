@@ -3,8 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Get unlimited AI study help and assignment tracking with duee. Pro — from $5.99/month." />
+  <meta property="og:title" content="duee. — Student Planner" />
+  <meta property="og:description" content="Get unlimited AI study help and assignment tracking with duee. Pro — from $5.99/month." />
+  <meta property="og:image" content="https://duee.online/mockup.jpeg" />
+  <meta property="og:url" content="https://duee.online/pricing" />
+  <meta name="twitter:card" content="summary_large_image" />
   <title>duee. — Pricing</title>
   <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+  <link rel="manifest" href="/site.webmanifest" />
   <link rel="stylesheet" href="../css/main.css?v=2" />
   <link rel="stylesheet" href="../css/app.css?v=2" />
   <style>
@@ -41,7 +49,7 @@
     .trust-item svg { flex-shrink: 0; }
 
     /* ── Cards ── */
-    .pricing-cards { display: flex; justify-content: center; gap: 20px; max-width: 860px; margin: 0 auto; padding: 0 24px 80px; align-items: start; flex-wrap: wrap; }
+    .pricing-cards { display: flex; justify-content: center; gap: 20px; max-width: 1020px; margin: 0 auto; padding: 0 24px 80px; align-items: start; flex-wrap: wrap; }
 
     .pricing-card { background: var(--bg-white); border: 1.5px solid var(--border); border-radius: 22px; padding: 30px 26px 26px; display: flex; flex-direction: column; position: relative; transition: box-shadow 0.22s, transform 0.22s; width: 100%; max-width: 370px; flex: 1 1 280px; }
     .pricing-card:hover { box-shadow: 0 8px 32px rgba(0,0,0,0.1); transform: translateY(-3px); }
@@ -142,7 +150,9 @@
     [data-theme="dark"] .pay-modal { background: #1e293b; }
     [data-theme="dark"] .pay-modal-price-box { background: linear-gradient(135deg,#7c3aed10,#2563eb10); }
 
-    @media (max-width: 680px) {
+    .plan-cta-weekly { background: linear-gradient(135deg,#7c3aed,#a855f7); color: white; box-shadow: 0 4px 16px rgba(124,58,237,0.28); font-size: 15px; }
+    .plan-cta-weekly:hover { box-shadow: 0 8px 24px rgba(124,58,237,0.4); transform: translateY(-1px); filter: brightness(1.05); }
+    @media (max-width: 780px) {
       .pricing-cards { flex-direction: column; align-items: center; }
       .pricing-card { max-width: 420px; }
       .pricing-hero h1 { font-size: 32px; }
@@ -167,13 +177,6 @@
     <div class="hero-badge">✦ Simple, honest pricing</div>
     <h1>The AI study assistant<br>you actually deserve.</h1>
     <p>Start free. Upgrade when you're ready. Everything you need to never miss a deadline again.</p>
-    <div class="pricing-toggle-wrap">
-      <div class="pricing-toggle">
-        <button class="pricing-toggle-btn active" id="toggle-monthly" onclick="setToggle('monthly')">Monthly</button>
-        <button class="pricing-toggle-btn" id="toggle-annual" onclick="setToggle('annual')">Annual <span style="color:#16a34a;font-size:11px;">Save 43%</span></button>
-      </div>
-      <div class="toggle-save-pill" id="toggle-save-pill">Save 43% with annual billing</div>
-    </div>
   </div>
 
   <!-- Trust bar -->
@@ -213,63 +216,64 @@
       <div class="plan-features-label">What's included</div>
       <div class="plan-features">
         <div class="plan-feature"><div class="check check-yes">✓</div><div class="plan-feature-text">Track classes &amp; assignments</div></div>
-        <div class="plan-feature"><div class="check check-yes">✓</div><div class="plan-feature-text">Calendar &amp; ICS import</div></div>
+        <div class="plan-feature"><div class="check check-yes">✓</div><div class="plan-feature-text">Calendar &amp; deadline tracking</div></div>
         <div class="plan-feature"><div class="check check-yes">✓</div><div class="plan-feature-text">Browser notifications</div></div>
         <div class="plan-feature"><div class="check check-yes">✓</div><div class="plan-feature-text">Dark mode &amp; study timer</div></div>
         <div class="plan-feature"><div class="check check-yes">✓</div><div class="plan-feature-text"><strong>10 AI messages / day</strong></div></div>
         <div class="plan-feature"><div class="check check-no">–</div><div class="plan-feature-text" style="color:var(--text-muted);">Unlimited AI messages</div></div>
-        <div class="plan-feature"><div class="check check-no">–</div><div class="plan-feature-text" style="color:var(--text-muted);">Priority AI responses</div></div>
+        <div class="plan-feature"><div class="check check-no">–</div><div class="plan-feature-text" style="color:var(--text-muted);">Web-powered answers</div></div>
       </div>
     </div>
 
-    <!-- Pro Monthly (default visible) -->
-    <div class="pricing-card popular" id="card-pro">
-      <div class="popular-badge" id="pro-popular-badge">✦ Most Popular</div>
-      <div class="plan-icon" style="background:linear-gradient(135deg,#7c3aed18,#2563eb18);">⚡</div>
-      <div class="plan-name" style="background:linear-gradient(135deg,#7c3aed,#2563eb);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Pro</div>
-      <div class="plan-desc">Unlimited AI help and the full duee. experience. Built for serious students.</div>
+    <!-- Weekly -->
+    <div class="pricing-card" id="card-weekly">
+      <div class="popular-badge" id="weekly-badge" style="background:linear-gradient(135deg,#7c3aed,#a855f7);">⚡ Most Flexible</div>
+      <div class="plan-icon" style="background:linear-gradient(135deg,#7c3aed18,#a855f718);">⚡</div>
+      <div class="plan-name" style="background:linear-gradient(135deg,#7c3aed,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Pro Weekly</div>
+      <div class="plan-desc">Perfect for exam season or trying Pro without committing monthly. Pay week by week, cancel anytime.</div>
       <div class="plan-price-wrap">
-        <span class="plan-price-amount" id="pro-amount">$5.99</span>
-        <span class="plan-price-period" id="pro-period"> / month</span>
+        <span class="plan-price-amount">$2.99</span>
+        <span class="plan-price-period"> / week</span>
       </div>
-      <div class="plan-save-row" id="pro-save-row"></div>
-      <button class="plan-cta plan-cta-pro" id="pro-btn" onclick="openCheckout('pro')">Upgrade to Pro →</button>
+      <div class="plan-save-row"></div>
+      <button class="plan-cta plan-cta-weekly" id="weekly-btn" onclick="openCheckout('weekly')">Start Weekly Pro →</button>
       <div class="plan-divider"></div>
       <div class="plan-features-label">Everything in Free, plus</div>
       <div class="plan-features">
         <div class="plan-feature"><div class="check check-yes">✓</div><div class="plan-feature-text"><strong>Unlimited AI messages</strong></div></div>
+        <div class="plan-feature"><div class="check check-yes">✓</div><div class="plan-feature-text">Web-powered study answers</div></div>
         <div class="plan-feature"><div class="check check-yes">✓</div><div class="plan-feature-text">Priority AI responses</div></div>
         <div class="plan-feature"><div class="check check-yes">✓</div><div class="plan-feature-text">AI-powered study plans <span class="feat-tag">Soon</span></div></div>
-        <div class="plan-feature"><div class="check check-yes">✓</div><div class="plan-feature-text">Export assignments &amp; stats</div></div>
+        <div class="plan-feature"><div class="check check-yes">✓</div><div class="plan-feature-text">No long-term commitment</div></div>
+        <div class="plan-feature"><div class="check check-yes">✓</div><div class="plan-feature-text">Cancel anytime</div></div>
+      </div>
+    </div>
+
+    <!-- Monthly -->
+    <div class="pricing-card popular" id="card-pro">
+      <div class="popular-badge" id="pro-popular-badge">🌟 Best Value</div>
+      <div class="plan-icon" style="background:linear-gradient(135deg,#2563eb18,#0891b218);">🌟</div>
+      <div class="plan-name" style="background:linear-gradient(135deg,#2563eb,#0891b2);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Pro Monthly</div>
+      <div class="plan-desc">The full duee. experience all semester long. Unlimited AI, every feature — one flat monthly price.</div>
+      <div class="plan-price-wrap">
+        <span class="plan-price-amount">$15</span>
+        <span class="plan-price-period"> / month</span>
+      </div>
+      <div class="plan-save-row">
+        <span class="plan-save">Best for the whole semester</span>
+      </div>
+      <button class="plan-cta plan-cta-pro" id="pro-btn" onclick="openCheckout('pro')">Start Monthly Pro →</button>
+      <div class="plan-divider"></div>
+      <div class="plan-features-label">Everything in Weekly, plus</div>
+      <div class="plan-features">
+        <div class="plan-feature"><div class="check check-yes">✓</div><div class="plan-feature-text"><strong>Unlimited AI messages</strong></div></div>
+        <div class="plan-feature"><div class="check check-yes">✓</div><div class="plan-feature-text">Web-powered study answers</div></div>
+        <div class="plan-feature"><div class="check check-yes">✓</div><div class="plan-feature-text">Priority AI responses</div></div>
+        <div class="plan-feature"><div class="check check-yes">✓</div><div class="plan-feature-text">AI-powered study plans <span class="feat-tag">Soon</span></div></div>
         <div class="plan-feature"><div class="check check-yes">✓</div><div class="plan-feature-text">Early access to new features</div></div>
         <div class="plan-feature"><div class="check check-yes">✓</div><div class="plan-feature-text">Cancel anytime, no questions</div></div>
       </div>
     </div>
-
-    <!-- Annual (hidden by default) -->
-    <div class="pricing-card popular" id="card-annual" style="display:none;">
-      <div class="popular-badge" id="annual-popular-badge">🌟 Best Value</div>
-      <div class="plan-icon" style="background:linear-gradient(135deg,#16a34a18,#0891b218);">🌟</div>
-      <div class="plan-name" style="background:linear-gradient(135deg,#16a34a,#0891b2);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Pro Annual</div>
-      <div class="plan-desc">A full year of unlimited AI for less than a coffee a month. Best deal available.</div>
-      <div class="plan-price-wrap">
-        <span class="plan-price-amount">$3.42</span>
-        <span class="plan-price-period"> / month</span>
-      </div>
-      <div class="plan-save-row">
-        <span class="plan-save">Billed $40.99/yr · save $30.89</span>
-      </div>
-      <button class="plan-cta plan-cta-annual" id="annual-btn" onclick="openCheckout('annual')">Get Annual Plan →</button>
-      <div class="plan-divider"></div>
-      <div class="plan-features-label">Everything in Pro, plus</div>
-      <div class="plan-features">
-        <div class="plan-feature"><div class="check check-yes">✓</div><div class="plan-feature-text"><strong>43% off vs monthly billing</strong></div></div>
-        <div class="plan-feature"><div class="check check-yes">✓</div><div class="plan-feature-text">Founding member status</div></div>
-        <div class="plan-feature"><div class="check check-yes">✓</div><div class="plan-feature-text">Priority feature requests</div></div>
-        <div class="plan-feature"><div class="check check-yes">✓</div><div class="plan-feature-text">One-year commitment, best price</div></div>
-      </div>
-    </div>
-
 
   </div>
 
@@ -279,12 +283,16 @@
     <div class="pricing-faq-sub">Everything you need to know before upgrading.</div>
 
     <div class="faq-item" onclick="this.classList.toggle('open')">
+      <div class="faq-q">What's the difference between Weekly and Monthly? <span class="faq-arrow">▾</span></div>
+      <div class="faq-a">Both plans give you identical Pro features — unlimited AI messages, web-powered answers, and everything else. The only difference is billing: Weekly ($2.99/wk) is great for short bursts like finals week, while Monthly ($15/mo) is better if you want Pro all semester without thinking about it.</div>
+    </div>
+    <div class="faq-item" onclick="this.classList.toggle('open')">
       <div class="faq-q">What counts as an AI message? <span class="faq-arrow">▾</span></div>
-      <div class="faq-a">Every message you send to the AI assistant (the ✦ button) uses one message. Free users get 10 per day — the counter resets every 24 hours automatically. Pro users have no limit.</div>
+      <div class="faq-a">Every message you send to the AI assistant (the ✦ button) uses one message. Free users get 10 per day — the counter resets every 24 hours. Pro users have no limit at all.</div>
     </div>
     <div class="faq-item" onclick="this.classList.toggle('open')">
       <div class="faq-q">Can I cancel anytime? <span class="faq-arrow">▾</span></div>
-      <div class="faq-a">Absolutely. Cancel any time and you'll keep Pro access through the end of your billing period. No cancellation fees, no questions asked.</div>
+      <div class="faq-a">Yes, absolutely. Cancel any time from your billing portal and you'll keep Pro access through the end of your current billing period. No cancellation fees, no questions asked.</div>
     </div>
     <div class="faq-item" onclick="this.classList.toggle('open')">
       <div class="faq-q">Is my data safe? <span class="faq-arrow">▾</span></div>
@@ -292,15 +300,11 @@
     </div>
     <div class="faq-item" onclick="this.classList.toggle('open')">
       <div class="faq-q">What happens if I go back to Free? <span class="faq-arrow">▾</span></div>
-      <div class="faq-a">All your classes, assignments, and history stay intact — nothing is deleted. You'll just return to the 10 AI messages per day limit.</div>
-    </div>
-    <div class="faq-item" onclick="this.classList.toggle('open')">
-      <div class="faq-q">How is the Annual plan so much cheaper? <span class="faq-arrow">▾</span></div>
-      <div class="faq-a">Paying upfront for a full year lets us offer a massive 77% discount vs monthly. At $40.99/year, that's about $3.42/month — less than one cup of coffee.</div>
+      <div class="faq-a">All your classes, assignments, and history stay 100% intact — nothing is deleted. You'll just return to the 10 AI messages per day limit.</div>
     </div>
     <div class="faq-item" onclick="this.classList.toggle('open')">
       <div class="faq-q">What payment methods do you accept? <span class="faq-arrow">▾</span></div>
-      <div class="faq-a">All major credit and debit cards via Stripe (Visa, Mastercard, Amex, Discover). Apple Pay and Google Pay are also supported on compatible browsers.</div>
+      <div class="faq-a">All major credit and debit cards (Visa, Mastercard, Amex, Discover). Apple Pay and Google Pay are also supported on compatible devices and browsers.</div>
     </div>
   </div>
 
@@ -346,12 +350,11 @@
 // PASTE YOUR LEMONSQUEEZY CHECKOUT URLs HERE
 // Format: https://yourstore.lemonsqueezy.com/checkout/buy/VARIANT_ID
 // ─────────────────────────────────────────────
-const LS_PRO_URL    = 'https://sniptext.lemonsqueezy.com/checkout/buy/4770c767-3351-4810-9c41-8f1ff13b0e6b';
-const LS_ANNUAL_URL = 'https://sniptext.lemonsqueezy.com/checkout/buy/4d83fead-73b3-427a-86e9-7044556c4eac';
+const LS_WEEKLY_URL  = 'https://duee.lemonsqueezy.com/checkout/buy/f4e99050-6eff-4e7f-b029-e614c071842a';
+const LS_MONTHLY_URL = 'https://duee.lemonsqueezy.com/checkout/buy/5c140175-219a-4f17-b06c-18d69b75fd63';
 // ─────────────────────────────────────────────
 
-let _billingToggle = 'monthly';
-let _pendingPlan   = null;
+let _pendingPlan = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
   const session = await Auth.requireAuth();
@@ -367,7 +370,7 @@ function initLemonSqueezy() {
   let attempts = 0;
   const trySetup = () => {
     if (typeof window.createLemonSqueezy !== 'function') {
-      if (++attempts < 25) setTimeout(trySetup, 200); // max 5 seconds
+      if (++attempts < 25) setTimeout(trySetup, 200);
       return;
     }
     window.createLemonSqueezy();
@@ -381,25 +384,48 @@ function initLemonSqueezy() {
 }
 
 function openCheckout(plan) {
-  // Payments coming soon — show modal instead
-  document.getElementById('coming-soon-modal').classList.add('open');
+  const url = plan === 'weekly' ? LS_WEEKLY_URL : LS_MONTHLY_URL;
+  if (!url || url.startsWith('PASTE_')) {
+    document.getElementById('coming-soon-modal').classList.add('open');
+    return;
+  }
+  _pendingPlan = plan;
+
+  // Append embed + prefill email if available
+  const email = window._currentUser?.email || '';
+  const checkoutUrl = url + '?embed=1' + (email ? `&checkout[email]=${encodeURIComponent(email)}` : '');
+
+  // If LemonSqueezy overlay is ready, use it
+  if (window.LemonSqueezy?.Url?.Open) {
+    window.LemonSqueezy.Url.Open(checkoutUrl);
+    return;
+  }
+
+  // Fallback: wait up to 3s for LS to load, then open in new tab
+  let wait = 0;
+  const poll = setInterval(() => {
+    if (window.LemonSqueezy?.Url?.Open) {
+      clearInterval(poll);
+      window.LemonSqueezy.Url.Open(url);
+    } else if (wait >= 15) {
+      clearInterval(poll);
+      window.open(checkoutUrl, '_blank');
+    }
+    wait++;
+  }, 200);
 }
 
 function onPaymentSuccess() {
-  // Activate plan locally — mirrors what a webhook would do server-side
-  const expiresAt = _pendingPlan === 'annual'
-    ? Date.now() + 365 * 86400000
-    : Date.now() + 30  * 86400000;
+  const isWeekly = _pendingPlan === 'weekly';
+  const expiresAt = isWeekly ? Date.now() + 7 * 86400000 : Date.now() + 30 * 86400000;
   DueePlan.setTier(_pendingPlan || 'pro', expiresAt);
   highlightCurrentPlan();
 
-  // Show success modal
-  const isAnnual = _pendingPlan === 'annual';
-  document.getElementById('pay-success-icon').textContent  = isAnnual ? '🌟' : '⚡';
-  document.getElementById('pay-success-title').textContent = isAnnual ? 'Annual plan activated! 🎉' : 'You\'re now on Pro! 🎉';
-  document.getElementById('pay-success-text').textContent  = isAnnual
-    ? 'You have unlimited AI for a full year. Welcome to the founding member club!'
-    : 'Unlimited AI messages are now active. Enjoy the full duee. experience!';
+  document.getElementById('pay-success-icon').textContent  = isWeekly ? '⚡' : '🌟';
+  document.getElementById('pay-success-title').textContent = isWeekly ? 'Weekly Pro activated! 🎉' : 'Monthly Pro activated! 🎉';
+  document.getElementById('pay-success-text').textContent  = isWeekly
+    ? 'Unlimited AI messages are live for the next 7 days. Study hard!'
+    : 'Unlimited AI messages are active all month. Enjoy the full duee. experience!';
   document.getElementById('success-modal').classList.add('open');
 }
 
@@ -407,39 +433,27 @@ function closeSuccessModal() {
   document.getElementById('success-modal').classList.remove('open');
 }
 
-// ── Toggle ──
-function setToggle(mode) {
-  _billingToggle = mode;
-  document.getElementById('toggle-monthly').classList.toggle('active', mode === 'monthly');
-  document.getElementById('toggle-annual').classList.toggle('active', mode === 'annual');
-
-  const showAnnual = mode === 'annual';
-  document.getElementById('card-pro').style.display    = showAnnual ? 'none' : '';
-  document.getElementById('card-annual').style.display = showAnnual ? '' : 'none';
-
-  document.getElementById('toggle-save-pill').classList.toggle('visible', showAnnual);
-  highlightCurrentPlan();
-}
-
 // ── Plan highlight ──
 function highlightCurrentPlan() {
   const { tier } = DueePlan.getTier();
 
-  ['card-free','card-pro','card-annual'].forEach(id => {
+  ['card-free','card-weekly','card-pro'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
     el.classList.remove('plan-current');
     el.querySelectorAll('.current-badge').forEach(b => b.remove());
   });
 
+  // Restore default badges
+  const wb = document.getElementById('weekly-badge');
+  if (wb) { wb.style.display = ''; wb.textContent = '⚡ Most Flexible'; }
   const pb = document.getElementById('pro-popular-badge');
-  if (pb) pb.style.display = '';
-  const ab = document.getElementById('annual-popular-badge');
-  if (ab) ab.style.display = '';
+  if (pb) { pb.style.display = ''; pb.textContent = '🌟 Best Value'; }
 
   const chip = document.getElementById('topbar-plan-chip');
   if (tier !== 'free') {
-    chip.textContent = tier === 'annual' ? '🌟 Annual Plan' : '⚡ Pro Plan';
+    const labels = { weekly: '⚡ Pro Weekly', pro: '🌟 Pro Monthly', god: '👑 God Mode' };
+    chip.textContent = labels[tier] || '⚡ Pro';
     chip.style.display = '';
   } else {
     chip.style.display = 'none';
@@ -447,16 +461,14 @@ function highlightCurrentPlan() {
 
   const freeBtn = document.getElementById('free-btn');
   if (freeBtn) freeBtn.textContent = tier === 'free' ? '✓ Current plan' : 'Downgrade to Free';
-
+  const weeklyBtn = document.getElementById('weekly-btn');
+  if (weeklyBtn) weeklyBtn.textContent = tier === 'weekly' ? '✓ Current plan' : 'Start Weekly Pro →';
   const proBtn = document.getElementById('pro-btn');
-  if (proBtn) proBtn.textContent = tier === 'pro' ? '✓ Current plan' : 'Upgrade to Pro →';
+  if (proBtn) proBtn.textContent = tier === 'pro' ? '✓ Current plan' : 'Start Monthly Pro →';
 
-  const annualBtn = document.getElementById('annual-btn');
-  if (annualBtn) annualBtn.textContent = tier === 'annual' ? '✓ Current plan' : 'Get Annual Plan →';
-
-  const targetMap = { free: 'card-free', pro: 'card-pro', annual: 'card-annual' };
+  const targetMap = { free: 'card-free', weekly: 'card-weekly', pro: 'card-pro', god: 'card-pro' };
   const target = document.getElementById(targetMap[tier] || 'card-free');
-  if (target && target.style.display !== 'none') {
+  if (target) {
     target.classList.add('plan-current');
     const badge = document.createElement('div');
     badge.className = 'current-badge';

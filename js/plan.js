@@ -26,7 +26,7 @@ const DueePlan = (() => {
     localStorage.setItem(lsKey('plan'), JSON.stringify({ tier, expiresAt }));
   }
 
-  function isPro() { const { tier } = getTier(); return tier === 'pro' || tier === 'annual' || tier === 'god'; }
+  function isPro() { const { tier } = getTier(); return tier === 'pro' || tier === 'weekly' || tier === 'annual' || tier === 'god'; }
   function isGod() { return getTier().tier === 'god'; }
 
   // ── AI usage ──
@@ -97,7 +97,8 @@ const DueePlan = (() => {
         ${remaining <= 3 ? `<span style="font-size:10px;background:#7c3aed;color:white;border-radius:99px;padding:1px 6px;">${remaining} AI left</span>` : ''}
       `;
     } else {
-      const label = tier === 'annual' ? 'Annual' : 'Pro';
+      const labels = { weekly: 'Pro Weekly', pro: 'Pro Monthly', annual: 'Pro Annual' };
+      const label = labels[tier] || 'Pro';
       el.style.background = 'linear-gradient(135deg,#7c3aed18,#2563eb18)';
       el.style.color = '#7c3aed';
       el.style.border = '1px solid #7c3aed30';

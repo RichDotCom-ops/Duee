@@ -2,15 +2,41 @@
   "name": "duee.",
   "short_name": "duee.",
   "description": "AI-powered student planner and assignment tracker",
-  "start_url": "/html/dashboard.html",
+  "start_url": "/dashboard",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#ffffff",
   "theme_color": "#16a34a",
+  "categories": ["education", "productivity"],
   "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
     {
       "src": "/favicon.svg",
       "sizes": "any",
       "type": "image/svg+xml"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Assignments",
+      "url": "/assignments",
+      "description": "View your assignments"
+    },
+    {
+      "name": "Calendar",
+      "url": "/calendar",
+      "description": "View your calendar"
     }
   ]
 }

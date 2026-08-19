@@ -175,7 +175,38 @@
     return { classes, assignments, pending, now };
   }
 
-  function buildSystemPrompt(ctx) {
+  // ── Web search via Wikipedia (free, no key, CORS-enabled) ──
+  async function _webSearch(query) {
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 6000);
+      const res = await fetch(
+        `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*&srlimit=1`,
+        { signal: ctrl.signal }
+      );
+      clearTimeout(t);
+      const data = await res.json();
+      const title = data.query?.search?.[0]?.title;
+      if (!title) return null;
+      const ctrl2 = new AbortController();
+      const t2 = setTimeout(() => ctrl2.abort(), 6000);
+      const res2 = await fetch(
+        `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`,
+        { signal: ctrl2.signal }
+      );
+      clearTimeout(t2);
+      const summary = await res2.json();
+      if (!summary.extract) return null;
+      return { title: summary.title, content: summary.extract.slice(0, 700) };
+    } catch (_) { return null; }
+  }
+
+  function _isStudyQuestion(text) {
+    const l = text.toLowerCase();
+    return /\b(what\s+is|what\s+are|how\s+does|how\s+do|explain|define|solve|calculate|why\s+(is|does|did|are|do)|who\s+(is|was|were)|when\s+(did|was|were|is)|help\s+me\s+(with|understand|solve|on)|what\s+caused|history\s+of|tell\s+me\s+about|describe|summarize|meaning\s+of|difference\s+between|compare|formula\s+for|theorem|equation|proof|derive|essay|photosynthesis|biology|chemistry|physics|math|algebra|calculus|economics|psychology|philosophy)\b/.test(l);
+  }
+
+  function buildSystemPrompt(ctx, webContext) {
     const { classes, pending, now } = ctx;
     const upcoming = pending.slice(0, 10).map(a => {
       const cls = classes.find(c => c.id === a.classId);
@@ -184,8 +215,12 @@
       return `• ${a.name}${cls ? ` [${cls.name}]` : ''} — ${when} (${a.priority} priority)`;
     }).join('\n') || '• none';
 
+    const webBlock = webContext
+      ? `\n📖 WEB SEARCH RESULT (Wikipedia) — use this to give a more accurate answer:\n**${webContext.title}**: ${webContext.content}\n`
+      : '';
+
     return `You are a smart, friendly AI study assistant built into duee. — a student planner app.
-${_memContext()}
+${_memContext()}${webBlock}
 You have TWO jobs:
 1. ANSWER any homework or study question the student asks — math, science, history, english, coding, anything. Give clear, step-by-step answers. Never refuse a homework question.
 2. MANAGE their assignments when they ask — mark done, add new, delete, show upcoming.
@@ -388,7 +423,7 @@ HOW TO RESPOND:
       counter.innerHTML = `⏱ Resets in <strong>${DueePlan.fmtCountdown(resetIn)}</strong> · <a href="/pricing" style="color:#7c3aed;font-weight:600;">Upgrade</a>`;
       counter.style.color = 'var(--red,#ef4444)';
     } else {
-      counter.innerHTML = `${remaining} free AI message${remaining===1?'':'s'} left today · <a href="/pricing" style="color:#7c3aed;font-weight:600;">Go Pro</a>`;
+      counter.innerHTML = `${remaining} free AI message${remaining===1?'':'s'} left today · <a href="/pricing" style="color:#7c3aed;font-weight:600;">Upgrade from $2.99/wk</a>`;
       counter.style.color = remaining <= 3 ? 'var(--red,#ef4444)' : 'var(--text-muted,#9ca3af)';
     }
   }
@@ -440,7 +475,9 @@ HOW TO RESPOND:
       // ── Conversational fallback — call LLM ──
       let llmSucceeded = false;
       try {
-        const systemPrompt = buildSystemPrompt(ctx);
+        // Run web search in parallel if it looks like a study question
+        const webContext = _isStudyQuestion(normalizedText) ? await _webSearch(normalizedText) : null;
+        const systemPrompt = buildSystemPrompt(ctx, webContext);
         const apiMessages = _history
           .filter(m => !m._actionOnly)
           .map(m => ({ role: m.role === 'bot' ? 'assistant' : 'user', content: m.role === 'user' ? normalize(m.text) : m.text }));
@@ -722,11 +759,26 @@ HOW TO RESPOND:
   function renderMessages() {
     const c = document.getElementById('ai-messages');
     if (!c) return;
-    c.innerHTML = _history.map((m, i) =>
-      m.role === 'user'
-        ? `<div class="ai-msg ai-msg-user"><div class="ai-bubble ai-bubble-user">${escHtml(m.text)}</div></div>`
-        : `<div class="ai-msg ai-msg-bot"><div class="ai-bubble-wrap"><div class="ai-bubble ai-bubble-bot">${mdToHtml(m.text)}</div><button class="ai-copy-btn" data-copy-idx="${i}" onclick="window._aiCopy(${i})" title="Copy answer">${_COPY_SVG} Copy</button></div></div>`
-    ).join('') + (_thinking ? `<div class="ai-msg ai-msg-bot"><div class="ai-bubble ai-bubble-bot ai-typing"><span></span><span></span><span></span></div></div>` : '');
+    const nowMs = new Date().setHours(0,0,0,0);
+    c.innerHTML = _history.map((m, i) => {
+      if (m._isSuggestions) {
+        const cards = (m.suggestions || []).map(s => {
+          const diff = Math.round((new Date(s.dueDate + 'T00:00:00') - nowMs) / 86400000);
+          const when = diff < 0 ? `${Math.abs(diff)}d overdue` : diff === 0 ? 'today' : diff === 1 ? 'tomorrow' : `in ${diff}d`;
+          const safe = s.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+          return `<button class="ai-suggest-btn" onclick="window._aiAskHelp('${s.id}','${safe}')">
+            <span class="ai-suggest-name">${escHtml(s.name)}</span>
+            <span class="ai-suggest-due">due ${when} →</span>
+          </button>`;
+        }).join('');
+        return `<div class="ai-msg ai-msg-bot" style="flex-direction:column;gap:6px;max-width:100%;">
+          <div style="font-size:12px;font-weight:600;color:var(--text-secondary,#64748b);padding-left:2px;">📚 Need help with an assignment?</div>
+          <div class="ai-suggest-cards">${cards}</div>
+        </div>`;
+      }
+      if (m.role === 'user') return `<div class="ai-msg ai-msg-user"><div class="ai-bubble ai-bubble-user">${escHtml(m.text)}</div></div>`;
+      return `<div class="ai-msg ai-msg-bot"><div class="ai-bubble-wrap"><div class="ai-bubble ai-bubble-bot">${mdToHtml(m.text)}</div><button class="ai-copy-btn" data-copy-idx="${i}" onclick="window._aiCopy(${i})" title="Copy answer">${_COPY_SVG} Copy</button></div></div>`;
+    }).join('') + (_thinking ? `<div class="ai-msg ai-msg-bot"><div class="ai-bubble ai-bubble-bot ai-typing"><span></span><span></span><span></span></div></div>` : '');
     c.scrollTop = c.scrollHeight;
   }
 
@@ -748,10 +800,36 @@ HOW TO RESPOND:
         _convId = 'c' + Date.now();
         _history.push({ role: 'bot', text: "Hey! I'm your AI study assistant ✦\n\nI can help you with **two things**:\n\n**📚 Homework & Study Questions**\n• \"Solve 3x + 5 = 20\"\n• \"Explain photosynthesis\"\n• \"Help me outline my essay\"\n• \"What caused WW2?\"\n\n**✅ Assignment Management**\n• \"I finished my bio lab\" — mark done\n• \"Add a quiz due Friday\"\n• \"What's due this week?\"\n• \"Delete my math hw\"\n\nAsk me anything!" });
         renderMessages();
+        // Load pending assignments and show suggestion cards
+        buildContext().then(ctx => {
+          if (_history.length !== 1) return; // user already typed something
+          const upcoming = ctx.pending.filter(a => {
+            const diff = Math.round((new Date(a.dueDate + 'T00:00:00') - ctx.now) / 86400000);
+            return diff <= 14;
+          });
+          if (!upcoming.length) return;
+          _history.push({
+            role: 'bot', _isSuggestions: true,
+            suggestions: upcoming.slice(0, 3).map(a => ({ id: a.id, name: a.name, dueDate: a.dueDate }))
+          });
+          renderMessages();
+        }).catch(() => {});
       }
       updateTokenUI();
       setTimeout(() => document.getElementById('ai-input')?.focus(), 80);
     }
+  };
+
+  window._aiAskHelp = function(id, name) {
+    // Remove suggestion cards, keep welcome message
+    _history = _history.filter(m => !m._isSuggestions);
+    const input = document.getElementById('ai-input');
+    if (!input) return;
+    input.value = `Help me with my assignment: "${name}"`;
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 80) + 'px';
+    renderMessages();
+    document.getElementById('ai-send')?.click();
   };
 
   window._aiClear = function () { _history = []; _convId = 'c' + Date.now(); _showHistPanel(false); renderMessages(); };
@@ -835,11 +913,18 @@ HOW TO RESPOND:
       #ai-send{width:34px;height:34px;border-radius:50%;border:none;flex-shrink:0;background:linear-gradient(135deg,#7c3aed,#2563eb);color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform 0.1s,opacity 0.1s;}
       #ai-send:hover{transform:scale(1.08);}
       #ai-send:disabled{opacity:0.4;cursor:default;transform:none;}
+      .ai-suggest-cards{display:flex;flex-direction:column;gap:6px;width:100%;}
+      .ai-suggest-btn{width:100%;text-align:left;background:var(--bg-white,#fff);border:1px solid var(--border,#e2e8f0);border-radius:10px;padding:9px 12px;cursor:pointer;font-family:inherit;transition:all 0.15s;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+      .ai-suggest-btn:hover{border-color:#7c3aed;background:#faf5ff;transform:translateX(2px);}
+      .ai-suggest-name{font-size:13px;font-weight:600;color:var(--text-primary,#0f172a);text-align:left;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+      .ai-suggest-due{font-size:11px;color:#7c3aed;font-weight:600;white-space:nowrap;flex-shrink:0;}
       [data-theme="dark"] #ai-panel{background:#1e293b;border-color:var(--border);}
       [data-theme="dark"] .ai-bubble-bot{background:#2d3f55;}
       [data-theme="dark"] #ai-input{background:#0f172a;border-color:var(--border);}
       [data-theme="dark"] #ai-panel-header{background:#1e293b;}
       [data-theme="dark"] .ai-hbtn:hover{background:#2d3f55;}
+      [data-theme="dark"] .ai-suggest-btn{background:#2d3f55;border-color:var(--border);}
+      [data-theme="dark"] .ai-suggest-btn:hover{border-color:#7c3aed;background:#3d2065;}
     `;
     document.head.appendChild(style);
 

@@ -3,8 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Manage your duee. profile, preferences, and subscription plan." />
+  <meta property="og:title" content="duee. — Student Planner" />
+  <meta property="og:description" content="Manage your duee. profile, preferences, and subscription plan." />
+  <meta property="og:image" content="https://duee.online/mockup.jpeg" />
+  <meta property="og:url" content="https://duee.online/settings" />
+  <meta name="twitter:card" content="summary_large_image" />
   <title>duee. — Settings</title>
   <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+  <link rel="manifest" href="/site.webmanifest" />
   <link rel="stylesheet" href="../css/main.css?v=2" />
   <link rel="stylesheet" href="../css/app.css?v=2" />
 </head>
@@ -22,6 +30,7 @@
       <a class="nav-item" data-page="statistics" href="/statistics"><i data-feather="bar-chart-2"></i> Statistics</a>
     </nav>
     <div class="sidebar-bottom">
+      <a class="nav-item" href="#" onclick="event.preventDefault();openShareModal()" style="color:var(--purple);"><i data-feather="share-2"></i> Invite friends</a>
       <a class="nav-item" data-page="settings" href="/settings"><i data-feather="settings"></i> Settings</a>
       <a class="nav-item" href="#" onclick="event.preventDefault();signOutUser()"><i data-feather="log-out"></i> Log out</a>
     </div>
@@ -140,7 +149,7 @@
             <div style="background:linear-gradient(135deg,#7c3aed,#2563eb);border-radius:12px;padding:13px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:opacity 0.15s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
               <div>
                 <div style="font-size:14px;font-weight:700;color:white;">⚡ Upgrade to Pro</div>
-                <div style="font-size:12px;color:rgba(255,255,255,0.75);margin-top:2px;">Unlimited AI · from $5.99/mo</div>
+                <div style="font-size:12px;color:rgba(255,255,255,0.75);margin-top:2px;">Unlimited AI · from $2.99/week</div>
               </div>
               <div style="color:white;font-size:18px;opacity:0.8;">→</div>
             </div>
@@ -199,7 +208,7 @@
 <script src="../js/app.js"></script>
 <script src="../js/supabase-client.js"></script>
 <script src="../js/plan.js"></script>
-<script src="../js/ai.js?v=11"></script>
+<script src="../js/ai.js?v=12"></script>
 <script src="../js/notifications.js"></script>
 <script>
 let _currentUser = null;
@@ -295,15 +304,16 @@ function loadPlanDisplay() {
   const { remaining, resetIn } = DueePlan.canUseAI();
   const isPro = DueePlan.isPro();
 
-  const icons  = { free: '📚', pro: '⚡', annual: '🌟' };
-  const names  = { free: 'Free Plan', pro: 'Pro Plan', annual: 'Annual Plan' };
-  const colors = { free: 'var(--bg-hover)', pro: 'linear-gradient(135deg,#7c3aed18,#2563eb18)', annual: 'linear-gradient(135deg,#16a34a18,#0891b218)' };
+  const icons  = { free: '📚', weekly: '⚡', pro: '🌟', annual: '🌟', god: '👑' };
+  const names  = { free: 'Free Plan', weekly: 'Pro Weekly', pro: 'Pro Monthly', annual: 'Pro Annual', god: 'God Mode' };
+  const colors = { free: 'var(--bg-hover)', weekly: 'linear-gradient(135deg,#7c3aed18,#a855f718)', pro: 'linear-gradient(135deg,#2563eb18,#0891b218)', annual: 'linear-gradient(135deg,#16a34a18,#0891b218)', god: 'linear-gradient(135deg,#f59e0b18,#ef444418)' };
+  const details = { weekly: 'Unlimited AI · $2.99/week', pro: 'Unlimited AI · $15/month', annual: 'Unlimited AI · Annual billing', god: 'Unlimited everything · God Mode 👑' };
 
   document.getElementById('plan-icon').textContent = icons[tier] || '📚';
   document.getElementById('plan-icon').style.background = colors[tier] || 'var(--bg-hover)';
   document.getElementById('plan-name-label').textContent = names[tier] || 'Free Plan';
   document.getElementById('plan-detail-label').textContent = isPro
-    ? 'Unlimited AI messages · ' + (tier === 'annual' ? 'Annual billing' : 'Monthly billing')
+    ? (details[tier] || 'Unlimited AI messages')
     : `${remaining} AI messages remaining today`;
 
   // AI usage bar (free only)
@@ -328,5 +338,6 @@ function confirmDeleteAccount() {
 }
 
 </script>
+<script src="../js/share.js"></script>
 </body>
 </html>

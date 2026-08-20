@@ -1,7 +1,7 @@
 // duee. — Plan & Token Management
 
 const DueePlan = (() => {
-  const FREE_AI_LIMIT = 10;           // messages per window
+  const FREE_AI_LIMIT = 20;           // messages per window
   const FREE_RESET_MS = 24 * 3600000; // 24 hours
 
   function uid() { return window._currentUser?.id || 'guest'; }

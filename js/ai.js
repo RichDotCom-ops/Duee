@@ -439,7 +439,7 @@ HOW TO RESPOND:
       const { allowed, remaining, resetIn } = DueePlan.canUseAI();
       if (!allowed) {
         _history.push({ role: 'user', text });
-        _history.push({ role: 'bot', text: `⏱ You've used your **10 free AI messages** for today.\n\nResets in **${DueePlan.fmtCountdown(resetIn)}**.\n\n[⚡ Upgrade from $2.99/week](/pricing) for unlimited messages.` });
+        _history.push({ role: 'bot', text: `⏱ You've used your **20 free AI messages** for today.\n\nResets in **${DueePlan.fmtCountdown(resetIn)}**.\n\n[⚡ Upgrade from $2.99/week](/pricing) for unlimited messages.` });
         input.value = '';
         input.style.height = 'auto';
         renderMessages();

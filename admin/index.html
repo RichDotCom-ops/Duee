@@ -780,9 +780,9 @@ function renderSubs(subs) {
   }
   $('tb-subs').innerHTML = subs.map(s=>`<tr>
     <td>${s.email||'—'}</td>
-    <td><span class="badge ${s.plan==='annual'?'b-annual':'b-pro'}">${s.plan}</span></td>
+    <td><span class="badge ${s.plan==='annual'?'b-annual':'b-pro'}">${s.plan==='god'?'Pro Plan':s.plan}</span></td>
     <td>${s.started_at?new Date(s.started_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—'}</td>
-    <td>${s.expires_at?new Date(s.expires_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—'}</td>
+    <td>${s.expires_at?`${new Date(s.expires_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} <span class="badge b-free" style="font-size:8px;">trial</span>`:'Never'}</td>
     <td>${s.assignments||0}</td>
     <td>${s.classes||0}</td>
   </tr>`).join('');
@@ -796,7 +796,7 @@ function renderUsers(users) {
   $('user-list-count').textContent = `(${users.length} users)`;
   $('tb-users').innerHTML = users.map(u=>`<tr>
     <td>${u.email||'—'}</td>
-    <td><span class="badge ${u.plan==='annual'?'b-annual':u.plan==='pro'?'b-pro':'b-free'}">${u.plan||'free'}</span></td>
+    <td><span class="badge ${u.plan==='annual'?'b-annual':(u.plan==='pro'||u.plan==='god')?'b-pro':'b-free'}">${u.plan==='god'?'Pro Plan':u.plan||'free'}</span></td>
     <td>${u.joined?new Date(u.joined).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'}):'—'}</td>
     <td>${u.last_seen?new Date(u.last_seen).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'}):'—'}</td>
     <td>${u.assignment_count||0}</td>

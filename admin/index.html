@@ -283,6 +283,36 @@
       </div>
     </div>
 
+    <!-- Page Visits -->
+    <div class="section-title" style="margin-top:8px;">Page Visits</div>
+    <div class="grid-5" style="margin-bottom:20px;">
+      <div class="card card-b">
+        <div class="cl">Total Visits</div>
+        <div class="cv load" id="pv-total">…</div>
+        <div class="cs">all time</div>
+      </div>
+      <div class="card card-g">
+        <div class="cl">Today</div>
+        <div class="cv load" id="pv-today">…</div>
+        <div class="cs">visits so far</div>
+      </div>
+      <div class="card">
+        <div class="cl">This Week</div>
+        <div class="cv load" id="pv-week">…</div>
+        <div class="cs">last 7 days</div>
+      </div>
+      <div class="card">
+        <div class="cl">This Month</div>
+        <div class="cv load" id="pv-month">…</div>
+        <div class="cs">last 30 days</div>
+      </div>
+      <div class="card card-p">
+        <div class="cl">Top Page</div>
+        <div class="cv load sm" id="pv-top">…</div>
+        <div class="cs" id="pv-top-s">most visited</div>
+      </div>
+    </div>
+
     <!-- Charts -->
     <div class="grid-21">
       <div class="cc">
@@ -680,6 +710,29 @@ async function loadSnapshot() {
   if(clsS) { /* no dedicated card but used in future */ }
 
   if(needsSetup) $('setup-notice').style.display='block';
+
+  // Page visits
+  try {
+    const { data: pv } = await _supabase.rpc('get_visit_stats');
+    if (pv) {
+      setVal('pv-total', pv.total || 0, '');
+      setVal('pv-today', pv.today || 0, '');
+      setVal('pv-week',  pv.week  || 0, '');
+      setVal('pv-month', pv.month || 0, '');
+      // Top page
+      const pages = pv.by_page || {};
+      const top = Object.entries(pages).sort((a,b) => b[1]-a[1])[0];
+      if (top) {
+        $('pv-top').textContent = top[0];
+        $('pv-top').className = 'cv sm';
+        $('pv-top-s').textContent = top[1] + ' visits';
+      } else {
+        $('pv-top').textContent = '—'; $('pv-top').className = 'cv';
+      }
+    }
+  } catch (_) {
+    ['pv-total','pv-today','pv-week','pv-month','pv-top'].forEach(id => { $(id).textContent='—'; $(id).className='cv'; });
+  }
 }
 
 function prevMonthDiff(thisC, lastC) {

@@ -308,9 +308,9 @@ function loadPlanDisplay() {
   const isPro = DueePlan.isPro();
 
   const icons  = { free: '📚', weekly: '⚡', pro: '🌟', annual: '🌟', god: '👑' };
-  const names  = { free: 'Free Plan', weekly: 'Pro Weekly', pro: 'Pro Monthly', annual: 'Pro Annual', god: 'God Mode' };
+  const names  = { free: 'Free Plan', weekly: 'Pro Weekly', pro: 'Pro Monthly', annual: 'Pro Annual', god: 'Pro Plan' };
   const colors = { free: 'var(--bg-hover)', weekly: 'linear-gradient(135deg,#7c3aed18,#a855f718)', pro: 'linear-gradient(135deg,#2563eb18,#0891b218)', annual: 'linear-gradient(135deg,#16a34a18,#0891b218)', god: 'linear-gradient(135deg,#f59e0b18,#ef444418)' };
-  const details = { weekly: 'Unlimited AI · $2.99/week', pro: 'Unlimited AI · $15/month', annual: 'Unlimited AI · Annual billing', god: 'Unlimited everything · God Mode 👑' };
+  const details = { weekly: 'Unlimited AI · $2.99/week', pro: 'Unlimited AI · $15/month', annual: 'Unlimited AI · Annual billing', god: 'Unlimited everything · Pro Plan 👑' };
 
   document.getElementById('plan-icon').textContent = icons[tier] || '📚';
   document.getElementById('plan-icon').style.background = colors[tier] || 'var(--bg-hover)';

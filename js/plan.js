@@ -86,7 +86,7 @@ const DueePlan = (() => {
       el.style.background = 'linear-gradient(135deg,#f59e0b20,#ef444420)';
       el.style.color = '#f59e0b';
       el.style.border = '1px solid #f59e0b40';
-      el.innerHTML = `<span style="font-size:15px;">👑</span><span style="flex:1;">God Mode</span><span style="font-size:10px;background:linear-gradient(135deg,#f59e0b,#ef4444);color:white;border-radius:99px;padding:1px 6px;">UNLIMITED</span>`;
+      el.innerHTML = `<span style="font-size:15px;">👑</span><span style="flex:1;">duee. Pro</span><span style="font-size:10px;background:linear-gradient(135deg,#f59e0b,#ef4444);color:white;border-radius:99px;padding:1px 6px;">UNLIMITED</span>`;
     } else if (tier === 'free') {
       el.style.background = 'linear-gradient(135deg,#7c3aed18,#2563eb18)';
       el.style.color = '#7c3aed';

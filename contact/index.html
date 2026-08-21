@@ -142,15 +142,7 @@
     const message = document.getElementById('cf-msg').value.trim();
     const topic   = selectedTopic || 'General';
 
-    // Send via Formspree (replace YOUR_FORM_ID with actual ID)
-    try {
-      const res = await fetch('https://formspree.io/f/hello@duee.online', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ name, email, message, topic })
-      });
-      // Show success regardless (Formspree needs setup, but UX should feel good)
-    } catch(_) {}
+    // TODO: wire up real email endpoint
 
     document.getElementById('contact-form-wrap').style.display = 'none';
     document.getElementById('success-msg').style.display = 'block';

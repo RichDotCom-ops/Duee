@@ -206,6 +206,8 @@
     return /\b(what\s+is|what\s+are|how\s+does|how\s+do|explain|define|solve|calculate|why\s+(is|does|did|are|do)|who\s+(is|was|were)|when\s+(did|was|were|is)|help\s+me\s+(with|understand|solve|on)|what\s+caused|history\s+of|tell\s+me\s+about|describe|summarize|meaning\s+of|difference\s+between|compare|formula\s+for|theorem|equation|proof|derive|essay|photosynthesis|biology|chemistry|physics|math|algebra|calculus|economics|psychology|philosophy)\b/.test(l);
   }
 
+  const _CLASS_COLORS = ['#16a34a','#2563eb','#7c3aed','#0891b2','#dc2626','#b45309','#0d9488','#9333ea','#db2777','#64748b'];
+
   function buildSystemPrompt(ctx, webContext) {
     const { classes, pending, now } = ctx;
     const upcoming = pending.slice(0, 10).map(a => {
@@ -215,6 +217,10 @@
       return `• ${a.name}${cls ? ` [${cls.name}]` : ''} — ${when} (${a.priority} priority)`;
     }).join('\n') || '• none';
 
+    const classesList = classes.length
+      ? classes.map(c => `• ${c.name}${c.professor ? ` (${c.professor})` : ''} [id:${c.id}]`).join('\n')
+      : '• none yet';
+
     const webBlock = webContext
       ? `\n📖 WEB SEARCH RESULT (Wikipedia) — use this to give a more accurate answer:\n**${webContext.title}**: ${webContext.content}\n`
       : '';
@@ -223,15 +229,40 @@
 ${_memContext()}${webBlock}
 You have TWO jobs:
 1. ANSWER any homework or study question the student asks — math, science, history, english, coding, anything. Give clear, step-by-step answers. Never refuse a homework question.
-2. MANAGE their assignments when they ask — mark done, add new, delete, show upcoming.
+2. MANAGE their planner — add/delete assignments, mark done, add new classes, show upcoming.
 
 Today's date: ${todayStr()}
-Student's current assignments:
+
+Student's classes:
+${classesList}
+
+Student's upcoming assignments:
 ${upcoming}
+
+ACTIONS — when the student wants to manage their data, include an action block in your reply:
+\`\`\`action
+{"type":"add_assignment","name":"Essay","due_date":"2026-08-25","priority":"medium","class_id":"<id or omit>"}
+\`\`\`
+\`\`\`action
+{"type":"mark_complete","name":"Essay"}
+\`\`\`
+\`\`\`action
+{"type":"mark_incomplete","name":"Essay"}
+\`\`\`
+\`\`\`action
+{"type":"delete_assignment","name":"Essay"}
+\`\`\`
+\`\`\`action
+{"type":"add_class","name":"Biology","teacher":"Mr. Smith"}
+\`\`\`
+\`\`\`action
+{"type":"get_upcoming","days":7}
+\`\`\`
+For add_class: use "teacher" field only if they mentioned a teacher/professor. For add_assignment: match class_id to one of the student's class IDs above; omit if no match.
 
 HOW TO RESPOND:
 - For homework/study questions: answer directly and fully. Show all steps for math. Explain concepts clearly. Be like a knowledgeable tutor.
-- For assignment management: use the action JSON blocks (already built in).
+- For assignment/class management: say what you did and include the action block.
 - Tone: friendly, encouraging, casual — like a smart friend helping out.
 - Format: plain text only — NO asterisks, NO bold (**), NO markdown symbols. Use numbered steps for math, plain bullet points (•) for lists.
 - Length: answer only what was asked. Be direct. Don't add extra info, tips, or preamble they didn't ask for.
@@ -390,6 +421,15 @@ HOW TO RESPOND:
         const cls = ctx.classes.find(c => c.id === action.class_id);
         actionResult = `📅 Added **"${action.name}"**${cls ? ` for ${cls.name}` : ''} — due ${action.due_date}.`;
       } catch (e) { actionResult = `Failed to add: ${e.message}`; }
+    }
+
+    else if (action.type === 'add_class') {
+      try {
+        const color = _CLASS_COLORS[ctx.classes.length % _CLASS_COLORS.length];
+        await DB.addClass({ name: action.name, professor: action.teacher || '', color, icon: 'book-open' });
+        refreshPage();
+        actionResult = `📚 Added class **"${action.name}"**${action.teacher ? ` with ${action.teacher}` : ''}!`;
+      } catch (e) { actionResult = `Failed to add class: ${e.message}`; }
     }
 
     else if (action.type === 'get_upcoming') {
@@ -598,6 +638,25 @@ HOW TO RESPOND:
       return `Which one do you want to delete?\n${list.slice(0,4).map(a => `• ${a.name}`).join('\n')}`;
     }
 
+    // ── Add class ──
+    if (/\b(add|create|new|make)\b[\w\s]*(class|course|subject)\b|\b(class|course|subject)\b[\w\s]*(add|create|new)\b/i.test(l)) {
+      const color = _CLASS_COLORS[classes.length % _CLASS_COLORS.length];
+      // Extract teacher name if mentioned
+      const teacherM = text.match(/(?:with|taught\s+by|teacher|professor|prof\.?|mr\.?|ms\.?|mrs\.?|dr\.?)\s+([\w\s.]+?)(?:\s*,|\s*$|\s+and\b)/i);
+      const teacher = teacherM ? teacherM[1].trim() : '';
+      // Extract class name — strip command words and teacher name
+      let name = text
+        .replace(/\b(add|create|new|make|a|an|the|class|course|subject|to\s+my\s+(classes|schedule)|please|with|taught\s+by|teacher|professor|prof|mr|ms|mrs|dr)\b/gi, ' ')
+        .replace(teacher ? new RegExp(teacher.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'gi') : /^$/, '')
+        .replace(/\s{2,}/g, ' ').trim();
+      if (name.length > 1) {
+        await DB.addClass({ name, professor: teacher, color, icon: 'book-open' });
+        refreshPage();
+        return `📚 Added **"${name}"**${teacher ? ` with ${teacher}` : ''} to your classes!`;
+      }
+      return `What's the class called?`;
+    }
+
     // ── Add ──
     if (/\b(add|create|new\s+(assignment|task|hw|homework)|schedule|remind\s*me|i\s+have\s+(a|an)\s+\w|there.s\s+(a|an)|need\s+to\s+add|make\s+(a|an))\b/.test(l)) {
       const due = parseDate(text);
@@ -798,7 +857,7 @@ HOW TO RESPOND:
     if (_open) {
       if (_history.length === 0) {
         _convId = 'c' + Date.now();
-        _history.push({ role: 'bot', text: "Hey! I'm your AI study assistant ✦\n\nI can help you with **two things**:\n\n**📚 Homework & Study Questions**\n• \"Solve 3x + 5 = 20\"\n• \"Explain photosynthesis\"\n• \"Help me outline my essay\"\n• \"What caused WW2?\"\n\n**✅ Assignment Management**\n• \"I finished my bio lab\" — mark done\n• \"Add a quiz due Friday\"\n• \"What's due this week?\"\n• \"Delete my math hw\"\n\nAsk me anything!" });
+        _history.push({ role: 'bot', text: "Hey! I'm your AI study assistant ✦\n\nI can help you with:\n\n**📚 Homework & Study Questions**\n• \"Solve 3x + 5 = 20\"\n• \"Explain photosynthesis\"\n• \"Help me outline my essay\"\n\n**✅ Assignment Management**\n• \"I finished my bio lab\" — mark done\n• \"Add a quiz due Friday\"\n• \"What's due this week?\"\n\n**🏫 Class Management**\n• \"Add a Biology class\"\n• \"Add English with Mr. Smith\"\n• \"Create a new Math course\"\n\nAsk me anything!" });
         renderMessages();
         // Load pending assignments and show suggestion cards
         buildContext().then(ctx => {

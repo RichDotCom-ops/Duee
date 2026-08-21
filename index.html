@@ -125,27 +125,22 @@
     }
     .perk svg { width:12px !important; height:12px !important; }
 
-    /* ── Scramble word ── */
+    /* ── Smooth word swap ── */
     #type-word {
       background: linear-gradient(135deg, var(--green), #4ade80);
       -webkit-background-clip: text; background-clip: text;
       -webkit-text-fill-color: transparent;
-      transition: opacity 0.15s;
+      display: inline-block;
+      transition: opacity 0.3s ease, transform 0.3s cubic-bezier(.22,1,.36,1);
     }
-    #type-word::after {
-      content: '';
-      position: absolute;
-      bottom: 2px; left: 0; right: 0;
-      height: 3px;
-      background: linear-gradient(90deg, var(--green), #4ade80);
-      border-radius: 99px;
-      transform: scaleX(0);
-      transform-origin: left;
+    #type-word.fade-out {
+      opacity: 0;
+      transform: translateY(-10px);
     }
-    #type-word.ul-anim::after {
-      animation: underlineGrow 0.5s cubic-bezier(.22,1,.36,1) forwards;
+    #type-word.fade-in {
+      opacity: 1;
+      transform: translateY(0);
     }
-    @keyframes underlineGrow { from{transform:scaleX(0)} to{transform:scaleX(1)} }
 
     /* ── App preview glow ── */
     .app-preview {
@@ -783,57 +778,28 @@ document.querySelectorAll('.preview-item').forEach((item, i) => {
   setTimeout(() => item.classList.add('visible'), 900 + i * 200);
 });
 
-// Scramble effect on h1
+// Smooth word swap on h1
 (function() {
   const words = ['every deadline.', 'every class.', 'finals week.', 'your GPA.', 'lazy students.'];
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%';
   const el = document.getElementById('type-word');
   if (!el) return;
-  let wIdx = 0, running = false;
+  let wIdx = 0;
 
-  function scramble(target, duration, onDone) {
-    const len = target.length;
-    const start = Date.now();
-    // Reset underline animation each time
-    el.style.setProperty('--ul', 'none');
-    function frame() {
-      const elapsed = Date.now() - start;
-      const progress = Math.min(elapsed / duration, 1);
-      // How many chars are "locked in" from the left
-      const locked = Math.floor(progress * len);
-      let result = '';
-      for (let i = 0; i < len; i++) {
-        if (i < locked) {
-          result += target[i];
-        } else if (target[i] === ' ' || target[i] === '.') {
-          result += target[i];
-        } else {
-          result += chars[Math.floor(Math.random() * chars.length)];
-        }
-      }
-      el.textContent = result;
-      if (progress < 1) {
-        requestAnimationFrame(frame);
-      } else {
-        el.textContent = target;
-        // Retrigger underline animation
-        el.classList.remove('ul-anim');
-        void el.offsetWidth;
-        el.classList.add('ul-anim');
-        onDone && onDone();
-      }
-    }
-    requestAnimationFrame(frame);
+  function showNext() {
+    // Fade out + slide up
+    el.classList.add('fade-out');
+    setTimeout(() => {
+      el.textContent = words[wIdx++ % words.length];
+      el.classList.remove('fade-out');
+      el.classList.add('fade-in');
+    }, 300);
+    setTimeout(showNext, 3000);
   }
 
-  function next() {
-    const word = words[wIdx++ % words.length];
-    scramble(word, 700, () => {
-      setTimeout(next, 2600);
-    });
-  }
-
-  setTimeout(next, 800);
+  // Show first word immediately
+  el.textContent = words[wIdx++ % words.length];
+  el.classList.add('fade-in');
+  setTimeout(showNext, 3000);
 })();
 
 // Magnetic CTA

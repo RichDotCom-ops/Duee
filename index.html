@@ -125,6 +125,28 @@
     }
     .perk svg { width:12px !important; height:12px !important; }
 
+    /* ── Scramble word ── */
+    #type-word {
+      background: linear-gradient(135deg, var(--green), #4ade80);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+      transition: opacity 0.15s;
+    }
+    #type-word::after {
+      content: '';
+      position: absolute;
+      bottom: 2px; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--green), #4ade80);
+      border-radius: 99px;
+      transform: scaleX(0);
+      transform-origin: left;
+    }
+    #type-word.ul-anim::after {
+      animation: underlineGrow 0.5s cubic-bezier(.22,1,.36,1) forwards;
+    }
+    @keyframes underlineGrow { from{transform:scaleX(0)} to{transform:scaleX(1)} }
+
     /* ── App preview glow ── */
     .app-preview {
       box-shadow: 0 24px 60px rgba(0,0,0,.14), 0 0 0 1px rgba(0,0,0,.04) !important;
@@ -331,7 +353,7 @@
 
   <div class="hero-content" style="position:relative;z-index:1;">
     <div class="hero-badge">The secret weapon straight-A students don't share</div>
-    <h1>The cheat code<br>for <span id="type-word" style="background:linear-gradient(135deg,var(--green),#4ade80);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;"></span><span id="cursor" style="display:inline-block;width:3px;height:.85em;background:var(--green);margin-left:2px;vertical-align:middle;border-radius:2px;animation:blink 1s step-end infinite;-webkit-text-fill-color:initial;"></span></h1>
+    <h1>The cheat code<br>for <span id="type-word" style="display:inline-block;position:relative;"></span></h1>
     <p class="hero-sub">
       Every deadline tracked. Every assignment organized. An AI tutor in your pocket that helps you through anything — so you stop falling behind and start actually winning.
     </p>
@@ -731,24 +753,57 @@ document.querySelectorAll('.preview-item').forEach((item, i) => {
   setTimeout(() => item.classList.add('visible'), 900 + i * 200);
 });
 
-// Typing effect on h1
+// Scramble effect on h1
 (function() {
-  const words = ['every deadline.', 'every class.', 'finals week.', 'lazy students.', 'your GPA.'];
-  let wIdx = 1, cIdx = 0, deleting = false, paused = false;
-  const wordEl = document.getElementById('type-word');
-  if (!wordEl) return;
-  let currentWord = words[0];
-  function type() {
-    if (paused) return;
-    if (!deleting) {
-      if (cIdx <= currentWord.length) { wordEl.textContent = currentWord.slice(0, cIdx++); setTimeout(type, 60); }
-      else { paused = true; setTimeout(() => { paused = false; deleting = true; type(); }, 2200); }
-    } else {
-      if (cIdx >= 0) { wordEl.textContent = currentWord.slice(0, cIdx--); setTimeout(type, 35); }
-      else { deleting = false; currentWord = words[wIdx++ % words.length]; paused = true; setTimeout(() => { paused = false; type(); }, 300); }
+  const words = ['every deadline.', 'every class.', 'finals week.', 'your GPA.', 'lazy students.'];
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%';
+  const el = document.getElementById('type-word');
+  if (!el) return;
+  let wIdx = 0, running = false;
+
+  function scramble(target, duration, onDone) {
+    const len = target.length;
+    const start = Date.now();
+    // Reset underline animation each time
+    el.style.setProperty('--ul', 'none');
+    function frame() {
+      const elapsed = Date.now() - start;
+      const progress = Math.min(elapsed / duration, 1);
+      // How many chars are "locked in" from the left
+      const locked = Math.floor(progress * len);
+      let result = '';
+      for (let i = 0; i < len; i++) {
+        if (i < locked) {
+          result += target[i];
+        } else if (target[i] === ' ' || target[i] === '.') {
+          result += target[i];
+        } else {
+          result += chars[Math.floor(Math.random() * chars.length)];
+        }
+      }
+      el.textContent = result;
+      if (progress < 1) {
+        requestAnimationFrame(frame);
+      } else {
+        el.textContent = target;
+        // Retrigger underline animation
+        el.classList.remove('ul-anim');
+        void el.offsetWidth;
+        el.classList.add('ul-anim');
+        onDone && onDone();
+      }
     }
+    requestAnimationFrame(frame);
   }
-  setTimeout(type, 900);
+
+  function next() {
+    const word = words[wIdx++ % words.length];
+    scramble(word, 700, () => {
+      setTimeout(next, 2600);
+    });
+  }
+
+  setTimeout(next, 800);
 })();
 
 // Magnetic CTA

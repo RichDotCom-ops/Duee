@@ -15,8 +15,8 @@
   <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
   <link rel="manifest" href="/site.webmanifest" />
-  <link rel="stylesheet" href="../css/main.css?v=2" />
-  <link rel="stylesheet" href="../css/app.css?v=2" />
+  <link rel="stylesheet" href="../css/main.css?v=3" />
+  <link rel="stylesheet" href="../css/app.css?v=3" />
   <style>
     /* ── Onboarding overlay ── */
     #ob-overlay {
@@ -247,14 +247,14 @@
         <div class="ob-icon">📚</div>
         <div class="ob-label">Step 1 of 2</div>
         <div class="ob-title">Add your first class</div>
-        <div class="ob-desc">What courses are you taking this semester? Start with one — you can add more later.</div>
+        <div class="ob-desc">What classes are you taking right now? Start with one — you can add more later.</div>
         <div class="form-group">
           <label>Class Name</label>
-          <input class="form-control" id="ob-class-name" placeholder="e.g. Biology 101" />
+          <input class="form-control" id="ob-class-name" placeholder="e.g. Biology, AP History, Math" />
         </div>
         <div class="form-group">
-          <label>Professor <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
-          <input class="form-control" id="ob-class-prof" placeholder="e.g. Prof. Smith" />
+          <label>Teacher / Professor <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
+          <input class="form-control" id="ob-class-prof" placeholder="e.g. Mr. Smith / Prof. Jones" />
         </div>
         <div class="form-group" style="margin-bottom:0;">
           <label>Pick a color</label>
@@ -305,7 +305,7 @@
           </a>
           <a class="ob-chip" href="/assignments">
             <div class="ob-chip-icon" style="background:#eff6ff;color:#2563eb;"><i data-feather="upload" style="width:16px;height:16px;"></i></div>
-            <div><span>Import from Canvas</span><br><small>Auto-import all assignments at once</small></div>
+            <div><span>Import from Canvas / Google</span><br><small>Auto-import all assignments at once</small></div>
             <i data-feather="chevron-right" style="width:15px;height:15px;color:var(--text-muted);"></i>
           </a>
           <a class="ob-chip" href="/reminders">
@@ -492,7 +492,7 @@ async function loadDashboard(user) {
   const toDate = s => { const d = new Date(s + 'T00:00:00'); d.setHours(0,0,0,0); return d; };
   const dueToday = _assignments.filter(a => !a.completed && toDate(a.dueDate).getTime() === now.getTime());
   renderList('due-today-list', dueToday, true,
-    'Nothing due today!', 'Add assignments to see them here.', 'assignments.html');
+    'Nothing due today!', 'Add assignments to see them here.', '/assignments');
 
   const weekEnd = new Date(now); weekEnd.setDate(weekEnd.getDate() + 7);
   const upcoming = _assignments
@@ -500,7 +500,7 @@ async function loadDashboard(user) {
     .sort((a,b) => a.dueDate.localeCompare(b.dueDate))
     .slice(0, 5);
   renderList('upcoming-list', upcoming, false,
-    'No upcoming deadlines', 'You\'re all clear for the next 7 days.', 'assignments.html');
+    'No upcoming deadlines', 'You\'re all clear for the next 7 days.', '/assignments');
 
   renderWeekStrip(_assignments);
   feather.replace({ width: 16, height: 16 });

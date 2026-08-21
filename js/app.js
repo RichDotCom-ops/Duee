@@ -55,7 +55,15 @@ function closeMobileSidebar() {
 
 // ── Avatar initial ──
 function initAvatar() {
-  // Avatar is populated per-page after auth; nothing to do here
+  const avatar = document.getElementById('user-avatar');
+  if (!avatar) return;
+  const saved = localStorage.getItem('duee_avatar');
+  if (saved) {
+    avatar.textContent = '';
+    avatar.style.backgroundImage = `url(${saved})`;
+    avatar.style.backgroundSize = 'cover';
+    avatar.style.backgroundPosition = 'center';
+  }
 }
 
 // ── Highlight current nav item ──

@@ -5,9 +5,9 @@
   <meta name="google-site-verification" content="Id6zU6rPzbgzd6SK4ahATmmU1hVgV29zCaXp7ERXe6k" />
   <meta name="google-site-verification" content="GclvscfAwuw0vatvGskOElo2I6jg3b9PXvFtX0MxHMw" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Organize your college classes, track schedules, and link assignments to each course with duee." />
+  <meta name="description" content="Organize your classes, track schedules, and link assignments to each course with duee." />
   <meta property="og:title" content="duee. — Student Planner" />
-  <meta property="og:description" content="Organize your college classes, track schedules, and link assignments to each course with duee." />
+  <meta property="og:description" content="Organize your classes, track schedules, and link assignments to each course with duee." />
   <meta property="og:image" content="https://duee.online/mockup.jpeg" />
   <meta property="og:url" content="https://duee.online/classes" />
   <meta name="twitter:card" content="summary_large_image" />
@@ -15,8 +15,8 @@
   <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
   <link rel="manifest" href="/site.webmanifest" />
-  <link rel="stylesheet" href="../css/main.css?v=2" />
-  <link rel="stylesheet" href="../css/app.css?v=2" />
+  <link rel="stylesheet" href="../css/main.css?v=3" />
+  <link rel="stylesheet" href="../css/app.css?v=3" />
 </head>
 <body>
 <div class="app-layout">
@@ -77,11 +77,11 @@
       <input type="hidden" id="class-edit-id" />
       <div class="form-group">
         <label>Class Name</label>
-        <input class="form-control" id="class-name" placeholder="e.g. Biology 101" required />
+        <input class="form-control" id="class-name" placeholder="e.g. Biology, AP History" required />
       </div>
       <div class="form-group">
-        <label>Professor</label>
-        <input class="form-control" id="class-prof" placeholder="e.g. Prof. Smith" />
+        <label>Teacher / Professor <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
+        <input class="form-control" id="class-prof" placeholder="e.g. Mr. Smith / Prof. Jones" />
       </div>
       <div class="form-group">
         <label>Color</label>
@@ -184,7 +184,7 @@ function renderClasses() {
       </div>
       <div>
         <div class="class-name">${c.name}</div>
-        <div class="class-prof">${c.professor || 'No professor set'}</div>
+        <div class="class-prof">${c.professor || 'No teacher set'}</div>
       </div>
       <div class="class-meta">
         <div class="class-meta-item">

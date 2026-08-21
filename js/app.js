@@ -2,12 +2,15 @@
 
 // ── Theme (apply before render to avoid flash) ──
 (function() {
-  document.documentElement.setAttribute('data-theme', localStorage.getItem('duee_theme') || 'light');
+  // Only dark if explicitly saved as 'dark' — anything else (null, garbage) defaults to light
+  const stored = localStorage.getItem('duee_theme');
+  document.documentElement.setAttribute('data-theme', stored === 'dark' ? 'dark' : 'light');
 })();
 
 function applyTheme(theme) {
-  document.documentElement.setAttribute('data-theme', theme || 'light');
-  localStorage.setItem('duee_theme', theme || 'light');
+  const t = theme === 'dark' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', t);
+  localStorage.setItem('duee_theme', t);
 }
 
 document.addEventListener('DOMContentLoaded', () => {

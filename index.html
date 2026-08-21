@@ -78,12 +78,66 @@
     .floating-card{ animation:floatCard 6s ease-in-out infinite 1.8s; }
     .floating-ai  { animation:aiFloat 7s ease-in-out infinite 2s; }
 
-    /* ── Badge dot ── */
-    .hero-badge::before { animation:pulseDot 2s ease-in-out infinite; }
+    /* ── Badge ── */
+    .hero-badge {
+      background: #0f172a !important;
+      color: #e2e8f0 !important;
+      border: 1px solid rgba(255,255,255,.12) !important;
+      font-size: 12px !important;
+      letter-spacing: .3px;
+      box-shadow: 0 0 0 1px rgba(22,163,74,.15), 0 2px 12px rgba(0,0,0,.15);
+    }
+    .hero-badge::before { background: #4ade80 !important; animation:pulseDot 2s ease-in-out infinite; }
+
+    /* ── H1 static text slight depth ── */
+    .hero h1 { font-size: clamp(42px, 5.5vw, 64px) !important; letter-spacing: -2px !important; line-height: 1.05 !important; }
+
+    /* ── Subtitle ── */
+    .hero-sub { font-size: 16px !important; color: #64748b !important; line-height: 1.7 !important; }
 
     /* ── CTA glow ── */
-    .btn-primary.btn-lg { animation:glowPulse 3s ease-in-out infinite 1.5s; }
-    .btn-primary.btn-lg:hover { animation:none; }
+    .btn-primary.btn-lg {
+      padding: 14px 28px !important; font-size: 15px !important; font-weight: 700 !important;
+      box-shadow: 0 4px 24px rgba(22,163,74,.35) !important;
+      animation:glowPulse 3s ease-in-out infinite 1.5s;
+    }
+    .btn-primary.btn-lg:hover { animation:none; transform:translateY(-2px); box-shadow:0 8px 32px rgba(22,163,74,.45) !important; }
+
+    /* ── Social proof under CTA ── */
+    .hero-social-proof { display:flex; align-items:center; gap:8px; margin-top:14px; }
+    .hero-avatars { display:flex; }
+    .hero-avatars span { width:26px; height:26px; border-radius:50%; border:2px solid white; display:flex; align-items:center; justify-content:center; font-size:12px; margin-left:-8px; background:#e2e8f0; }
+    .hero-avatars span:first-child { margin-left:0; }
+    .hero-social-proof p { font-size:12px; color:#64748b; font-weight:500; }
+    .hero-social-proof strong { color:#0f172a; }
+
+    /* ── Perks redesign ── */
+    .hero-perks { gap:10px !important; margin-top:32px !important; }
+    .perk {
+      background: white !important;
+      border: 1px solid #e5e7eb !important;
+      border-radius: 99px !important;
+      padding: 6px 14px !important;
+      font-size: 12.5px !important;
+      font-weight: 600 !important;
+      color: #374151 !important;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06) !important;
+    }
+    .perk svg { width:12px !important; height:12px !important; }
+
+    /* ── App preview glow ── */
+    .app-preview {
+      box-shadow: 0 24px 60px rgba(0,0,0,.14), 0 0 0 1px rgba(0,0,0,.04) !important;
+    }
+    .hero-visual::before {
+      content: '';
+      position: absolute;
+      bottom: -40px; left: 50%; transform: translateX(-50%);
+      width: 70%; height: 60px;
+      background: radial-gradient(ellipse, rgba(22,163,74,.25) 0%, transparent 70%);
+      filter: blur(20px);
+      pointer-events: none;
+    }
 
     /* ── Preview items ── */
     .preview-item { opacity:0; transform:translateX(12px); transition:opacity .4s,transform .4s; }
@@ -288,15 +342,21 @@
         See How It Works
       </a>
     </div>
+    <div class="hero-social-proof">
+      <div class="hero-avatars">
+        <span>😊</span><span>📚</span><span>✨</span><span>🎓</span>
+      </div>
+      <p>Loved by <strong>students</strong> who stopped falling behind</p>
+    </div>
     <div class="hero-perks">
-      <span class="perk"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Never miss a deadline</span>
-      <span class="perk"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>AI does the heavy lifting</span>
-      <span class="perk"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>2 min setup</span>
-      <span class="perk"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Free to start</span>
+      <span class="perk"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Never miss a deadline</span>
+      <span class="perk"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>AI does the heavy lifting</span>
+      <span class="perk"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>2 min setup</span>
+      <span class="perk"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Free to start</span>
     </div>
   </div>
 
-  <div class="hero-visual" style="position:relative;z-index:1;">
+  <div class="hero-visual" style="position:relative;z-index:1;padding-bottom:40px;">
     <div class="app-preview" style="position:relative;">
       <div class="preview-topbar">
         <div class="preview-topbar-dot"></div>
@@ -329,18 +389,20 @@
       </div>
 
       <!-- Floating stat card -->
-      <div class="floating-card" style="position:absolute;right:-115px;top:24px;background:white;border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;box-shadow:0 10px 25px rgba(0,0,0,.12);width:170px;transform:rotate(1deg);">
-        <div style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Upcoming</div>
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;"><div style="width:7px;height:7px;border-radius:50%;background:#dc2626;flex-shrink:0;"></div><div style="font-size:12px;font-weight:600;">CS Project M1</div></div>
-        <div style="font-size:11px;color:#6b7280;margin-bottom:10px;">CS 201 · 3 days left</div>
-        <div style="background:#dcfce7;color:#166534;font-size:11px;font-weight:600;padding:3px 8px;border-radius:999px;display:inline-block;">On Track ✓</div>
+      <div class="floating-card" style="position:absolute;right:-120px;top:16px;background:white;border:1px solid #e5e7eb;border-radius:14px;padding:14px 16px;box-shadow:0 16px 40px rgba(0,0,0,.14);width:168px;transform:rotate(2deg);">
+        <div style="font-size:9px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">Next Due</div>
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px;"><div style="width:8px;height:8px;border-radius:50%;background:#dc2626;flex-shrink:0;box-shadow:0 0 0 3px rgba(220,38,38,.15);"></div><div style="font-size:12px;font-weight:700;color:#111827;">CS Project M1</div></div>
+        <div style="font-size:11px;color:#9ca3af;margin-bottom:10px;">CS 201 · 3 days left</div>
+        <div style="background:#dcfce7;color:#15803d;font-size:10px;font-weight:700;padding:4px 10px;border-radius:999px;display:inline-flex;align-items:center;gap:4px;">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> On Track
+        </div>
       </div>
 
       <!-- Floating AI bubble -->
-      <div class="floating-ai" style="position:absolute;right:-115px;bottom:20px;background:linear-gradient(135deg,#7c3aed,#2563eb);border-radius:12px;padding:12px 14px;box-shadow:0 8px 20px rgba(124,58,237,.35);width:170px;">
-        <div style="font-size:10px;color:#c4b5fd;font-weight:600;margin-bottom:5px;">✦ AI Assistant</div>
-        <div style="font-size:12px;color:white;line-height:1.4;">"I finished my calc homework!"</div>
-        <div style="font-size:11px;color:#86efac;margin-top:6px;font-weight:600;">✓ Marked complete!</div>
+      <div class="floating-ai" style="position:absolute;right:-120px;bottom:32px;background:linear-gradient(135deg,#4f46e5,#7c3aed);border-radius:14px;padding:13px 15px;box-shadow:0 12px 32px rgba(124,58,237,.4);width:168px;">
+        <div style="display:flex;align-items:center;gap:5px;margin-bottom:6px;"><span style="font-size:11px;">✦</span><div style="font-size:9px;color:#c4b5fd;font-weight:700;letter-spacing:.05em;text-transform:uppercase;">AI Assistant</div></div>
+        <div style="font-size:12px;color:white;line-height:1.5;font-weight:500;">"I finished my calc homework!"</div>
+        <div style="display:flex;align-items:center;gap:4px;margin-top:8px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#86efac" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg><div style="font-size:11px;color:#86efac;font-weight:700;">Marked complete!</div></div>
       </div>
     </div>
   </div>

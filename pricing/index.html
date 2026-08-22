@@ -338,9 +338,6 @@
   </div>
 </div>
 
-<!-- LemonSqueezy overlay checkout -->
-<script src="https://assets.lemonsqueezy.com/lemon.js" defer></script>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://unpkg.com/feather-icons/dist/feather.min.js"></script>
 <script src="../js/data.js"></script>
@@ -350,8 +347,7 @@
 <script src="../js/plan.js?v=2"></script>
 <script>
 // ─────────────────────────────────────────────
-// PASTE YOUR LEMONSQUEEZY CHECKOUT URLs HERE
-// Format: https://yourstore.lemonsqueezy.com/checkout/buy/VARIANT_ID
+// LemonSqueezy checkout URLs
 // ─────────────────────────────────────────────
 const LS_WEEKLY_URL  = 'https://duee.lemonsqueezy.com/checkout/buy/f4e99050-6eff-4e7f-b029-e614c071842a';
 const LS_MONTHLY_URL = 'https://duee.lemonsqueezy.com/checkout/buy/5c140175-219a-4f17-b06c-18d69b75fd63';
@@ -363,59 +359,35 @@ document.addEventListener('DOMContentLoaded', async () => {
   const session = await Auth.requireAuth();
   if (!session) return;
   window._currentUser = session.user;
-  highlightCurrentPlan();
   applyTheme(DB.getPreferences().theme);
-  initLemonSqueezy();
+
+  // ── Handle redirect back from LemonSqueezy after payment ──
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('success') === '1') {
+    _pendingPlan = params.get('plan') || 'pro';
+    onPaymentSuccess();
+    window.history.replaceState({}, '', '/pricing');
+  }
+
+  highlightCurrentPlan();
 });
 
-// ── LemonSqueezy overlay setup ──
-function initLemonSqueezy() {
-  let attempts = 0;
-  const trySetup = () => {
-    if (typeof window.createLemonSqueezy !== 'function') {
-      if (++attempts < 25) setTimeout(trySetup, 200);
-      return;
-    }
-    window.createLemonSqueezy();
-    LemonSqueezy.Setup({
-      eventHandler: (event) => {
-        if (event.event === 'Checkout.Success') onPaymentSuccess();
-      }
-    });
-  };
-  trySetup();
-}
-
 function openCheckout(plan) {
-  const url = plan === 'weekly' ? LS_WEEKLY_URL : LS_MONTHLY_URL;
-  if (!url || url.startsWith('PASTE_')) {
+  const baseUrl = plan === 'weekly' ? LS_WEEKLY_URL : LS_MONTHLY_URL;
+  if (!baseUrl) {
     document.getElementById('coming-soon-modal').classList.add('open');
     return;
   }
-  _pendingPlan = plan;
 
-  // Append embed + prefill email if available
   const email = window._currentUser?.email || '';
-  const checkoutUrl = url + '?embed=1' + (email ? `&checkout[email]=${encodeURIComponent(email)}` : '');
+  const successUrl = `${location.origin}/pricing?success=1&plan=${plan}`;
 
-  // If LemonSqueezy overlay is ready, use it
-  if (window.LemonSqueezy?.Url?.Open) {
-    window.LemonSqueezy.Url.Open(checkoutUrl);
-    return;
-  }
+  // Build full-page checkout URL — no embed, just redirect
+  const params = new URLSearchParams();
+  if (email) params.set('checkout[email]', email);
+  params.set('checkout[success_url]', successUrl);
 
-  // Fallback: wait up to 3s for LS to load, then open in new tab
-  let wait = 0;
-  const poll = setInterval(() => {
-    if (window.LemonSqueezy?.Url?.Open) {
-      clearInterval(poll);
-      window.LemonSqueezy.Url.Open(url);
-    } else if (wait >= 15) {
-      clearInterval(poll);
-      window.open(checkoutUrl, '_blank');
-    }
-    wait++;
-  }, 200);
+  location.href = `${baseUrl}?${params.toString()}`;
 }
 
 function onPaymentSuccess() {

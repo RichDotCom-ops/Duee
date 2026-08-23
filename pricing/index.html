@@ -385,12 +385,12 @@ function openCheckout(plan) {
   const email = window._currentUser?.email || '';
   const successUrl = `${location.origin}/pricing?success=1&plan=${plan}`;
 
-  // Build full-page checkout URL — no embed, just redirect
-  const params = new URLSearchParams();
-  if (email) params.set('checkout[email]', email);
-  params.set('checkout[success_url]', successUrl);
+  // LemonSqueezy expects literal bracket syntax (not %5B%5D encoded)
+  let url = baseUrl + '?';
+  if (email) url += `checkout[email]=${encodeURIComponent(email)}&`;
+  url += `checkout[success_url]=${encodeURIComponent(successUrl)}`;
 
-  location.href = `${baseUrl}?${params.toString()}`;
+  location.href = url;
 }
 
 function onPaymentSuccess() {

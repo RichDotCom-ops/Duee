@@ -27,6 +27,13 @@ const Auth = {
     return await _supabase.auth.signInWithPassword({ email, password });
   },
 
+  async signInWithGoogle() {
+    return await _supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: 'https://duee.online/dashboard' }
+    });
+  },
+
   async signOut() {
     await _supabase.auth.signOut();
     window.location.href = '/login';

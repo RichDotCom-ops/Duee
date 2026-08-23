@@ -393,10 +393,25 @@ function openCheckout(plan) {
   location.href = url;
 }
 
-function onPaymentSuccess() {
+async function onPaymentSuccess() {
   const isWeekly = _pendingPlan === 'weekly';
+  const tier = _pendingPlan || 'pro';
   const expiresAt = isWeekly ? Date.now() + 7 * 86400000 : Date.now() + 30 * 86400000;
-  DueePlan.setTier(_pendingPlan || 'pro', expiresAt);
+  const expiresIso = new Date(expiresAt).toISOString();
+
+  // Write to DB so syncFromDB doesn't override localStorage
+  try {
+    const userId = window._currentUser?.id;
+    if (userId) {
+      await _supabase.from('user_plans').upsert({
+        user_id: userId,
+        plan: tier,
+        expires_at: expiresIso
+      }, { onConflict: 'user_id' });
+    }
+  } catch (_) {}
+
+  DueePlan.setTier(tier, expiresAt);
   highlightCurrentPlan();
 
   document.getElementById('pay-success-icon').textContent  = isWeekly ? '⚡' : '🌟';

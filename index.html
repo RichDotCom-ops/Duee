@@ -257,6 +257,9 @@
     .stat-label { font-size:13px; color:var(--text-secondary); margin-top:6px; font-weight:500; }
 
     @media(max-width:768px){
+      /* Before/After grid */
+      .ba-grid { grid-template-columns:1fr !important; }
+
       /* Nav */
       .land-nav { padding:0 20px; }
       .land-links { display:none !important; }
@@ -443,6 +446,91 @@
   <div class="stat-item reveal">
     <div class="stat-num">24<span>/7</span></div>
     <div class="stat-label">AI always available</div>
+  </div>
+</div>
+
+<!-- Before / After -->
+<div style="background:white;border-bottom:1px solid var(--border);padding:80px 24px;">
+  <div style="max-width:980px;margin:0 auto;">
+    <div class="section-label reveal" style="text-align:center;margin-bottom:12px;">The Difference</div>
+    <h2 class="section-title reveal" style="text-align:center;margin-bottom:8px;">What changes when you use duee.</h2>
+    <p class="section-sub reveal" style="text-align:center;margin-bottom:52px;">Every student has been there. duee. fixes all of it.</p>
+
+    <div class="reveal ba-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:860px;margin:0 auto;">
+      <!-- Before -->
+      <div style="background:#fff5f5;border:1.5px solid #fecaca;border-radius:20px;padding:32px 28px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px;">
+          <div style="width:32px;height:32px;background:#fca5a5;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;">😩</div>
+          <div style="font-size:16px;font-weight:800;color:#dc2626;">Before duee.</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div style="display:flex;align-items:flex-start;gap:10px;">
+            <span style="color:#ef4444;font-size:16px;font-weight:700;flex-shrink:0;margin-top:1px;">✕</span>
+            <span style="font-size:14px;color:#7f1d1d;line-height:1.5;">Scrambling the night before realizing something was due</span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:10px;">
+            <span style="color:#ef4444;font-size:16px;font-weight:700;flex-shrink:0;margin-top:1px;">✕</span>
+            <span style="font-size:14px;color:#7f1d1d;line-height:1.5;">Assignments scattered across texts, emails, and notes apps</span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:10px;">
+            <span style="color:#ef4444;font-size:16px;font-weight:700;flex-shrink:0;margin-top:1px;">✕</span>
+            <span style="font-size:14px;color:#7f1d1d;line-height:1.5;">Losing points because you forgot a quiz or a reading</span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:10px;">
+            <span style="color:#ef4444;font-size:16px;font-weight:700;flex-shrink:0;margin-top:1px;">✕</span>
+            <span style="font-size:14px;color:#7f1d1d;line-height:1.5;">Googling answers at 2am with no one to help you</span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:10px;">
+            <span style="color:#ef4444;font-size:16px;font-weight:700;flex-shrink:0;margin-top:1px;">✕</span>
+            <span style="font-size:14px;color:#7f1d1d;line-height:1.5;">Constant anxiety about what's coming up this week</span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:10px;">
+            <span style="color:#ef4444;font-size:16px;font-weight:700;flex-shrink:0;margin-top:1px;">✕</span>
+            <span style="font-size:14px;color:#7f1d1d;line-height:1.5;">No idea how much time to spend on each subject</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- After -->
+      <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:20px;padding:32px 28px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px;">
+          <div style="width:32px;height:32px;background:#4ade80;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;">😎</div>
+          <div style="font-size:16px;font-weight:800;color:#16a34a;">After duee.</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div style="display:flex;align-items:flex-start;gap:10px;">
+            <span style="color:#16a34a;font-size:16px;font-weight:700;flex-shrink:0;margin-top:1px;">✓</span>
+            <span style="font-size:14px;color:#14532d;line-height:1.5;">Every deadline visible on one dashboard — nothing slips</span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:10px;">
+            <span style="color:#16a34a;font-size:16px;font-weight:700;flex-shrink:0;margin-top:1px;">✓</span>
+            <span style="font-size:14px;color:#14532d;line-height:1.5;">All classes and assignments organized in one clean place</span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:10px;">
+            <span style="color:#16a34a;font-size:16px;font-weight:700;flex-shrink:0;margin-top:1px;">✓</span>
+            <span style="font-size:14px;color:#14532d;line-height:1.5;">Browser reminders before anything is due — even when closed</span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:10px;">
+            <span style="color:#16a34a;font-size:16px;font-weight:700;flex-shrink:0;margin-top:1px;">✓</span>
+            <span style="font-size:14px;color:#14532d;line-height:1.5;">AI tutor answers your questions instantly, 24/7</span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:10px;">
+            <span style="color:#16a34a;font-size:16px;font-weight:700;flex-shrink:0;margin-top:1px;">✓</span>
+            <span style="font-size:14px;color:#14532d;line-height:1.5;">Always know exactly what's due and when — total clarity</span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:10px;">
+            <span style="color:#16a34a;font-size:16px;font-weight:700;flex-shrink:0;margin-top:1px;">✓</span>
+            <span style="font-size:14px;color:#14532d;line-height:1.5;">Built-in study timer tracks exactly where your time goes</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom CTA -->
+    <div class="reveal" style="text-align:center;margin-top:44px;">
+      <a href="/login?mode=signup" class="btn btn-primary btn-lg" style="display:inline-block;">Start for Free — Takes 30 Seconds →</a>
+      <p style="font-size:12px;color:var(--text-muted);margin-top:10px;">No credit card. No setup. Just sign up and go.</p>
+    </div>
   </div>
 </div>
 

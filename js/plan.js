@@ -137,6 +137,13 @@ const DueePlan = (() => {
 
   // ── Boot ──
   async function boot() {
+    // Ensure _currentUser is set before reading/writing plan keys
+    if (!window._currentUser) {
+      try {
+        const { data: { session } } = await _supabase.auth.getSession();
+        if (session?.user) window._currentUser = session.user;
+      } catch (_) {}
+    }
     await syncFromDB();
     if (!document.querySelector('.sidebar-bottom')) return;
     injectSidebarBadge();
@@ -148,5 +155,5 @@ const DueePlan = (() => {
     boot();
   }
 
-  return { getTier, setTier, isPro, isGod, canUseAI, incrementAI, fmtCountdown, syncFromDB };
+  return { getTier, setTier, isPro, isGod, canUseAI, incrementAI, fmtCountdown, syncFromDB, injectSidebarBadge };
 })();

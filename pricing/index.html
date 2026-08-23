@@ -400,6 +400,9 @@ function onPaymentSuccess() {
 
   DueePlan.setTier(tier, expiresAt);
   highlightCurrentPlan();
+  // Refresh sidebar badge with correct user key
+  document.getElementById('sidebar-plan-badge')?.remove();
+  if (typeof DueePlan.syncFromDB === 'function') DueePlan.injectSidebarBadge?.();
 
   document.getElementById('pay-success-icon').textContent  = isWeekly ? '⚡' : '🌟';
   document.getElementById('pay-success-title').textContent = isWeekly ? 'Weekly Pro activated! 🎉' : 'Monthly Pro activated! 🎉';

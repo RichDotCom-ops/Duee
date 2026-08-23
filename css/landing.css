@@ -138,13 +138,26 @@ html, body { max-width: 100%; overflow-x: hidden; }
   .land-nav-actions .btn-login { display: none; }
 
   /* Hero */
-  .hero { flex-direction: column; padding: 40px 20px; gap: 40px; min-height: auto; text-align: center; }
+  .hero { flex-direction: column; padding: 40px 20px 32px; gap: 32px; min-height: auto; text-align: center; }
   .hero-content { max-width: 100%; }
   .hero-actions { justify-content: center; }
   .hero-perks { justify-content: center; }
   .hero-visual { width: 100%; }
   .app-preview { max-width: 100%; }
   .preview-float { display: none; }
+
+  /* Video on mobile: full bleed */
+  .hero-video-wrap {
+    width: calc(100% + 40px) !important;
+    margin: 0 -20px !important;
+    flex-shrink: 0;
+  }
+  .hero-video-wrap #duee-player {
+    border-radius: 0 !important;
+  }
+  .hero-video-wrap p {
+    padding: 0 20px;
+  }
 
   /* Sections */
   .section { padding: 50px 20px; }

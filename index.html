@@ -257,6 +257,8 @@
     .stat-label { font-size:13px; color:var(--text-secondary); margin-top:6px; font-weight:500; }
 
     @media(max-width:768px){
+      /* Pitch grid */
+      .pitch-grid { grid-template-columns:1fr !important; }
       /* Before/After grid */
       .ba-grid { grid-template-columns:1fr !important; }
 
@@ -428,6 +430,36 @@
     </div>
   </div>
 </section>
+
+<!-- 30-second pitch strip -->
+<div style="background:#0f172a;padding:52px 24px 56px;border-top:1px solid #1e293b;">
+  <div style="max-width:900px;margin:0 auto;text-align:center;">
+    <p style="font-size:13px;font-weight:700;letter-spacing:.12em;color:#4ade80;text-transform:uppercase;margin-bottom:16px;">What is duee.?</p>
+    <h2 style="font-size:clamp(22px,4vw,36px);font-weight:800;color:white;letter-spacing:-.5px;line-height:1.25;margin-bottom:40px;">
+      One app that keeps you on top of<br>every class, every assignment, every deadline.
+    </h2>
+    <div class="pitch-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:40px;">
+      <div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:24px 20px;">
+        <div style="font-size:28px;margin-bottom:12px;">📋</div>
+        <div style="font-size:15px;font-weight:700;color:white;margin-bottom:6px;">Track everything</div>
+        <div style="font-size:13px;color:#94a3b8;line-height:1.6;">All your classes and assignments in one place. See exactly what's due and when.</div>
+      </div>
+      <div style="background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.25);border-radius:16px;padding:24px 20px;">
+        <div style="font-size:28px;margin-bottom:12px;">✦</div>
+        <div style="font-size:15px;font-weight:700;color:white;margin-bottom:6px;">Ask the AI anything</div>
+        <div style="font-size:13px;color:#94a3b8;line-height:1.6;">Stuck on homework? Just ask. Your AI tutor explains anything, 24/7, instantly.</div>
+      </div>
+      <div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:24px 20px;">
+        <div style="font-size:28px;margin-bottom:12px;">🔔</div>
+        <div style="font-size:15px;font-weight:700;color:white;margin-bottom:6px;">Never miss a deadline</div>
+        <div style="font-size:13px;color:#94a3b8;line-height:1.6;">Real notifications before anything is due — even when the app is closed.</div>
+      </div>
+    </div>
+    <a href="/login?mode=signup" class="btn btn-primary btn-lg" style="display:inline-block;font-size:15px;padding:14px 32px;">
+      Try It Free — No Card Needed →
+    </a>
+  </div>
+</div>
 
 <!-- Stats bar -->
 <div class="stats-bar">

@@ -146,17 +146,10 @@ html, body { max-width: 100%; overflow-x: hidden; }
   .app-preview { max-width: 100%; }
   .preview-float { display: none; }
 
-  /* Video on mobile: full bleed */
+  /* Video on mobile: near full width */
   .hero-video-wrap {
-    width: calc(100% + 40px) !important;
-    margin: 0 -20px !important;
-    flex-shrink: 0;
-  }
-  .hero-video-wrap #duee-player {
-    border-radius: 0 !important;
-  }
-  .hero-video-wrap p {
-    padding: 0 20px;
+    width: 92% !important;
+    margin: 0 auto !important;
   }
 
   /* Sections */

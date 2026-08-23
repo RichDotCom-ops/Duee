@@ -116,7 +116,16 @@ const DueePlan = (() => {
     try {
       const { data, error } = await _supabase.rpc('get_my_plan');
       if (!error && data) {
-        setTier(data, null);
+        if (data !== 'free') {
+          // DB has a paid plan — always apply it
+          setTier(data, null);
+        } else {
+          // DB says free — only apply if localStorage doesn't have a valid paid plan
+          // (handles the window between payment and DB update)
+          const local = getTier();
+          if (local.tier === 'free') setTier('free', null);
+          else return; // keep the locally-set paid plan; localStorage expiry handles cleanup
+        }
         // Re-render any UI that already painted before sync completed
         document.getElementById('sidebar-plan-badge')?.remove();
         injectSidebarBadge();

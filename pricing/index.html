@@ -393,23 +393,10 @@ function openCheckout(plan) {
   location.href = url;
 }
 
-async function onPaymentSuccess() {
+function onPaymentSuccess() {
   const isWeekly = _pendingPlan === 'weekly';
   const tier = _pendingPlan || 'pro';
   const expiresAt = isWeekly ? Date.now() + 7 * 86400000 : Date.now() + 30 * 86400000;
-  const expiresIso = new Date(expiresAt).toISOString();
-
-  // Write to DB so syncFromDB doesn't override localStorage
-  try {
-    const userId = window._currentUser?.id;
-    if (userId) {
-      await _supabase.from('user_plans').upsert({
-        user_id: userId,
-        plan: tier,
-        expires_at: expiresIso
-      }, { onConflict: 'user_id' });
-    }
-  } catch (_) {}
 
   DueePlan.setTier(tier, expiresAt);
   highlightCurrentPlan();

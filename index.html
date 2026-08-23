@@ -257,6 +257,9 @@
     .stat-label { font-size:13px; color:var(--text-secondary); margin-top:6px; font-weight:500; }
 
     @media(max-width:768px){
+      /* Video controls always visible on mobile */
+      #dp-controls { opacity: 1 !important; }
+
       /* Pitch grid */
       .pitch-grid { grid-template-columns:1fr !important; }
       /* Before/After grid */
@@ -784,7 +787,7 @@ if (ctaBtn) {
     _dpPlaying ? _ytPlayer.pauseVideo() : _ytPlayer.playVideo();
   }
 
-  // Hover → show controls
+  // Hover → show controls (desktop)
   var _playerEl = document.getElementById('duee-player');
   var _ctrlEl   = document.getElementById('dp-controls');
   var _hoverTimer;
@@ -801,7 +804,18 @@ if (ctaBtn) {
     if (_dpPlaying) _ctrlEl.style.opacity = '0';
   });
 
-  // Progress bar click → seek
+  // Touch → tap to show/hide controls (mobile)
+  _playerEl.addEventListener('touchstart', function() {
+    clearTimeout(_hoverTimer);
+    if (_ctrlEl.style.opacity === '1') {
+      _ctrlEl.style.opacity = '0';
+    } else {
+      _ctrlEl.style.opacity = '1';
+      _hoverTimer = setTimeout(function() { _ctrlEl.style.opacity = '0'; }, 3000);
+    }
+  }, { passive: true });
+
+  // Progress bar click/touch → seek
   document.getElementById('dp-progress-wrap').addEventListener('click', function(e) {
     if (!_ytPlayer || !_ytPlayer.getDuration) return;
     var rect = this.getBoundingClientRect();
@@ -809,12 +823,17 @@ if (ctaBtn) {
     _ytPlayer.seekTo(_ytPlayer.getDuration() * pct, true);
   });
 
-  // Fullscreen button
+  // Fullscreen button — use iframe for iOS/Android compat
   document.getElementById('dp-fs-btn').addEventListener('click', function(e) {
     e.stopPropagation();
-    var el = document.getElementById('duee-player');
-    if (el.requestFullscreen)       el.requestFullscreen();
-    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    // Try the player wrapper first (Android/desktop), then the YT iframe (iOS)
+    var wrapper = document.getElementById('duee-player');
+    var iframe  = _ytPlayer && _ytPlayer.getIframe ? _ytPlayer.getIframe() : null;
+    var el = wrapper;
+    if (wrapper.requestFullscreen)            { wrapper.requestFullscreen(); }
+    else if (wrapper.webkitRequestFullscreen) { wrapper.webkitRequestFullscreen(); }
+    else if (iframe && iframe.requestFullscreen)            { iframe.requestFullscreen(); }
+    else if (iframe && iframe.webkitRequestFullscreen)      { iframe.webkitRequestFullscreen(); }
   });
 </script>
 </body>

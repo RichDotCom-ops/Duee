@@ -62,10 +62,13 @@ function initAvatar() {
   if (!avatar) return;
   const saved = localStorage.getItem('duee_avatar');
   if (saved) {
-    avatar.textContent = '';
-    avatar.style.backgroundImage = `url(${saved})`;
-    avatar.style.backgroundSize = 'cover';
-    avatar.style.backgroundPosition = 'center';
+    // Only allow data URIs (uploaded images) or https URLs — block CSS injection
+    if (/^data:image\/(png|jpeg|jpg|gif|webp);base64,/.test(saved) || /^https:\/\//.test(saved)) {
+      avatar.textContent = '';
+      avatar.style.backgroundImage = `url(${saved})`;
+      avatar.style.backgroundSize = 'cover';
+      avatar.style.backgroundPosition = 'center';
+    }
   }
 }
 

@@ -490,7 +490,11 @@ async function importFromUrl(source) {
   const url   = input.value.trim();
 
   if (!url) { showImportError('Please paste a calendar feed URL first.'); return; }
-  if (!url.startsWith('http')) { showImportError('Please enter a valid URL starting with http.'); return; }
+  try {
+    const _p = new URL(url);
+    if (_p.protocol !== 'https:') throw new Error();
+    if (/^(localhost|127\.|169\.254\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(_p.hostname)) throw new Error();
+  } catch (_) { showImportError('Please enter a valid https:// calendar URL.'); return; }
 
   input.disabled = true;
   input.placeholder = 'Fetching your calendar…';

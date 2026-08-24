@@ -780,7 +780,11 @@ HOW TO RESPOND:
       l = l.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
       l = l.replace(/\*(.+?)\*/g, '<em>$1</em>');
       l = l.replace(/`([^`]+)`/g, '<code style="background:#f1f5f9;padding:1px 5px;border-radius:4px;font-size:12px;font-family:monospace;">$1</code>');
-      l = l.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" style="color:#7c3aed;font-weight:600;">$1</a>');
+      l = l.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, text, href) => {
+        // Only allow safe protocols — block javascript:, data:, vbscript:, etc.
+        if (!/^https?:\/\//i.test(href.trim())) return escHtml(text);
+        return `<a href="${href.replace(/"/g, '&quot;')}" target="_blank" rel="noopener noreferrer" style="color:#7c3aed;font-weight:600;">${text}</a>`;
+      });
 
       // Block-level
       if (/^#{3}\s+(.+)/.test(l)) {

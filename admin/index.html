@@ -542,33 +542,47 @@
 <script src="../js/supabase-client.js"></script>
 <script>
 // ── CONFIG ──
-const ADMIN_EMAILS = ['hassen@gmail.com', 'dipenadhikari2005@gmail.com'];
-const ADMIN_PIN   = '2580';
-const PIN_KEY     = 'duee_admin_pin_ok';
-const LOG_KEY     = 'duee_admin_log';
+// Emails stored as SHA-256 hashes — real auth enforced server-side via Auth.requireAuth()
+const _AH = ['6622b8bf6049c61c4775abeecd34e98bd330d913ff988ec12dcfbe20c73619aa',
+              'fa5e4c41a7c7d9cc9f7d9ed175e324aaeb1af5b0207a4ee4433779f70437d937'];
+const PIN_KEY = 'duee_admin_pin_ok';
+const LOG_KEY = 'duee_admin_log';
 
 let _pings = [], _charts = {}, _failedAttempts = 0, _lockUntil = 0;
 const $ = id => document.getElementById(id);
 const fmt$ = cents => '$' + ((cents||0)/100).toFixed(2);
 
-// ── PIN ──
-function checkPin() {
-  if (_failedAttempts >= 5 && Date.now() < _lockUntil) {
-    $('pin-err').textContent = `Locked. Try in ${Math.ceil((_lockUntil-Date.now())/1000)}s`;
+// ── PIN (SHA-256 comparison) ──
+async function _sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+async function checkPin() {
+  const now = Date.now();
+  if (_failedAttempts >= 3 && now < _lockUntil) {
+    $('pin-err').textContent = `Locked. Try in ${Math.ceil((_lockUntil - now) / 1000)}s`;
     return;
   }
-  if ($('pin-input').value.trim() === ADMIN_PIN) {
-    sessionStorage.setItem(PIN_KEY,'1');
+  const pin = $('pin-input').value.trim();
+  const hash = await _sha256(pin);
+  if (hash === 'ed946f65d2c785d90e827c5ffd879ce3b49c68d4c88013074176a7e73bc58bcf') {
+    sessionStorage.setItem(PIN_KEY, '1');
     $('pin-gate').style.display = 'none';
     $('dashboard').style.display = 'block';
     bootDashboard();
   } else {
     _failedAttempts++;
-    if (_failedAttempts >= 5) { _lockUntil = Date.now()+30000; $('pin-err').textContent='Locked 30s'; }
-    else { $('pin-err').textContent='Wrong PIN'; $('pin-attempts').textContent=`${5-_failedAttempts} tries left`; }
-    $('pin-input').value='';
+    if (_failedAttempts >= 3) {
+      _lockUntil = now + 300000; // 5 minute lockout
+      $('pin-err').textContent = 'Locked 5 minutes';
+    } else {
+      $('pin-err').textContent = 'Wrong PIN';
+      $('pin-attempts').textContent = `${3 - _failedAttempts} tries left`;
+    }
+    $('pin-input').value = '';
     $('pin-input').classList.add('shake');
-    setTimeout(()=>$('pin-input').classList.remove('shake'),400);
+    setTimeout(() => $('pin-input').classList.remove('shake'), 400);
   }
 }
 if (sessionStorage.getItem(PIN_KEY)) { $('pin-gate').style.display='none'; $('dashboard').style.display='block'; }
@@ -585,7 +599,8 @@ function switchTab(name, el) {
 async function bootDashboard() {
   const session = await Auth.requireAuth();
   if (!session) return;
-  if (!ADMIN_EMAILS.includes(session.user.email)) {
+  const _emailHash = await _sha256(session.user.email);
+  if (!_AH.includes(_emailHash)) {
     document.body.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#060d1a;text-align:center;padding:40px;color:#e2e8f0;"><div><div style="font-size:48px;margin-bottom:16px;">🚫</div><div style="font-size:20px;font-weight:700;margin-bottom:8px;">Access Denied</div><a href="/dashboard" style="background:#16a34a;color:white;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:600;">Back</a></div></div>`;
     return;
   }
